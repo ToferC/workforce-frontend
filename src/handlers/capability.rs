@@ -1,5 +1,5 @@
 use actix_session::UserSession;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, web, ResponseError};
+use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use actix_identity::Identity;
 use crate::{AppData, generate_basic_context};
 use crate::graphql::get_capability_by_name_and_level;
@@ -14,7 +14,7 @@ pub async fn capability_search(
 
     println!("CALL CAPABILITY SEARCH");
 
-    let (mut ctx, user, lang, path) = generate_basic_context(id, &lang, req.uri().path());
+    let (mut ctx, _user, _lang, _path) = generate_basic_context(id, &lang, req.uri().path());
 
     let bearer = match req.get_session().get::<String>("bearer").unwrap() {
         Some(s) => s,

@@ -28,7 +28,7 @@ pub fn login(email: String, password: String, api_url: &str) -> Result<log_in::R
     });
 
     let client = reqwest::blocking::Client::new();
-    let mut res = client.post(api_url).json(&request_body).send()?;
+    let res = client.post(api_url).json(&request_body).send()?;
 
     let response_body: Response<log_in::ResponseData> = res.json()?;
 

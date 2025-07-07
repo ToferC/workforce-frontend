@@ -1,5 +1,5 @@
 use actix_session::UserSession;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, web, ResponseError};
+use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use actix_identity::{Identity};
 
 

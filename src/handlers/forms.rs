@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::graphql::capability_by_name_and_level::CapabilityLevel;
 
 #[derive(Deserialize, Debug)]
 pub struct LoginForm {

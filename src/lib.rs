@@ -3,15 +3,11 @@ pub mod handlers;
 pub mod graphql;
 pub mod errors;
 
-use std::sync::Mutex;
-use actix_web::web::Data;
-use actix_web::{Error, App};
+use actix_web::Error;
 use tera::{Tera, Context};
 use actix_identity::Identity;
 use actix_session::Session;
 
-use rand::{thread_rng, Rng};
-use rand::distributions::Alphanumeric;
 
 extern crate strum;
 #[macro_use]

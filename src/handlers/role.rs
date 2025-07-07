@@ -1,6 +1,6 @@
 use actix_session::UserSession;
-use serde::{Deserialize, Serialize};
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web, ResponseError};
+use serde::Deserialize;
+use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
 use actix_identity::{Identity};
 use uuid::Uuid;
 
@@ -27,7 +27,7 @@ pub async fn role_by_id(
     
     req:HttpRequest) -> impl Responder {
 
-    let (mut ctx, user, lang, path) = generate_basic_context(id, &lang, req.uri().path());
+    let (mut ctx, _user, _lang, _path) = generate_basic_context(id, &lang, req.uri().path());
 
     let bearer = match req.get_session().get::<String>("bearer").unwrap() {
         Some(s) => s,
@@ -47,11 +47,11 @@ pub async fn role_by_id(
 pub async fn create_role(
     data: web::Data<AppData>,
     id: Identity,
-    web::Path((lang, role_id)): web::Path<(String, String)>,
+    web::Path((lang, _role_id)): web::Path<(String, String)>,
     
     req:HttpRequest) -> impl Responder {
 
-    let (mut ctx, user, lang, path) = generate_basic_context(id, &lang, req.uri().path());
+    let (ctx, _user, _lang, _path) = generate_basic_context(id, &lang, req.uri().path());
 
     let bearer = match req.get_session().get::<String>("bearer").unwrap() {
         Some(s) => s,
@@ -67,11 +67,11 @@ pub async fn role_submit(
     data: web::Data<AppData>,
     id: Identity,
     form: web::Form<AddRoleForm>,
-    web::Path((lang, role_id)): web::Path<(String, String)>,
+    web::Path((lang, _role_id)): web::Path<(String, String)>,
     
     req:HttpRequest) -> impl Responder {
 
-    let (mut ctx, user, lang, path) = generate_basic_context(id, &lang, req.uri().path());
+    let (ctx, _user, _lang, _path) = generate_basic_context(id, &lang, req.uri().path());
 
     let bearer = match req.get_session().get::<String>("bearer").unwrap() {
         Some(s) => s,

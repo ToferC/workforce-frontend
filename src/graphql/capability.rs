@@ -2,7 +2,6 @@ use graphql_client::{GraphQLQuery, Response};
 use serde::{Serialize, Deserialize};
 use std::error::Error;
 use reqwest;
-use actix_web::{HttpRequest, HttpResponse, Responder, post, web, ResponseError};
 
 type UUID = String;
 

@@ -1,14 +1,13 @@
 // example auth: https://github.com/actix/actix-extras/blob/master/actix-identity/src/lib.rs
 
-use std::{env, sync::Mutex};
 
 use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
-use actix_session::{Session, UserSession};
+use actix_session::UserSession;
 use actix_identity::{Identity};
 
-use crate::{AppData, generate_basic_context, extract_identity_data, APP_NAME, graphql};
+use crate::{AppData, generate_basic_context, graphql};
 
-use super::{EmailForm, LoginForm, RegisterForm, VerifyForm, PasswordForm};
+use super::LoginForm;
 
 #[get("/{lang}/log_in")]
 pub async fn login_handler(
@@ -66,7 +65,7 @@ pub async fn login_form_input(
 #[get("/{lang}/log_out")]
 pub async fn logout(
      web::Path(lang): web::Path<String>,
-    data: web::Data<AppData>,
+    _data: web::Data<AppData>,
     req: HttpRequest,
     id: Identity,
 ) -> impl Responder {
