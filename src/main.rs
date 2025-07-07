@@ -46,7 +46,7 @@ async fn main() -> std::io::Result<()> {
     let api_target = if environment == "production" {
         env::var("GRAPHQL_API_TARGET").unwrap()
     } else {
-        String::from("127.0.0.1:8080/graphql")
+        String::from("http://127.0.0.1:8080/graphql")
     };
 
     let cookie_secret_key = env::var("COOKIE_SECRET_KEY").expect("Unable to find cookie secret key");
@@ -58,7 +58,7 @@ async fn main() -> std::io::Result<()> {
     tera.full_reload().expect("Error running auto-reload with Tera");
     tera.register_function("fluent", FluentLoader::new(&*LOCALES));
 
-    let api_url = format!("https://{}", api_target);
+    let api_url = format!("{}", api_target);
     
     println!("Serving on http://{}:{}", &host, &port);
     println!("Targeting API on {}", &api_url);
