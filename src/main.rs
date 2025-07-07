@@ -58,7 +58,7 @@ async fn main() -> std::io::Result<()> {
     tera.full_reload().expect("Error running auto-reload with Tera");
     tera.register_function("fluent", FluentLoader::new(&*LOCALES));
 
-    let api_url = format!("http://{}", api_target);
+    let api_url = format!("https://{}", api_target);
     
     println!("Serving on http://{}:{}", &host, &port);
     println!("Targeting API on {}", &api_url);
