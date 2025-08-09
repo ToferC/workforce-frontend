@@ -1,5 +1,5 @@
 hello-world = Hello World
-welcome-to = Welcome to the Public Health Workforce Analytics MVP
+welcome-to = Welcome to the Armed Forces Workforce Analytics MVP
 
 ## General Section
 
