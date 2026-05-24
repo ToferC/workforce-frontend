@@ -5,27 +5,42 @@
 {% endblock title %}
 
 {% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-4 mb-2"><i class="bi bi-people"></i> People</h1>
+    </div>
 
-<div class="col m-md-2 m-1">
-
-    <h1>People</h1>
-    
-        {% for person in people %}
-            <h2><a href="/{{lang}}/person/{{person.id}}">{{ person.givenName }} {{ person.familyName }}</a></h2>
-            <br>
-            <h3>Roles</h3>
-            {% for role in person.activeRoles %}
-                <li><strong>{{ role.titleEnglish }}</strong> - {{ role.militaryOccupation }}-{{ role.rank }}</li>
-            {% endfor %}
-            <br>
-            <h3>Capabilities</h3>
-            {% for cap in person.capabilities %}
-                <li>{{ cap.nameEn }} ({{ cap.domain }}) - {{ cap.validatedLevel }}</li>
-            {% endfor %}
-            <hr>
-        {% endfor %}
+    {% for person in people %}
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0">
+                <a href="/{{lang}}/person/{{person.id}}">{{ person.givenName }} {{ person.familyName }}</a>
+            </h2>
+        </div>
+        <div class="card-body p-0">
+            <div class="p-3 border-bottom">
+                <h3 class="h6 text-muted mb-2">Roles</h3>
+                <ul class="list-group list-group-flush">
+                    {% for role in person.activeRoles %}
+                    <li class="list-group-item px-0">
+                        <strong>{{ role.titleEnglish }}</strong>
+                        <span class="text-muted small ms-2">{{ role.militaryOccupation }}-{{ role.rank }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="p-3">
+                <h3 class="h6 text-muted mb-2">Capabilities</h3>
+                <ul class="list-group list-group-flush">
+                    {% for cap in person.capabilities %}
+                    <li class="list-group-item px-0">
+                        {{ cap.nameEn }} <span class="text-muted">({{ cap.domain }})</span> &mdash; {{ cap.validatedLevel }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 </div>
-
-
-
 {% endblock content %}

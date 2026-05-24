@@ -5,51 +5,53 @@
 {% endblock title %}
 
 {% block content %}
-    <div class="col m-md-2 m-1">
-        <br>
-        <h1>{{ fluent(key="edit-user-title", user=user.user_name, lang=lang )}}</h1>
-        <p>{{ fluent(key="edit-user-explain", lang=lang )}}</p>
-
-
-        <form name="UserForm" id="userForm" action=/{{ lang }}/edit_user/{{ user.slug }} method=POST>
-        
-            <label>
-                <strong>{{ fluent(key="email-address", lang=lang )}}</strong>
-                <input class="form-control form-control-lg" type="email" name="email" value="{{ user.email }}" required>
-                <small id="code_help" class="form-text text-muted">{{ fluent(key="email-address-helper", lang=lang )}}.</small>
-            </label>
-            <br>
-    
-            <label>
-                <strong>{{ fluent(key="user-name", lang=lang )}}</strong>
-                <input class="form-control form-control-lg" type="text" name="user_name" value="{{ user.user_name }}" required>
-                <small id="code_help" class="form-text text-muted">{{ fluent(key="user-name-helper", lang=lang )}}</small>
-            </label>
-            <br>
-    
-        <p><strong>{{ fluent(key="email-change-notice", lang=lang )}}</strong></p>
-
-        <hr>
-        <button 
-            class="btn g-recaptcha btn-dark" 
-            data-sitekey="6LfAltkZAAAAAN7rJGBvRUPm36M1aiL7q2a8SznA" 
-            data-callback='onSubmit' 
-            data-action='submit'
-            type=submit
-            >{{ fluent(key="update-button", lang=lang )}}</button>
-    </form>
-                
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-4 mb-2"><i class="bi bi-pencil-square"></i> {{ fluent(key="edit-user-title", user=user.user_name, lang=lang )}}</h1>
+        <p class="lead text-muted">{{ fluent(key="edit-user-explain", lang=lang )}}</p>
     </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-12">
+            <div class="card shadow-lg">
+                <div class="card-body p-4">
+                    <form name="UserForm" id="userForm" action=/{{ lang }}/edit_user/{{ user.slug }} method=POST>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label"><strong>{{ fluent(key="email-address", lang=lang )}}</strong></label>
+                            <input class="form-control form-control-lg" type="email" name="email" value="{{ user.email }}" required>
+                            <small class="form-text text-muted">{{ fluent(key="email-address-helper", lang=lang )}}.</small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label"><strong>{{ fluent(key="user-name", lang=lang )}}</strong></label>
+                            <input class="form-control form-control-lg" type="text" name="user_name" value="{{ user.user_name }}" required>
+                            <small class="form-text text-muted">{{ fluent(key="user-name-helper", lang=lang )}}</small>
+                        </div>
+
+                        <p class="mb-3"><strong>{{ fluent(key="email-change-notice", lang=lang )}}</strong></p>
+
+                        <hr>
+                        <button
+                            class="btn btn-primary btn-lg w-100 g-recaptcha"
+                            data-sitekey="6LfAltkZAAAAAN7rJGBvRUPm36M1aiL7q2a8SznA"
+                            data-callback='onSubmit'
+                            data-action='submit'
+                            type=submit
+                        >{{ fluent(key="update-button", lang=lang )}}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock content %}
 
 {% block scripts %}
 <script>
-
     window.onSubmit = onSubmit;
-
     function onSubmit(token) {
-     document.getElementById("userForm").submit();
-   };
-
+        document.getElementById("userForm").submit();
+    };
 </script>
 {% endblock scripts %}

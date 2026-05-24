@@ -5,96 +5,165 @@
 {% endblock title %}
 
 {% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-4 mb-2"><i class="bi bi-person-badge"></i> {{ person.givenName }} {{ person.familyName }}</h1>
+        <p class="lead text-muted">
+            <a href="/{{ lang }}/organization/{{ person.organization.id }}">{{ person.organization.nameEn }}</a>
+        </p>
+    </div>
 
-<div class="col m-md-2 m-1">
+    <!-- Contact Info -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-telephone"></i> Contact Info</h2>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><span class="text-muted">Address:</span> {{ person.workAddress }}, {{ person.postalCode }}</li>
+                <li class="list-group-item"><span class="text-muted">Email:</span> {{ person.email }}</li>
+                <li class="list-group-item"><span class="text-muted">Phone:</span> {{ person.phone }}</li>
+            </ul>
+        </div>
+    </div>
 
-    <h1>{{ person.givenName }} {{ person.familyName }}</h1>
-    <h3><a href="/{{ lang }}/organization/{{ person.organization.id }}">{{ person.organization.nameEn }}</a></h3>
-
-    <hr>
-    
-    <h3>Contact Info</h3>
-    <li>{{ person.workAddress }}</li>
-    <li>{{ person.postalCode }}</li>
-    <li>{{ person.email }}</li>
-    <li>{{ person.phone }}</li>
-    
-    <hr>
-
-    <h3>Role</h3>
+    <!-- Active Roles -->
     {% for role in person.activeRoles %}
-        <h5><a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish}} ({{ role.militaryOccupation }}-{{ role.rank}})</a></h5>
-        <h5>Current Effort: {{ role.effort }}</h5>
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0">
+                <i class="bi bi-briefcase"></i>
+                <a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish }}</a>
+                <span class="text-muted fw-normal small ms-2">{{ role.militaryOccupation }}-{{ role.rank }}</span>
+            </h2>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><span class="text-muted">Current Effort:</span> {{ role.effort }}</li>
+                <li class="list-group-item">
+                    <span class="text-muted">Team:</span>
+                    <a href="/{{lang}}/team/{{role.team.id}}">{{ role.team.nameEnglish }}</a>
+                </li>
+                <li class="list-group-item">
+                    <span class="text-muted">Team Owner:</span>
+                    <a href="/{{lang}}/person/{{role.team.owner.id}}">{{ role.team.owner.givenName }} {{ role.team.owner.familyName }}</a>
+                    &mdash; {{ role.team.owner.email }}
+                </li>
+            </ul>
 
-        <hr>
-        <h3>Team</h3>
-        <li>Name: <a href="/{{lang}}/team/{{role.team.id}}">{{ role.team.nameEnglish }}</a></li>
-        
-        <li>Owner: <a href="/{{lang}}/person/{{role.team.owner.id}}">{{ role.team.owner.givenName }} {{ role.team.owner.familyName }}</a></li>
-        <li>Owner email: {{ role.team.owner.email }}</li>
+            {% if role.work %}
+            <div class="p-3">
+                <h3 class="h6 text-muted mb-2">Work</h3>
+                <ul class="list-group list-group-flush">
+                    {% for work in role.work %}
+                    <li class="list-group-item px-0">
+                        <a href="/{{lang}}/work/{{work.id}}" class="fw-semibold">{{ work.workDescription | title }}</a>
+                        <div class="small text-muted mt-1">
+                            {{ work.domain }} &rarr; {{ work.capabilityLevel }} &mdash; {{ work.workStatus }} &mdash; Effort: {{ work.effort }}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% else %}
+            <div class="p-3 text-muted small">No work assigned.</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
 
-        <hr>
-        <h4>Work</h4>
-        {% if role.work %}
-            {% for work in role.work %}
-                <h5><strong><a href="/{{lang}}/work/{{work.id}}">{{ work.workDescription | title }}</a></strong></li></h5>
-                <li>Domain & Capability: {{ work.domain }} -> {{ work.capabilityLevel }}</li>
-                <li>Status: {{ work.workStatus}}</li>
-                <li>Effort: {{ work.effort }}</li>
+    <!-- Past Roles -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-clock-history"></i> Past Roles</h2>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                {% for role in person.inactiveRoles %}
+                <li class="list-group-item">
+                    <a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish }}</a>
+                    <span class="text-muted small ms-2">{{ role.militaryOccupation }}-{{ role.rank }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Capabilities -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-award"></i> Capabilities</h2>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                {% for cap in person.capabilities %}
+                <li class="list-group-item">
+                    {{ cap.nameEn }} <span class="text-muted">({{ cap.domain }})</span> &mdash; {{ cap.validatedLevel }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Potential Job Matches -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-bullseye"></i> Potential Job Matches</h2>
+        </div>
+        <div class="card-body p-0">
+            {% for match in person.findMatches %}
+            <div class="p-3 border-bottom">
+                <a href="/{{lang}}/role/{{match.id}}" class="fw-semibold">{{ match.titleEnglish }}</a>
+                <span class="text-muted small ms-2">{{ match.militaryOccupation }}-{{ match.rank }}</span>
+                <ul class="list-group list-group-flush mt-2">
+                    {% for req in match.requirements %}
+                    <li class="list-group-item px-0 small">{{ req.nameEn }} <span class="text-muted">({{ req.domain }})</span> &mdash; {{ req.requiredLevel }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
             {% endfor %}
-        {% else %}
-            <p>No Work Assigned</p>
-        {% endif %}
+        </div>
+    </div>
 
-        <hr>
-    {% endfor %}</h4>
+    <!-- Affiliations -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-link-45deg"></i> Affiliations</h2>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                {% if person.affilations %}
+                    {% for aff in person.affiliations %}
+                    <li class="list-group-item">
+                        <a href="/{{lang}}/affiliation/{{aff.id}}">{{ aff.organization.nameEn }}</a> &mdash; {{ aff.affiliationRole }}
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li class="list-group-item text-muted">None</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
 
-    <hr>
-    <h4>Past Roles</h4>
-    {% for role in person.inactiveRoles %}
-        <li><a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish}} ({{ role.militaryOccupation }}-{{ role.rank}})</a></li>
-    {% endfor %}
-
-    <hr>
-    <h3>Capabilities</h3>
-    {% for cap in person.capabilities %}
-        <li>{{ cap.nameEn }} ({{ cap.domain }}) - {{ cap.validatedLevel }}</li>
-    {% endfor %}
-
-    <hr>
-    <h3>Potential Job Matches</h3>
-    {% for match in person.findMatches %}
-        <h5><a href="/{{lang}}/role/{{match.id}}">{{ match.titleEnglish }} ({{ match.militaryOccupation }})-{{ match.rank }}</a></h5>
-        {% for req in match.requirements %}
-            <li>{{ req.nameEn }} ({{ req.domain }}) - {{ req.requiredLevel }}</li>
-        {% endfor %}
-        <br>
-    {% endfor %}
-    <hr>
-    
-
-    <h3>Affiliations</h3>
-    {% if person.affilations %}
-        {% for aff in person.affiliations %}
-            <li><a href="/{{lang}}/affiliation/{{aff.id}}">{{ aff.organization.nameEn }} - {{ aff.affiliationRole }}</a></li>
-        {% endfor %}
-    {% else %}
-        <li>None</li>
-    {% endif %}
-
-    <hr>
-
-    <h3>Publications</h3>
-    {% if person.publications %}
-        {% for pub in person.publications %}
-            <li><a href="/{{lang}}/publication/{{pub.id}}">{{ pub.title }} - {{ pub.subjectText }}</a></li>
-        {% endfor %}
-    {% else %}
-        <li>None</li>
-    {% endif %}
-
+    <!-- Publications -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-journal-richtext"></i> Publications</h2>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                {% if person.publications %}
+                    {% for pub in person.publications %}
+                    <li class="list-group-item">
+                        <a href="/{{lang}}/publication/{{pub.id}}">{{ pub.title }}</a>
+                        <span class="text-muted small ms-2">{{ pub.subjectText }}</span>
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li class="list-group-item text-muted">None</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
 </div>
-
-
-
 {% endblock content %}

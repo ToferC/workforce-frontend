@@ -5,12 +5,20 @@
 {% endblock title %}
 
 {% block content %}
-    <div class="col m-md-2 m-1">
-        <br>
-        <h1>{{ fluent(key="page-not-found", lang=lang )}}</h1>
-        <p>{{ fluent(key="you-requested", lang=lang )}} <strong>https://intersectional-data.ca{{ path }}</strong> - {{ fluent(key="does-not-exist", lang=lang )}}</p>
-        <p>{{ fluent(key="wrong-turn", lang=lang )}}</p>
-        <p><a href="/">{{ fluent(key="go-home", lang=lang )}}</a></p>
-
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-12">
+            <div class="card shadow-lg">
+                <div class="card-header">
+                    <h1 class="h4 mb-0"><i class="bi bi-exclamation-circle"></i> {{ fluent(key="page-not-found", lang=lang )}}</h1>
+                </div>
+                <div class="card-body">
+                    <p>{{ fluent(key="you-requested", lang=lang )}} <strong>https://intersectional-data.ca{{ path }}</strong> &mdash; {{ fluent(key="does-not-exist", lang=lang )}}</p>
+                    <p>{{ fluent(key="wrong-turn", lang=lang )}}</p>
+                    <a class="btn btn-primary" href="/"><i class="bi bi-house"></i> {{ fluent(key="go-home", lang=lang )}}</a>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 {% endblock content %}

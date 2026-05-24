@@ -5,11 +5,19 @@
 {% endblock title %}
 
 {% block content %}
-    <div class="col m-md-2 m-1">
-        <br>
-        <h1>{{ fluent(key="record-not-found", lang=lang )}}</h1>
-        <p>{{ fluent(key="record-not-found-explain", lang=lang )}}</p>
-        <p>{{ fluent(key="go-back-or", lang=lang )}} <a href="/{{ lang }}">{{ fluent(key="return-main-page", lang=lang )}}</a></p>
-
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-12">
+            <div class="card shadow-lg">
+                <div class="card-header">
+                    <h1 class="h4 mb-0"><i class="bi bi-search"></i> {{ fluent(key="record-not-found", lang=lang )}}</h1>
+                </div>
+                <div class="card-body">
+                    <p>{{ fluent(key="record-not-found-explain", lang=lang )}}</p>
+                    <p>{{ fluent(key="go-back-or", lang=lang )}} <a href="/{{ lang }}">{{ fluent(key="return-main-page", lang=lang )}}</a></p>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 {% endblock content %}

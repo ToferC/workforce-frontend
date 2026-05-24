@@ -1,90 +1,135 @@
 {% extends "base.html" %}
 
 {% block title %}
-    <title>{{ fluent(key="organization", lang=lang )}}</title>
+    <title>{{ fluent(key="organization-mm", lang=lang )}}</title>
 {% endblock title %}
 
 {% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-4 mb-2"><i class="bi bi-building"></i> {{ organization.nameEn }}</h1>
+        <p class="lead text-muted">{{ organization.acronymEn }}</p>
+    </div>
 
-<div class="col m-md-2 m-1">
+    <!-- Details -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><span class="text-muted">Organization Type:</span> {{ organization.orgType }}</li>
+                <li class="list-group-item"><span class="text-muted">Web Page:</span> <a href="{{ organization.url }}">{{ organization.url }}</a></li>
+            </ul>
+        </div>
+    </div>
 
-    <h1>{{ organization.nameEn }} - {{ organization.acronymEn }}</h1>
-
-    <hr>
-    <h3>Details</h3>
-    <li>Organization Type: {{ organization.orgType }}</li>
-    <li>Web Page: {{ organization.url }}</li>
-
-    <hr>
-    <h3>Organizational Tiers</h3>
-    {% for ot in organization.topOrgTier %}
-        <p>Name: <a href="/{{lang}}/org_tier/{{ot.id}}">{{ ot.nameEn }}</a></p>
-        <li>Primary Domain: {{ ot.primaryDomain }}</li>
-        <li>Owner: <a href="/{{lang}}/person/{{ot.owner.id}}">{{ ot.owner.givenName }} {{ ot.owner.familyName }}</a></li>
-        <hr>
-    {% endfor %}
-
-    <hr>
-
-    <p>
-        <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#capabilitySummary" aria-expanded="false" aria-controls="collapseExample">
-        Organizational Capabilities
-        </button>
-    </p>
-    <div class="collapse" id="capabilitySummary">
-        <h3>Capability Summary</h3>
-            {% if organization.capabilityCounts %}
-            <table>
-                <tr>
-                    <th>Name</th>
-                    <th>Domain</th>
-                    <th>Level</th>
-                    <th>Count</th>
-                </tr>
-                {% for count in organization.capabilityCounts %}
-                    <tr>
-                        <td>{{ count.name }}</td>
-                        <td>{{ count.domain }}</td>
-                        <td>{{ count.level }}</td>
-                        <td>{{ count.counts }}</td>
-                    </tr>
+    <!-- Organizational Tiers -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-diagram-3"></i> Organizational Tiers</h2>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                {% for ot in organization.topOrgTier %}
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <a href="/{{lang}}/org_tier/{{ot.id}}" class="fw-semibold">{{ ot.nameEn }}</a>
+                            <div class="small text-muted mt-1">Primary Domain: {{ ot.primaryDomain }}</div>
+                        </div>
+                        <span class="text-muted small">
+                            Owner: <a href="/{{lang}}/person/{{ot.owner.id}}">{{ ot.owner.givenName }} {{ ot.owner.familyName }}</a>
+                        </span>
+                    </div>
+                </li>
                 {% endfor %}
-            </table>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Capability Summary (collapsible) -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <button class="btn btn-link p-0 text-decoration-none h4 mb-0" type="button" data-toggle="collapse" data-target="#capabilitySummary" aria-expanded="false" aria-controls="capabilitySummary">
+                <i class="bi bi-chevron-down me-1"></i><i class="bi bi-bar-chart"></i> Organizational Capabilities
+            </button>
+        </div>
+        <div class="collapse" id="capabilitySummary">
+            <div class="card-body p-0">
+                {% if organization.capabilityCounts %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Domain</th>
+                            <th>Level</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for count in organization.capabilityCounts %}
+                        <tr>
+                            <td>{{ count.name }}</td>
+                            <td>{{ count.domain }}</td>
+                            <td>{{ count.level }}</td>
+                            <td>{{ count.counts }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="p-4 text-muted">No capability data available.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Publications -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-journal-richtext"></i> Publications</h2>
+        </div>
+        <div class="card-body p-0">
+            {% if organization.publications %}
+            <ul class="list-group list-group-flush">
+                {% for pub in organization.publications %}
+                <li class="list-group-item">
+                    <a href="/{{lang}}/publication/{{pub.id}}" class="fw-semibold">{{ pub.title }}</a>
+                    <div class="small text-muted mt-1">
+                        Status: {{ pub.publicationStatus }} &mdash;
+                        Lead Author: <a href="/{{lang}}/person/{{pub.leadAuthor.id}}">{{ pub.leadAuthor.givenName }} {{ pub.leadAuthor.familyName }}</a>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
             {% else %}
-                <p>No Capability Count data</p>
+            <div class="p-4 text-muted">No publications.</div>
             {% endif %}
-      </div>
-    <hr>
+        </div>
+    </div>
 
-    <h3>Publications</h3>
-    {% if organization.publications %}
-        {% for pub in organization.publications %}
-            <p>Name: <a href="/{{lang}}/publication/{{pub.id}}">{{ pub.title }}</a></p>
-            <li>Status: {{ pub.publicationStatus }}</li>
-            <li>Lead Author: <a href="/{{lang}}/person/{{pub.leadAuthor.id}}">{{ pub.leadAuthor.givenName }} {{ pub.leadAuthor.familyName }}</a></li>
-            <hr>
-        {% endfor %}
-    {% else %}
-        <p>No Publications</p>
-    {% endif %}
-
-    <hr>
-
-    <h3>Affiliations</h3>
-    {% if organization.affiliations %}
-        {% for aff in organization.affiliations %}
-            <p><a href="/{{lang}}/person/{{aff.person.id}}">{{ aff.person.givenName }} {{ aff.person.familyName }}</a></p>
-            <li><a href="/{{lang}}/organization/{{aff.organization.id}}">{{ aff.organization.nameEn }}</a></li>
-            <li>Role: {{ aff.affiliationRole }}</li>
-            <hr>
-    {% endfor %}
-    {% else %}
-        <p>No Affiliations</p>
-    {% endif %}
-
-
+    <!-- Affiliations -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-link-45deg"></i> Affiliations</h2>
+        </div>
+        <div class="card-body p-0">
+            {% if organization.affiliations %}
+            <ul class="list-group list-group-flush">
+                {% for aff in organization.affiliations %}
+                <li class="list-group-item">
+                    <a href="/{{lang}}/person/{{aff.person.id}}" class="fw-semibold">{{ aff.person.givenName }} {{ aff.person.familyName }}</a>
+                    <div class="small text-muted mt-1">
+                        <a href="/{{lang}}/organization/{{aff.organization.id}}">{{ aff.organization.nameEn }}</a> &mdash; {{ aff.affiliationRole }}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="p-4 text-muted">No affiliations.</div>
+            {% endif %}
+        </div>
+    </div>
 </div>
-
-
-
 {% endblock content %}

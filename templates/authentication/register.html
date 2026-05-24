@@ -5,65 +5,66 @@
 {% endblock title %}
 
 {% block content %}
-    <div class="col m-md-2 m-1">
-        <br>
-        <h1>{{ fluent(key="register-to-app", lang=lang )}}</h1>
-        <p>{{ fluent(key="why-register", lang=lang )}}</p>
-
-
-        <form name="RegisterForm" id="registerForm" action=/{{ lang }}/register method=POST>
-        
-        <label>
-            <strong>{{ fluent(key="email-address", lang=lang )}}</strong>
-            <input class="form-control form-control-lg" type="email" name="email" placeholder="{{ fluent(key="email-placeholder", lang=lang )}}" required>
-            <small id="code_help" class="form-text text-muted">{{ fluent(key="register-email-helper", lang=lang )}}</small>
-        </label>
-        <br>
-
-        <label>
-            <strong>{{ fluent(key="user-name", lang=lang )}}</strong>
-            <input class="form-control form-control-lg" type="text" name="user_name" placeholder="{{ fluent(key="user-name-placeholder", lang=lang )}}" required>
-            <small id="code_help" class="form-text text-muted">{{ fluent(key="user-name-helper", lang=lang )}}</small>
-        </label>
-        <br>
-
-        <label>
-            <strong>{{ fluent(key="password", lang=lang )}}</strong>
-            <input 
-                class="form-control form-control-lg" 
-                type="password" 
-                name="password" 
-                placeholder="{{ fluent(key="password-placeholder", lang=lang )}}"
-                minlength=12
-                required
-            >
-            <small id="code_help" class="form-text text-muted">{{ fluent(key="password-helper", lang=lang )}}</small>
-        </label>
-
-        <br>
-        <p><strong>{{ fluent(key="email-coming-notice", lang=lang )}}</strong></p>
-
-        <hr>
-        <button 
-            class="btn g-recaptcha btn-dark" 
-            data-sitekey="6LfAltkZAAAAAN7rJGBvRUPm36M1aiL7q2a8SznA" 
-            data-callback='onSubmit' 
-            data-action='submit'
-            type=submit
-            >{{ fluent(key="register", lang=lang )}}</button>
-    </form>
-                
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-4 mb-2"><i class="bi bi-person-plus"></i> {{ fluent(key="register-to-app", lang=lang )}}</h1>
+        <p class="lead text-muted">{{ fluent(key="why-register", lang=lang )}}</p>
     </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-12">
+            <div class="card shadow-lg">
+                <div class="card-body p-4">
+                    <form name="RegisterForm" id="registerForm" action=/{{ lang }}/register method=POST>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label"><strong>{{ fluent(key="email-address", lang=lang )}}</strong></label>
+                            <input class="form-control form-control-lg" type="email" name="email" placeholder="{{ fluent(key="email-placeholder", lang=lang )}}" required>
+                            <small class="form-text text-muted">{{ fluent(key="register-email-helper", lang=lang )}}</small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label"><strong>{{ fluent(key="user-name", lang=lang )}}</strong></label>
+                            <input class="form-control form-control-lg" type="text" name="user_name" placeholder="{{ fluent(key="user-name-placeholder", lang=lang )}}" required>
+                            <small class="form-text text-muted">{{ fluent(key="user-name-helper", lang=lang )}}</small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label"><strong>{{ fluent(key="password", lang=lang )}}</strong></label>
+                            <input
+                                class="form-control form-control-lg"
+                                type="password"
+                                name="password"
+                                placeholder="{{ fluent(key="password-placeholder", lang=lang )}}"
+                                minlength=12
+                                required
+                            >
+                            <small class="form-text text-muted">{{ fluent(key="password-helper", lang=lang )}}</small>
+                        </div>
+
+                        <p class="mb-3"><strong>{{ fluent(key="email-coming-notice", lang=lang )}}</strong></p>
+
+                        <hr>
+                        <button
+                            class="btn btn-primary btn-lg w-100 g-recaptcha"
+                            data-sitekey="6LfAltkZAAAAAN7rJGBvRUPm36M1aiL7q2a8SznA"
+                            data-callback='onSubmit'
+                            data-action='submit'
+                            type=submit
+                        >{{ fluent(key="register", lang=lang )}}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock content %}
 
 {% block scripts %}
 <script>
-
     window.onSubmit = onSubmit;
-
     function onSubmit(token) {
-     document.getElementById("registerForm").submit();
-   };
-
+        document.getElementById("registerForm").submit();
+    };
 </script>
 {% endblock scripts %}

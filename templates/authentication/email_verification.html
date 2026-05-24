@@ -5,42 +5,44 @@
 {% endblock title %}
 
 {% block content %}
-    <div class="col m-md-2 m-1">
-        <br>
-        <h1>{{ fluent(key="verify-email", lang=lang )}}</h1>
-        <p>{{ fluent(key="enter-key", useremail=user.email, lang=lang )}}</p>
-
-
-        <form name="VerifyForm" id="verifyForm" action=/{{ lang }}/verify_code method=POST>
-        
-        <label>
-            <strong>{{ fluent(key="code", lang=lang )}}</strong>
-            <input class="form-control form-control-lg" type="text" name="code" placeholder="EGH83" required>
-            <small id="code_help" class="form-text text-muted">{{ fluent(key="code-helper", lang=lang )}}</small>
-        </label>
-
-        <br>
-
-        <button 
-            class="btn g-recaptcha btn-dark" 
-            data-sitekey="6LfAltkZAAAAAN7rJGBvRUPm36M1aiL7q2a8SznA" 
-            data-callback='onSubmit' 
-            data-action='submit'
-            type=submit
-            >{{ fluent(key="verify", lang=lang )}}</button>
-    </form>
-                
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-4 mb-2"><i class="bi bi-shield-check"></i> {{ fluent(key="verify-email", lang=lang )}}</h1>
+        <p class="lead text-muted">{{ fluent(key="enter-key", useremail=user.email, lang=lang )}}</p>
     </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-12">
+            <div class="card shadow-lg">
+                <div class="card-body p-4">
+                    <form name="VerifyForm" id="verifyForm" action=/{{ lang }}/verify_code method=POST>
+
+                        <div class="form-group mb-4">
+                            <label class="form-label"><strong>{{ fluent(key="code", lang=lang )}}</strong></label>
+                            <input class="form-control form-control-lg" type="text" name="code" placeholder="EGH83" required>
+                            <small class="form-text text-muted">{{ fluent(key="code-helper", lang=lang )}}</small>
+                        </div>
+
+                        <button
+                            class="btn btn-primary btn-lg w-100 g-recaptcha"
+                            data-sitekey="6LfAltkZAAAAAN7rJGBvRUPm36M1aiL7q2a8SznA"
+                            data-callback='onSubmit'
+                            data-action='submit'
+                            type=submit
+                        >{{ fluent(key="verify", lang=lang )}}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock content %}
 
 {% block scripts %}
 <script>
-
     window.onSubmit = onSubmit;
-
     function onSubmit(token) {
-     document.getElementById("verifyForm").submit();
-   };
-
+        document.getElementById("verifyForm").submit();
+    };
 </script>
 {% endblock scripts %}

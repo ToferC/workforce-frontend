@@ -5,38 +5,66 @@
 {% endblock title %}
 
 {% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-4 mb-2"><i class="bi bi-list-task"></i> {{ work.workDescription | title }}</h1>
+    </div>
 
-<div class="col m-md-2 m-1">
+    <!-- Details -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ work.url }}">{{ work.url }}</a></li>
+                <li class="list-group-item"><span class="text-muted">Domain:</span> {{ work.domain }} &rarr; {{ work.capabilityLevel }}</li>
+                <li class="list-group-item">
+                    <span class="text-muted">Task:</span>
+                    <a href="/{{lang}}/task/{{work.task.id}}">{{ work.task.title }}</a>
+                </li>
+                <li class="list-group-item"><span class="text-muted">Target Completion:</span> {{ work.task.targetCompletionDate }}</li>
+                <li class="list-group-item">
+                    <span class="text-muted">Assigned by:</span>
+                    <a href="/{{lang}}/person/{{work.task.createdBy.person.id}}">{{ work.task.createdBy.person.givenName }} {{ work.task.createdBy.person.familyName }}</a>
+                    &mdash;
+                    <a href="/{{ lang }}/role/{{ work.task.createdBy.id }}">{{ work.role.titleEnglish }} &mdash; {{ work.task.createdBy.militaryOccupation }}-{{ work.task.createdBy.rank }}</a>
+                </li>
+                <li class="list-group-item">
+                    <span class="text-muted">Team:</span>
+                    <a href="/{{lang}}/team/{{work.task.createdBy.team.id}}">{{ work.task.createdBy.team.nameEnglish }}</a>
+                </li>
+            </ul>
+        </div>
+    </div>
 
-    <h1>{{ work.workDescription | title }}</h1>
-
-    <h3>Details</h3>
-    <li>Website: {{ work.url }}</li>
-    <li>Domain: {{ work.domain }} - {{ work.capabilityLevel }}</li>
-    <li>Task: <a href="/{{lang}}/task/{{work.task.id}}">{{ work.task.title }}</a></li>
-    <li>Target Completion Date: {{ work.task.targetCompletionDate }}</li>
-    
-    <hr>
-    <h5>Assigned by: <a href="/{{lang}}/person/{{work.task.createdBy.person.id}}">{{ work.task.createdBy.person.givenName }} {{ work.task.createdBy.person.familyName }}</a> - <a href="/{{ lang }}/role/{{ work.task.createdBy.id }}">{{ work.role.titleEnglish }} - {{ work.task.createdBy.militaryOccupation }}-{{ work.task.createdBy.rank }}</a></h5>
-    <li>Team: <a href="/{{lang}}/team/{{work.task.createdBy.team.id}}">{{ work.task.createdBy.team.nameEnglish }}</a></li>
-    <hr>
-
-    <h3>Assigned to</h3>
-    {% if work.role.person %}
-    <li><a href="/{{lang}}/person/{{work.role.person.id}}">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a></li>
-    <li>Role: <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }} - {{ work.role.militaryOccupation }}-{{ work.role.rank }}</a></li>
-    <li>Address: {{ work.role.person.workAddress }}</li>
-    <li>Organization: <a href="/{{ lang }}/organization/{{ work.role.person.organization.id }}">{{ work.role.person.organization.nameEn }}</a></li>
-    <li>Email: {{ work.role.person.email }}</li>
-    <li>Phone: {{ work.role.person.phone }}</li>
-    {% else %}
-    <p>Not Assigned</p>
-    {% endif %}
-
-    <hr>
-
+    <!-- Assigned To -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-person-check"></i> Assigned To</h2>
+        </div>
+        <div class="card-body p-0">
+            {% if work.role.person %}
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                    <a href="/{{lang}}/person/{{work.role.person.id}}" class="fw-semibold">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
+                </li>
+                <li class="list-group-item">
+                    <span class="text-muted">Role:</span>
+                    <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }} &mdash; {{ work.role.militaryOccupation }}-{{ work.role.rank }}</a>
+                </li>
+                <li class="list-group-item"><span class="text-muted">Address:</span> {{ work.role.person.workAddress }}</li>
+                <li class="list-group-item">
+                    <span class="text-muted">Organization:</span>
+                    <a href="/{{ lang }}/organization/{{ work.role.person.organization.id }}">{{ work.role.person.organization.nameEn }}</a>
+                </li>
+                <li class="list-group-item"><span class="text-muted">Email:</span> {{ work.role.person.email }}</li>
+                <li class="list-group-item"><span class="text-muted">Phone:</span> {{ work.role.person.phone }}</li>
+            </ul>
+            {% else %}
+            <div class="p-4 text-muted">Not assigned.</div>
+            {% endif %}
+        </div>
+    </div>
 </div>
-
-
-
 {% endblock content %}

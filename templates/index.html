@@ -1,40 +1,83 @@
 {% extends "base.html" %}
 
 {% block content %}
-        <div class="col m-md-2 m-1">
-            <h1>{{ fluent(key="welcome-to", lang=lang) }}</h1>
+        <div class="col-12 px-md-4 px-2 py-4">
+            <!-- Hero Section -->
+            <div class="hero-section mb-5">
+                <h1 class="display-4 mb-3">{{ fluent(key="welcome-to", lang=lang) }}</h1>
+                <p class="lead text-muted">Manage your organizational workforce efficiently here</p>
+            </div>
 
-            <h2>Organizations</h2>
-
-            {% for organization in organizations %}
-                <li><a href="/{{ lang }}/organization/{{ organization.id }}">{{ organization.nameEn }}</a></li>
-            {% endfor %}
-
-            <hr>
-            <h3>Search person by name: </h3>
-                <input id="personSearchbar" class="form-control" type="text" placeholder="Enter name here" aria-label="Search Person">
-                <button class="btn btn-dark" id="peopleSearch">Search</button>
-
-            <hr>
-            <h3>Search Capability</h3>
-                <div class="input-group">
-
-                    <input id="capabilityName" class="form-control" type="text" placeholder="Enter name here" aria-label="Capability Name">
-    
-                    <select class="custom-select" id="levelSelect">
-                        <option selected>Choose Level</option>
-                        <option value="DESIRED">Desired</option>
-                        <option value="NOVICE">Novice</option>
-                        <option value="EXPERIENCED">Experienced</option>
-                        <option value="EXPERT">Expert</option>
-                        <option value="SPECIALIST">Specialist</option>
-                    </select>
-                    
-                    <button class="btn btn-dark" 
-                        id="capabilitySearchButton">Submit
-                    </button>
+            <!-- Organizations Section -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-building"></i> Organizations</h2>
                 </div>
-                
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for organization in organizations %}
+                            <li class="list-group-item">
+                                <a href="/{{ lang }}/organization/{{ organization.id }}" class="stretched-link">
+                                    {{ organization.nameEn }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Search Sections Grid -->
+            <div class="row">
+                <!-- Person Search Card -->
+                <div class="col-lg-6 col-12 mb-4">
+                    <div class="card shadow-lg h-100">
+                        <div class="card-header">
+                            <h3 class="h5 mb-0"><i class="bi bi-person-search"></i> Search Person</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="personSearchbar" class="form-label">Enter person's name</label>
+                                <input id="personSearchbar" class="form-control form-control-lg" type="text"
+                                       placeholder="John Doe" aria-label="Search Person">
+                            </div>
+                            <button class="btn btn-primary btn-lg btn-block w-100" id="peopleSearch">
+                                <i class="bi bi-search"></i> Search Person
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Capability Search Card -->
+                <div class="col-lg-6 col-12 mb-4">
+                    <div class="card shadow-lg h-100">
+                        <div class="card-header">
+                            <h3 class="h5 mb-0"><i class="bi bi-award"></i> Search Capability</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group mb-3">
+                                <label for="capabilityName" class="form-label">Capability name</label>
+                                <input id="capabilityName" class="form-control form-control-lg" type="text"
+                                       placeholder="Enter capability" aria-label="Capability Name">
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="levelSelect" class="form-label">Experience level</label>
+                                <select class="form-control form-control-lg" id="levelSelect">
+                                    <option selected disabled>Choose Level</option>
+                                    <option value="DESIRED">Desired</option>
+                                    <option value="NOVICE">Novice</option>
+                                    <option value="EXPERIENCED">Experienced</option>
+                                    <option value="EXPERT">Expert</option>
+                                    <option value="SPECIALIST">Specialist</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary btn-lg btn-block w-100" id="capabilitySearchButton">
+                                <i class="bi bi-search"></i> Search Capability
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 {% endblock content %}
 

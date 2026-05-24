@@ -52,7 +52,7 @@ async fn main() -> std::io::Result<()> {
     let cookie_secret_key = env::var("COOKIE_SECRET_KEY").expect("Unable to find cookie secret key");
 
     let mut tera = Tera::new(
-        "frontend/templates/**/*").unwrap();
+        "templates/**/*").unwrap();
 
     tera.register_filter("snake_case", snake_case);
     tera.full_reload().expect("Error running auto-reload with Tera");

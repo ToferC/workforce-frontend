@@ -5,33 +5,41 @@
 {% endblock title %}
 
 {% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-4 mb-2"><i class="bi bi-award"></i> Capability Search</h1>
+        <p class="lead text-muted">{{ name }} &mdash; {{ level }}</p>
+    </div>
 
-<div class="col m-md-2 m-1">
-
-    <h1>Capability Search</h1>
-    <h2>{{ name }} and {{ level }}</h2>
-
-    <hr>
-
-    <h2>Matches</h2>
-    
-        {% for capability in capabilities %}
-            <h3><a href="/{{lang}}/person/{{capability.person.id}}">{{ capability.person.givenName }} {{ capability.person.familyName }}</a></h3>
-            <li>Phone: {{ capability.person.phone }}</li>
-            <li>Email: {{ capability.person.email }}</li>
-            <li>Current Role: 
-            {% for role in capability.person.activeRoles %}
-                <strong>{{ role.titleEnglish }}</strong> - {{ role.militaryOccupation }}-{{ role.rank }}
-            {% endfor %}</ul>
-            <br>
-            <h4>Capabilities</h4>
-            {% for cap in capability.person.capabilities %}
-                <li>{{ cap.nameEn }} ({{ cap.domain }}) - {{ cap.validatedLevel }}</li>
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-people"></i> Matches</h2>
+        </div>
+        <div class="card-body p-0">
+            {% for capability in capabilities %}
+            <div class="p-4 border-bottom">
+                <h3 class="h5 mb-1">
+                    <a href="/{{lang}}/person/{{capability.person.id}}">{{ capability.person.givenName }} {{ capability.person.familyName }}</a>
+                </h3>
+                <ul class="list-group list-group-flush mb-3">
+                    <li class="list-group-item px-0"><span class="text-muted">Phone:</span> {{ capability.person.phone }}</li>
+                    <li class="list-group-item px-0"><span class="text-muted">Email:</span> {{ capability.person.email }}</li>
+                    <li class="list-group-item px-0">
+                        <span class="text-muted">Current Role:</span>
+                        {% for role in capability.person.activeRoles %}
+                            <strong>{{ role.titleEnglish }}</strong> &mdash; {{ role.militaryOccupation }}-{{ role.rank }}
+                        {% endfor %}
+                    </li>
+                </ul>
+                <h4 class="h6 text-muted mb-2">Capabilities</h4>
+                <ul class="list-group list-group-flush">
+                    {% for cap in capability.person.capabilities %}
+                    <li class="list-group-item px-0">{{ cap.nameEn }} <span class="text-muted">({{ cap.domain }})</span> &mdash; {{ cap.validatedLevel }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
             {% endfor %}
-            <hr>
-        {% endfor %}
+        </div>
+    </div>
 </div>
-
-
-
 {% endblock content %}

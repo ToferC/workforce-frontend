@@ -5,58 +5,60 @@
 {% endblock title %}
 
 {% block content %}
-    <div class="col m-md-2 m-1">
-        <br>
-        <h1>{{ fluent(key="login", lang=lang )}}</h1>
-
-
-        <form name="LoginForm" id="loginForm" action=/{{ lang }}/log_in method=POST>
-        
-        <label>
-            <strong>{{ fluent(key="email-address", lang=lang )}}</strong>
-            <input class="form-control form-control-lg" type="email" name="email" placeholder="{{ fluent(key="email-placeholder", lang=lang )}}" required>
-            <small id="code_help" class="form-text text-muted">{{ fluent(key="email-address-helper", lang=lang )}}</small>
-        </label>
-        <br>
-
-        <label>
-            <strong>{{ fluent(key="password", lang=lang )}}</strong>
-            <input 
-                class="form-control form-control-lg" 
-                type="password" 
-                name="password" 
-                placeholder="{{ fluent(key="password-placeholder", lang=lang) }}"
-                minlength=12
-                required
-            >
-            <small id="code_help" class="form-text text-muted">{{ fluent(key="password-helper", lang=lang )}}</small>
-        </label>
-        <br>
-
-        <button 
-            class="btn g-recaptcha btn-dark" 
-            data-sitekey="6LfAltkZAAAAAN7rJGBvRUPm36M1aiL7q2a8SznA" 
-            data-callback='onSubmit' 
-            data-action='submit'
-            type=submit
-            >{{ fluent(key="login", lang=lang )}}</button>
-            <br><br>
-            <p>
-                <a href="/{{ lang }}/request_password_reset">{{ fluent(key="forgot-password", lang=lang )}}</a>
-            </p>
-    </form>
-                
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-4 mb-2"><i class="bi bi-box-arrow-in-right"></i> {{ fluent(key="login", lang=lang )}}</h1>
     </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-12">
+            <div class="card shadow-lg">
+                <div class="card-body p-4">
+                    <form name="LoginForm" id="loginForm" action=/{{ lang }}/log_in method=POST>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label"><strong>{{ fluent(key="email-address", lang=lang )}}</strong></label>
+                            <input class="form-control form-control-lg" type="email" name="email" placeholder="{{ fluent(key="email-placeholder", lang=lang )}}" required>
+                            <small class="form-text text-muted">{{ fluent(key="email-address-helper", lang=lang )}}</small>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label class="form-label"><strong>{{ fluent(key="password", lang=lang )}}</strong></label>
+                            <input
+                                class="form-control form-control-lg"
+                                type="password"
+                                name="password"
+                                placeholder="{{ fluent(key="password-placeholder", lang=lang) }}"
+                                minlength=12
+                                required
+                            >
+                            <small class="form-text text-muted">{{ fluent(key="password-helper", lang=lang )}}</small>
+                        </div>
+
+                        <button
+                            class="btn btn-primary btn-lg w-100 g-recaptcha"
+                            data-sitekey="6LfAltkZAAAAAN7rJGBvRUPm36M1aiL7q2a8SznA"
+                            data-callback='onSubmit'
+                            data-action='submit'
+                            type=submit
+                        >{{ fluent(key="login", lang=lang )}}</button>
+
+                        <p class="mt-3 text-center">
+                            <a href="/{{ lang }}/request_password_reset">{{ fluent(key="forgot-password", lang=lang )}}</a>
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock content %}
 
 {% block scripts %}
 <script>
-
     window.onSubmit = onSubmit;
-
     function onSubmit(token) {
-     document.getElementById("loginForm").submit();
-   };
-
+        document.getElementById("loginForm").submit();
+    };
 </script>
 {% endblock scripts %}
