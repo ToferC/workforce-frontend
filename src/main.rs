@@ -2,9 +2,12 @@ use actix_web::web;
 use actix_web::{HttpServer, App, middleware};
 use dotenv::dotenv;
 use std::env;
+use std::sync::Arc;
+use reqwest::Client;
 use tera::{Tera};
 use tera_text_filters::snake_case;
-use actix_identity::{IdentityService, CookieIdentityPolicy};
+use actix_web::cookie::Key;
+use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_web_static_files;
 
 use frontend::handlers;
@@ -49,7 +52,9 @@ async fn main() -> std::io::Result<()> {
         String::from("http://127.0.0.1:8080/graphql")
     };
 
-    let cookie_secret_key = env::var("COOKIE_SECRET_KEY").expect("Unable to find cookie secret key");
+    let cookie_secret = env::var("COOKIE_SECRET_KEY").expect("Unable to find cookie secret key");
+
+    let cookie_secret_key: Key = Key::from(&cookie_secret.as_bytes());
 
     let mut tera = Tera::new(
         "templates/**/*").unwrap();
@@ -63,10 +68,13 @@ async fn main() -> std::io::Result<()> {
     println!("Serving on http://{}:{}", &host, &port);
     println!("Targeting API on {}", &api_url);
     
+    // Create Reqwest Client
+    let client = Arc::new(Client::new());
     
     let data = web::Data::new(AppData {
         tmpl: tera,
         api_url: api_url,
+        client: client,
     });
 
     HttpServer::new(move || {
@@ -79,10 +87,12 @@ async fn main() -> std::io::Result<()> {
             .service(actix_web_static_files::ResourceFiles::new(
                 "/static", generated,
             ))
-            .wrap(IdentityService::new(
-                CookieIdentityPolicy::new(&cookie_secret_key.as_bytes())
-                .name("user-auth")
-                .secure(false)))
+            .wrap(
+                SessionMiddleware::builder(
+                    CookieSessionStore::default(), cookie_secret_key.clone())
+                    .cookie_secure(false)
+                    .build()
+                )
     })
     .bind(format!("{}:{}", host, port))?
     .run()

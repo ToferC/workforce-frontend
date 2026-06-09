@@ -1,7 +1,9 @@
 use graphql_client::{GraphQLQuery, Response};
 use serde::{Serialize, Deserialize};
 use std::error::Error;
-use reqwest;
+use reqwest::Client;
+use std::sync::Arc;
+use chrono::NaiveDateTime;
 
 use crate::graphql::log_in_mutation;
 use crate::graphql::log_in::LoginQuery;
@@ -16,7 +18,7 @@ type UUID = String;
 pub struct LogIn;
 
 
-pub fn login(email: String, password: String, api_url: &str) -> Result<log_in::ResponseData, Box<dyn Error>> {
+pub async fn login(email: String, password: String, api_url: &str, client: Arc<Client>) -> Result<log_in::ResponseData, Box<dyn Error>> {
 
     let auth_data = log_in_mutation::LoginQuery{
         email, 
@@ -27,10 +29,13 @@ pub fn login(email: String, password: String, api_url: &str) -> Result<log_in::R
         auth_data: auth_data,
     });
 
-    let client = reqwest::blocking::Client::new();
-    let res = client.post(api_url).json(&request_body).send()?;
+    let res = client
+        .post(api_url)
+        .json(&request_body)
+        .send()
+        .await?;
 
-    let response_body: Response<log_in::ResponseData> = res.json()?;
+    let response_body: Response<log_in::ResponseData> = res.json().await?;
 
     if let Some(errors) = response_body.errors {
         println!("there are errors:");

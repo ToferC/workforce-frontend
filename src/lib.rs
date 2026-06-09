@@ -7,38 +7,47 @@ use actix_web::Error;
 use tera::{Tera, Context};
 use actix_identity::Identity;
 use actix_session::Session;
+use reqwest::Client;
+use std::sync::Arc;
 
 
 extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
-const APP_NAME: &str = "Epifront";
+const APP_NAME: &str = "Workforce-frontend";
 
 #[derive(Clone, Debug)]
 pub struct AppData {
     pub tmpl: Tera,
     pub api_url: String,
+    pub client: Arc<Client>,
 }
 
 /// Generate context, session_user, role and node_names from id and lang
 pub fn generate_basic_context(
-    id: Identity,
+    identity: Option<Identity>,
     lang: &str,
     path: &str,
-) -> (Context, String, String, String) 
+    session: &Session,
+) -> (Context) 
 {    
     let mut ctx = Context::new();
 
-    let identity = match id.identity() {
-        Some(s) => s.to_string(),
+    let session_user = match identity {
+        Some(i) => i.id().unwrap(),
         None => "".to_string(),
     };
 
     // Get session data and add to context
-    let (session_user, role) = (identity, "");
+    println!("Getting Session data and adding to Context");
+
+    let (role, user_id, expires_at) = extract_session_data(session);
+
     ctx.insert("session_user", &session_user);
     ctx.insert("role", &role);
+    ctx.insert("user_id", &user_id);
+    ctx.insert("expires_at", &expires_at);
 
     let validated_lang = match lang {
         "fr" => "fr",
@@ -49,52 +58,37 @@ pub fn generate_basic_context(
     ctx.insert("lang", &validated_lang);
     ctx.insert("path", &path);
 
-    (ctx, session_user.to_owned(), role.to_owned(), lang.to_owned())
+    ctx
 }
 
-pub fn extract_session_data(session: &Session) -> (String, String) {
+pub fn extract_session_data(session: &Session) -> (String, String, String) {
 
-    let role_data = session.get::<String>("role").expect("Unable to get role from cookie");
+    let role_data = session.get::<String>("role");
 
     let role = match role_data {
-        Some(r) => r,
-        None => "".to_string(),
+        Ok(Some(r)) => r,
+        Ok(None) => "".to_string(),
+        Err(_) => "".to_string(),
     };
 
-    let user_data = session.get::<String>("user_name").expect("Unable to get user_name from cookie");
+    let id_data = session.get::<String>("user_id");
 
-    let session_user = match user_data {
-        Some(u) => u,
-        None => "".to_string(),
+    let user_id = match id_data {
+        Ok(Some(u)) => u,
+        Ok(None) => "".to_string(),
+        Err(_) => "".to_string(),
     };
 
-    println!("{}-{}", &session_user, &role);
+    let expires_at_data = session.get::<String>("expires_at");
 
-    (session_user, role)
-}
-
-pub fn extract_identity_data(id: &Identity) -> Result<(), Error> {
-
-    let id_data = id.identity();
-
-    let session_user = match id_data {
-        Some(u) => u,
-        None => "".to_string(),
+    let expires_at = match expires_at_data {
+        Ok(Some(e)) => e,
+        Ok(None) => "".to_string(),
+        Err(_) => "".to_string(),
     };
 
-    /*
-    let user = models::User::find_slim_from_slug(&session_user);
+    println!("{}-{}", &role, &user_id);
 
-    let role = match user {
-        Ok(u) => u.role,
-        _ => "".to_string()
-    };
-
-    println!("{}-{}", &session_user, &role);
-    (session_user, role)
-     */
-
-    Ok(())
-
+    (role, user_id, expires_at)
 }
 

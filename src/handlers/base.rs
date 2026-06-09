@@ -1,4 +1,4 @@
-use actix_session::UserSession;
+use actix_session::SessionExt;
 use actix_web::{web, get, Responder, HttpResponse, HttpRequest};
 use actix_identity::Identity;
 
@@ -14,12 +14,13 @@ pub async fn index(
     data: web::Data<AppData>,
     params: web::Path<String>,
 
-    id: Identity,
+    id: Option<Identity>,
     req: HttpRequest,
 ) -> impl Responder {
 
     let lang = params.into_inner();
-    let (mut ctx, _, _, _) = generate_basic_context(id, &lang, req.uri().path());
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
     let bearer = match req.get_session().get::<String>("bearer").unwrap() {
         Some(s) => s,

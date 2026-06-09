@@ -1,4 +1,4 @@
-use actix_session::UserSession;
+use actix_session::SessionExt;
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use actix_identity::{Identity};
 
@@ -9,12 +9,13 @@ use crate::graphql::{get_org_tier_by_id};
 #[get("/{lang}/org_tier/{org_tier_id}")]
 pub async fn org_tier_by_id(
     data: web::Data<AppData>,
-    id: Identity,
-    web::Path((lang, org_tier_id)): web::Path<(String, String)>,
-    
-    req:HttpRequest) -> impl Responder {
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
 
-    let (mut ctx, _user, _lang, _path) = generate_basic_context(id, &lang, req.uri().path());
+    req:HttpRequest) -> impl Responder {
+    let (lang, org_tier_id) = path_params.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
     let bearer = match req.get_session().get::<String>("bearer").unwrap() {
         Some(s) => s,

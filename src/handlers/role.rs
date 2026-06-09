@@ -1,4 +1,4 @@
-use actix_session::UserSession;
+use actix_session::SessionExt;
 use serde::Deserialize;
 use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
 use actix_identity::{Identity};
@@ -22,12 +22,15 @@ pub struct AddRoleForm {
 #[get("/{lang}/role/{role_id}")]
 pub async fn role_by_id(
     data: web::Data<AppData>,
-    id: Identity,
-    web::Path((lang, role_id)): web::Path<(String, String)>,
-    
-    req:HttpRequest) -> impl Responder {
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
 
-    let (mut ctx, _user, _lang, _path) = generate_basic_context(id, &lang, req.uri().path());
+    req:HttpRequest) -> impl Responder {
+    let (lang, role_id) = path_params.into_inner();
+
+    let session = req.get_session();
+
+    let mut ctx= generate_basic_context(id, &lang, req.uri().path(), &session);
 
     let bearer = match req.get_session().get::<String>("bearer").unwrap() {
         Some(s) => s,
@@ -46,12 +49,13 @@ pub async fn role_by_id(
 #[get("/{lang}/create_role")]
 pub async fn create_role(
     data: web::Data<AppData>,
-    id: Identity,
-    web::Path((lang, _role_id)): web::Path<(String, String)>,
-    
-    req:HttpRequest) -> impl Responder {
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
 
-    let (ctx, _user, _lang, _path) = generate_basic_context(id, &lang, req.uri().path());
+    req:HttpRequest) -> impl Responder {
+    let (lang, _role_id) = path_params.into_inner();
+    let session = req.get_session();
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
     let bearer = match req.get_session().get::<String>("bearer").unwrap() {
         Some(s) => s,
@@ -65,13 +69,14 @@ pub async fn create_role(
 #[post("/{lang}/role_submit")]
 pub async fn role_submit(
     data: web::Data<AppData>,
-    id: Identity,
+    id: Option<Identity>,
     form: web::Form<AddRoleForm>,
-    web::Path((lang, _role_id)): web::Path<(String, String)>,
-    
-    req:HttpRequest) -> impl Responder {
+    path_params: web::Path<(String, String)>,
 
-    let (ctx, _user, _lang, _path) = generate_basic_context(id, &lang, req.uri().path());
+    req:HttpRequest) -> impl Responder {
+    let (lang, _role_id) = path_params.into_inner();
+    let session = req.get_session();
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
     let bearer = match req.get_session().get::<String>("bearer").unwrap() {
         Some(s) => s,
