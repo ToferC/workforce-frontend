@@ -5,6 +5,7 @@ use actix_identity::{Identity};
 use uuid::Uuid;
 
 
+use std::sync::Arc;
 use crate::{AppData, generate_basic_context};
 use crate::graphql::{get_role_by_id};
 
@@ -37,7 +38,8 @@ pub async fn role_by_id(
         None => "".to_string(),
     };
 
-    let r = get_role_by_id(role_id, bearer, &data.api_url)
+    let r = get_role_by_id(role_id, bearer, &data.api_url, Arc::clone(&data.client))
+        .await
         .expect("Unable to get people");
 
     ctx.insert("role", &r.role_by_id);

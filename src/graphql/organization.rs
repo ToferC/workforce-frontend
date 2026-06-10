@@ -1,7 +1,8 @@
 use graphql_client::{GraphQLQuery, Response};
 use serde::{Serialize, Deserialize};
 use std::error::Error;
-use reqwest;
+use reqwest::Client;
+use std::sync::Arc;
 
 type UUID = String;
 
@@ -13,20 +14,20 @@ type UUID = String;
 )]
 pub struct OrganizationById;
 
-pub fn get_organization_by_id(id: UUID, bearer: String, api_url: &str) -> Result<organization_by_id::ResponseData, Box<dyn Error>> {
+pub async fn get_organization_by_id(id: UUID, bearer: String, api_url: &str, client: Arc<Client>) -> Result<organization_by_id::ResponseData, Box<dyn Error>> {
 
     let request_body = OrganizationById::build_query(organization_by_id::Variables {
         id,
     });
 
-    let client = reqwest::blocking::Client::new();
     let res = client
         .post(api_url)
         .header("Bearer", bearer)
         .json(&request_body)
-        .send()?;
+        .send()
+        .await?;
 
-    let response_body: Response<organization_by_id::ResponseData> = res.json()?;
+    let response_body: Response<organization_by_id::ResponseData> = res.json().await?;
 
     if let Some(errors) = response_body.errors {
         println!("there are errors:");
@@ -39,7 +40,6 @@ pub fn get_organization_by_id(id: UUID, bearer: String, api_url: &str) -> Result
     let response = response_body.data
         .expect("missing response data");
 
-    // serve HTML page with response_body
     Ok(response)
 }
 
@@ -51,19 +51,19 @@ pub fn get_organization_by_id(id: UUID, bearer: String, api_url: &str) -> Result
 )]
 pub struct AllOrganizations;
 
-pub fn all_organizations(bearer: String, api_url: &str) -> Result<all_organizations::ResponseData, Box<dyn Error>> {
+pub async fn all_organizations(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_organizations::ResponseData, Box<dyn Error>> {
 
     let request_body = AllOrganizations::build_query(all_organizations::Variables {
     });
 
-    let client = reqwest::blocking::Client::new();
     let res = client
         .post(api_url)
         .header("Bearer", bearer)
         .json(&request_body)
-        .send()?;
+        .send()
+        .await?;
 
-    let response_body: Response<all_organizations::ResponseData> = res.json()?;
+    let response_body: Response<all_organizations::ResponseData> = res.json().await?;
 
     if let Some(errors) = response_body.errors {
         println!("there are errors:");
@@ -76,6 +76,5 @@ pub fn all_organizations(bearer: String, api_url: &str) -> Result<all_organizati
     let response = response_body.data
         .expect("missing response data");
 
-    // serve HTML page with response_body
     Ok(response)
 }

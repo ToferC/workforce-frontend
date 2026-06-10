@@ -2,13 +2,14 @@ use actix_web::web;
 use actix_web::{HttpServer, App, middleware};
 use dotenv::dotenv;
 use std::env;
-use std::sync::Arc;
-use reqwest::Client;
 use tera::{Tera};
 use tera_text_filters::snake_case;
-use actix_web::cookie::Key;
+use actix_identity::IdentityMiddleware;
 use actix_session::{SessionMiddleware, storage::CookieSessionStore};
-use actix_web_static_files;
+use actix_web::cookie::Key;
+use actix_web_static_files::ResourceFiles;
+use reqwest::Client;
+use std::sync::Arc;
 
 use frontend::handlers;
 use frontend::AppData;
@@ -56,12 +57,16 @@ async fn main() -> std::io::Result<()> {
 
     let cookie_secret_key: Key = Key::from(&cookie_secret.as_bytes());
 
+    // Configure templates via Tera
+
     let mut tera = Tera::new(
         "templates/**/*").unwrap();
 
     tera.register_filter("snake_case", snake_case);
     tera.full_reload().expect("Error running auto-reload with Tera");
     tera.register_function("fluent", FluentLoader::new(&*LOCALES));
+
+    // Set API target
 
     let api_url = format!("{}", api_target);
     
@@ -70,7 +75,8 @@ async fn main() -> std::io::Result<()> {
     
     // Create Reqwest Client
     let client = Arc::new(Client::new());
-    
+
+    // Initialize AppData
     let data = web::Data::new(AppData {
         tmpl: tera,
         api_url: api_url,
@@ -82,11 +88,12 @@ async fn main() -> std::io::Result<()> {
 
         App::new()
             .wrap(middleware::Logger::default())
-            .configure(handlers::configure_services)
-            .app_data(data.clone())
-            .service(actix_web_static_files::ResourceFiles::new(
+            .service(ResourceFiles::new(
                 "/static", generated,
             ))
+            .configure(handlers::configure_services)
+            .app_data(data.clone())
+            .wrap(IdentityMiddleware::default())
             .wrap(
                 SessionMiddleware::builder(
                     CookieSessionStore::default(), cookie_secret_key.clone())

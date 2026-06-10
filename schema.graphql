@@ -485,7 +485,7 @@ type UserResponse {
   bearer: String!
   role: String!
   email: String!
-  expires_at: NaiveDateTime!
+  expiresAt: NaiveDateTime!
 }
 "Other people's validations of an individuals Capability"
 type Validation {

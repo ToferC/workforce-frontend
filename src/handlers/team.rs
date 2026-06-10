@@ -3,6 +3,7 @@ use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use actix_identity::{Identity};
 
 
+use std::sync::Arc;
 use crate::{AppData, generate_basic_context};
 use crate::graphql::{get_team_by_id};
 
@@ -22,7 +23,8 @@ pub async fn team_by_id(
         None => "".to_string(),
     };
 
-    let r = get_team_by_id(team_id, bearer, &data.api_url)
+    let r = get_team_by_id(team_id, bearer, &data.api_url, Arc::clone(&data.client))
+        .await
         .expect("Unable to get people");
 
     ctx.insert("team", &r.team_by_id);

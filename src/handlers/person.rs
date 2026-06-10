@@ -3,6 +3,7 @@ use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use actix_identity::{Identity};
 
 
+use std::sync::Arc;
 use crate::{AppData, generate_basic_context};
 use crate::graphql::{get_people_by_name, get_person_by_id};
 
@@ -22,7 +23,8 @@ pub async fn person_by_name(
         None => "".to_string(),
     };
 
-    let people = get_people_by_name(name, bearer.clone(), &data.api_url)
+    let people = get_people_by_name(name, bearer.clone(), &data.api_url, Arc::clone(&data.client))
+        .await
         .expect("Unable to get people");
 
     ctx.insert("people", &people.person_by_name);
@@ -50,7 +52,8 @@ pub async fn person_by_id(
         None => "".to_string(),
     };
 
-    let r = get_person_by_id(person_id, bearer, &data.api_url)
+    let r = get_person_by_id(person_id, bearer, &data.api_url, Arc::clone(&data.client))
+        .await
         .expect("Unable to get people");
 
     ctx.insert("person", &r.person_by_id);

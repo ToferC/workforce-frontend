@@ -4,6 +4,6 @@ mutation LogIn($auth_data: LoginQuery!) {
     	email
     	bearer
     	role
-		expires_at
+		expiresAt
   }
 }

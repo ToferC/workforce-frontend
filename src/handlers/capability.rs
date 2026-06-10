@@ -1,6 +1,7 @@
 use actix_session::SessionExt;
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use actix_identity::Identity;
+use std::sync::Arc;
 use crate::{AppData, generate_basic_context};
 use crate::graphql::get_capability_by_name_and_level;
 
@@ -28,7 +29,9 @@ pub async fn capability_search(
         level.clone(),
         bearer.clone(),
         &data.api_url,
+        Arc::clone(&data.client),
     )
+    .await
     .expect("Unable to find capabilities");
 
     println!("{:?}", &results);

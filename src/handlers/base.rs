@@ -2,6 +2,7 @@ use actix_session::SessionExt;
 use actix_web::{web, get, Responder, HttpResponse, HttpRequest};
 use actix_identity::Identity;
 
+use std::sync::Arc;
 use crate::{generate_basic_context, AppData, graphql::all_organizations};
 
 #[get("/")]
@@ -27,7 +28,8 @@ pub async fn index(
         None => "".to_string(),
     };
 
-    let r = all_organizations(bearer, &data.api_url,)
+    let r = all_organizations(bearer, &data.api_url, Arc::clone(&data.client))
+        .await
         .expect("Unable to get people");
 
     ctx.insert("organizations", &r.all_organizations);

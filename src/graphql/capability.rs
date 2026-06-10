@@ -1,7 +1,8 @@
 use graphql_client::{GraphQLQuery, Response};
 use serde::{Serialize, Deserialize};
 use std::error::Error;
-use reqwest;
+use reqwest::Client;
+use std::sync::Arc;
 
 type UUID = String;
 
@@ -26,21 +27,21 @@ pub enum CapabilityLevel {
 )]
 pub struct CapabilityByNameAndLevel;
 
-pub fn get_capability_by_name_and_level(name: String, level: String, bearer: String, api_url: &str) -> Result<capability_by_name_and_level::ResponseData, Box<dyn Error>> {
+pub async fn get_capability_by_name_and_level(name: String, level: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<capability_by_name_and_level::ResponseData, Box<dyn Error>> {
 
     let request_body = CapabilityByNameAndLevel::build_query(capability_by_name_and_level::Variables {
         name,
         level,
     });
 
-    let client = reqwest::blocking::Client::new();
     let res = client
         .post(api_url)
         .header("Bearer", bearer)
         .json(&request_body)
-        .send()?;
+        .send()
+        .await?;
 
-    let response_body: Response<capability_by_name_and_level::ResponseData> = res.json()?;
+    let response_body: Response<capability_by_name_and_level::ResponseData> = res.json().await?;
 
     if let Some(errors) = response_body.errors {
         println!("there are errors:");
@@ -53,6 +54,5 @@ pub fn get_capability_by_name_and_level(name: String, level: String, bearer: Str
     let response = response_body.data
         .expect("missing response data");
 
-    // serve HTML page with response_body
     Ok(response)
 }
