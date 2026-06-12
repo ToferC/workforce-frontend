@@ -84,9 +84,10 @@ fn is_htmx(req: &HttpRequest) -> bool {
     req.headers().get("HX-Request").is_some()
 }
 
-/// Options for the parent tier select: every tier of the organization
-/// except the tier being edited (a tier cannot be its own parent).
-async fn parent_tier_options(
+/// Options for a tier select: every tier of the organization, optionally
+/// excluding one (a tier cannot be its own parent). Also used by the
+/// team form's org-tier select.
+pub async fn parent_tier_options(
     organization_id: &str,
     exclude_tier_id: Option<&str>,
     bearer: &str,
@@ -250,7 +251,11 @@ pub async fn create_org_tier_post(
             redirect_to(format!("/{}/org_tier/{}", &lang, response.create_org_tier.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            // Flash renders only on full pages; the inline partial shows
+            // the error itself via form_error
+            if !is_htmx(&req) {
+                security::add_flash(&session, "danger", &e.to_string());
+            }
 
             let parent_options = parent_tier_options(&form.organization_id, None, &auth.bearer, &data)
                 .await
@@ -263,6 +268,7 @@ pub async fn create_org_tier_post(
             ctx.insert("skill_domains", &skill_domain_options());
 
             let template = if is_htmx(&req) {
+                ctx.insert("form_error", &e.to_string());
                 "org_chart/add_tier_form.html"
             } else {
                 "org_tier/org_tier_form.html"

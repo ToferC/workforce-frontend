@@ -227,3 +227,34 @@ loading = Chargement...
 occupied = occupés
 vacant = Vacant
 no-roles = Aucun rôle dans cette équipe.
+
+## Team Forms
+create-team = Créer une équipe
+edit-team = Modifier l'équipe
+retire-team = Retirer l'équipe
+retire-team-confirm = Êtes-vous sûr de vouloir retirer cette équipe? Elle sera marquée comme retirée, mais son historique et ses rôles seront conservés.
+description-english = Description (anglais)
+description-french = Description (français)
+org-tier = Niveau organisationnel
+keep-current-domain = Conserver le domaine actuel
+add-team = Ajouter une équipe
+
+## Person Forms
+create-person = Créer une personne
+edit-person = Modifier la personne
+retire-person = Retirer la personne
+retire-person-confirm = Êtes-vous sûr de vouloir retirer cette personne? Son dossier sera marqué comme retiré, mais son historique sera conservé.
+new-person-button = Nouvelle personne
+user-account-email = Courriel du compte utilisateur
+user-account-email-helper = Le courriel du compte utilisateur enregistré auquel ce dossier de personne sera lié.
+given-name = Prénom
+family-name = Nom de famille
+work-email = Courriel professionnel
+phone = Téléphone
+work-address = Adresse professionnelle
+city = Ville
+province = Province
+postal-code = Code postal
+country = Pays
+peoplesoft-id = ID PeopleSoft
+orcid-id = iD ORCID

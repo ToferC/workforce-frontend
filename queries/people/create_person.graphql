@@ -1,0 +1,7 @@
+mutation CreatePerson($data: NewPerson!) {
+  createPerson(data: $data) {
+    id
+    familyName
+    givenName
+  }
+}

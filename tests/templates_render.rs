@@ -257,6 +257,123 @@ fn org_chart_add_tier_form_partial_renders() {
     assert!(html.contains("name=\"parent_tier\" value=\"33333333-3333-3333-3333-333333333333\""));
 }
 
+fn sample_team() -> serde_json::Value {
+    json!({
+        "id": "66666666-6666-6666-6666-666666666666",
+        "nameEnglish": "Test Team",
+        "nameFrench": "Équipe test",
+        "descriptionEnglish": "A team for testing",
+        "descriptionFrench": "Une équipe de test",
+        "retiredAt": null,
+        "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization"},
+        "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Test Tier"},
+        "owner": {"id": "44444444-4444-4444-4444-444444444444", "givenName": "Jane", "familyName": "Doe", "email": "jane@example.com"},
+        "occupiedRoles": [],
+        "vacantRoles": [],
+    })
+}
+
+fn sample_person() -> serde_json::Value {
+    json!({
+        "id": "88888888-8888-8888-8888-888888888888",
+        "userEmail": "",
+        "givenName": "Sam",
+        "familyName": "Lee",
+        "email": "sam.lee@example.com",
+        "phone": "555-0100",
+        "workAddress": "100 Main St",
+        "city": "Ottawa",
+        "province": "ON",
+        "postalCode": "K1A0A1",
+        "country": "Canada",
+        "peoplesoftId": "PS-1",
+        "orcidId": "",
+        "retiredAt": null,
+        "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization"},
+        "capabilities": [],
+        "activeRoles": [],
+        "inactiveRoles": [],
+        "findMatches": [],
+        "affiliations": [],
+        "publications": [],
+    })
+}
+
+#[test]
+fn team_form_renders_for_create_and_edit() {
+    let tera = tera();
+    for edit in [false, true] {
+        let mut ctx = base_context("en", "operator");
+        ctx.insert("edit", &edit);
+        ctx.insert("team", &sample_team());
+        ctx.insert("skill_domains", &domain_options());
+        ctx.insert("org_tier_options", &parent_options());
+        let html = tera.render("team/team_form.html", &ctx).unwrap();
+        if edit {
+            assert!(html.contains("/team/66666666-6666-6666-6666-666666666666/edit"));
+            // tier can't change after creation
+            assert!(html.contains("name=\"org_tier_id\" value=\"22222222-2222-2222-2222-222222222222\""));
+        } else {
+            assert!(html.contains("/team/new"));
+            assert!(html.contains("name=\"org_tier_id\""));
+        }
+    }
+}
+
+#[test]
+fn team_retire_page_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("team", &sample_team());
+    let html = tera.render("team/team_retire.html", &ctx).unwrap();
+    assert!(html.contains("/team/66666666-6666-6666-6666-666666666666/retire"));
+}
+
+#[test]
+fn org_chart_add_team_form_partial_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("team", &sample_team());
+    ctx.insert("skill_domains", &domain_options());
+    let html = tera.render("org_chart/add_team_form.html", &ctx).unwrap();
+    assert!(html.contains("hx-post=\"/en/team/new\""));
+    assert!(html.contains("name=\"org_tier_id\" value=\"22222222-2222-2222-2222-222222222222\""));
+}
+
+#[test]
+fn person_form_renders_for_create_and_edit() {
+    let tera = tera();
+    for edit in [false, true] {
+        let mut ctx = base_context("en", "operator");
+        ctx.insert("edit", &edit);
+        ctx.insert("person", &sample_person());
+        ctx.insert("organization_options", &json!([
+            {"value": "11111111-1111-1111-1111-111111111111", "label": "Test Organization"}
+        ]));
+        let html = tera.render("person/person_form.html", &ctx).unwrap();
+        if edit {
+            assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/edit"));
+            // user account link can't change after creation
+            assert!(!html.contains("name=\"user_email\""));
+        } else {
+            assert!(html.contains("/person/new"));
+            assert!(html.contains("name=\"user_email\""));
+        }
+        // organization pre-selected
+        assert!(html.contains("value=\"11111111-1111-1111-1111-111111111111\" selected"));
+    }
+}
+
+#[test]
+fn person_retire_page_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &sample_person());
+    let html = tera.render("person/person_retire.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/retire"));
+    assert!(html.contains("Sam Lee"));
+}
+
 #[test]
 fn index_shows_new_organization_button_for_operator_only() {
     let tera = tera();

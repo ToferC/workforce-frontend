@@ -7,10 +7,25 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-person-badge"></i> {{ person.givenName }} {{ person.familyName }}</h1>
+        <h1 class="display-4 mb-2"><i class="bi bi-person-badge"></i> {{ person.givenName }} {{ person.familyName }}
+            {% if person.retiredAt %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+        </h1>
         <p class="lead text-muted">
             <a href="/{{ lang }}/organization/{{ person.organization.id }}">{{ person.organization.nameEn }}</a>
         </p>
+
+        {% if role == "operator" or role == "admin" %}
+        <div class="mb-2">
+            <a class="btn btn-primary" href="/{{ lang }}/person/{{ person.id }}/edit">
+                <i class="bi bi-pencil"></i> {{ fluent(key="edit-person", lang=lang) }}
+            </a>
+            {% if not person.retiredAt %}
+            <a class="btn btn-outline-danger" href="/{{ lang }}/person/{{ person.id }}/retire">
+                <i class="bi bi-person-x"></i> {{ fluent(key="retire-person", lang=lang) }}
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- Contact Info -->

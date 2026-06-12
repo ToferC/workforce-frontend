@@ -227,3 +227,34 @@ loading = Loading...
 occupied = occupied
 vacant = Vacant
 no-roles = No roles in this team.
+
+## Team Forms
+create-team = Create Team
+edit-team = Edit Team
+retire-team = Retire Team
+retire-team-confirm = Are you sure you want to retire this team? It will be marked as retired but its history and roles are preserved.
+description-english = Description (English)
+description-french = Description (French)
+org-tier = Organization Tier
+keep-current-domain = Keep current domain
+add-team = Add team
+
+## Person Forms
+create-person = Create Person
+edit-person = Edit Person
+retire-person = Retire Person
+retire-person-confirm = Are you sure you want to retire this person? Their record will be marked as retired but their history is preserved.
+new-person-button = New Person
+user-account-email = User account email
+user-account-email-helper = The email of the registered user account this person record will be linked to.
+given-name = Given name
+family-name = Family name
+work-email = Work email
+phone = Phone
+work-address = Work address
+city = City
+province = Province
+postal-code = Postal code
+country = Country
+peoplesoft-id = PeopleSoft ID
+orcid-id = ORCID iD

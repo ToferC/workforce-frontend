@@ -15,6 +15,7 @@ right** (tiers → teams → roles → people). Static design mockup:
 | Info panel | `GET /{lang}/org_tier/{id}/panel` | `org_chart/panel.html` — details, owner, edit/retire actions |
 | Inline add form | `GET /{lang}/org_tier/new` (with `HX-Request`) | `org_chart/add_tier_form.html` |
 | Create tier | `POST /{lang}/org_tier/new` | HTMX: re-rendered parent node; plain: redirect to tier page |
+| Inline add team | `GET/POST /{lang}/team/new` (with `HX-Request`) | `org_chart/add_team_form.html`, same swap pattern |
 
 Tier CRUD (full pages, work without JS) lives alongside:
 `/{lang}/org_tier/new`, `/{id}/edit`, `/{id}/retire`.
@@ -79,6 +80,17 @@ The whole builder is server-rendered Tera partials; htmx (vendored at
    introspection. **Process note:** the running API's introspection is
    the source of truth; `schema.graphqls` is not generated automatically
    and drifts.
+3. **`Team.owner` had the same unwrap panic** (`models/team.rs:197`)
+   for teams without a `TeamOwnership` record — every team created via
+   `createTeam`. Fixed: falls back to the owning tier's (inherited)
+   owner.
+4. **Malformed Authorization header panicked the worker**
+   (`models/auth.rs:65`): a header shorter than `"Bearer "` made the
+   slice index out of bounds. Fixed with a length guard.
+5. **`updatePerson` never persisted.** The mutation copied fields onto
+   the loaded struct and returned it without calling `person.update()`
+   (it also ignored `country`), so every person edit silently succeeded
+   without saving. Fixed.
 
 ## API additions needed for the full builder vision
 

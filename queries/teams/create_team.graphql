@@ -1,0 +1,6 @@
+mutation CreateTeam($data: NewTeam!) {
+  createTeam(data: $data) {
+    id
+    nameEnglish
+  }
+}

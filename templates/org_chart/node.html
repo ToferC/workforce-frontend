@@ -16,13 +16,20 @@
 {% endif %}
 
 {% if role == "operator" or role == "admin" %}
-<div id="add-slot-{{ node.id }}">
+<div id="add-slot-{{ node.id }}" class="d-flex gap-2">
     <a class="btn btn-sm btn-outline-primary"
        href="/{{ lang }}/org_tier/new?organization={{ node.organization.id }}&parent={{ node.id }}"
        hx-get="/{{ lang }}/org_tier/new?organization={{ node.organization.id }}&parent={{ node.id }}"
        hx-target="#add-slot-{{ node.id }}"
        hx-swap="innerHTML">
         <i class="bi bi-plus-lg"></i> {{ fluent(key="add-child-tier", lang=lang) }}
+    </a>
+    <a class="btn btn-sm btn-outline-success"
+       href="/{{ lang }}/team/new?organization={{ node.organization.id }}&org_tier={{ node.id }}"
+       hx-get="/{{ lang }}/team/new?organization={{ node.organization.id }}&org_tier={{ node.id }}"
+       hx-target="#add-slot-{{ node.id }}"
+       hx-swap="innerHTML">
+        <i class="bi bi-plus-lg"></i> {{ fluent(key="add-team", lang=lang) }}
     </a>
 </div>
 {% endif %}

@@ -1,0 +1,49 @@
+{# HTMX partial: compact inline form for adding a team from the builder.
+   Same swap pattern as add_tier_form: errors re-render in place, success
+   retargets at the parent tier's node body. #}
+{% import "macros/forms.html" as forms %}
+
+<form class="card card-body border-success"
+      hx-post="/{{ lang }}/team/new"
+      hx-target="this"
+      hx-swap="outerHTML">
+    {{ forms::csrf(token=csrf_token) }}
+    <input type="hidden" name="organization_id" value="{{ team.organization.id }}">
+    <input type="hidden" name="org_tier_id" value="{{ team.organizationLevel.id }}">
+
+    {% if form_error %}
+    <div class="alert alert-danger py-1 px-2 small">{{ form_error }}</div>
+    {% endif %}
+
+    {% set label_name_en = fluent(key="name-english", lang=lang) %}
+    {% set label_name_fr = fluent(key="name-french", lang=lang) %}
+    {% set label_desc_en = fluent(key="description-english", lang=lang) %}
+    {% set label_desc_fr = fluent(key="description-french", lang=lang) %}
+    {% set label_domain = fluent(key="primary-domain", lang=lang) %}
+
+    <div class="row">
+        <div class="col-md-6">
+            {{ forms::text_input(name="name_en", label=label_name_en, value=team.nameEnglish) }}
+        </div>
+        <div class="col-md-6">
+            {{ forms::text_input(name="name_fr", label=label_name_fr, value=team.nameFrench) }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            {{ forms::textarea(name="description_en", label=label_desc_en, value=team.descriptionEnglish, rows=2) }}
+        </div>
+        <div class="col-md-6">
+            {{ forms::textarea(name="description_fr", label=label_desc_fr, value=team.descriptionFrench, rows=2) }}
+        </div>
+    </div>
+    {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains) }}
+
+    <div>
+        <button type="submit" class="btn btn-sm btn-success">{{ fluent(key="save-button", lang=lang) }}</button>
+        <button type="button" class="btn btn-sm btn-secondary"
+                hx-get="/{{ lang }}/org_tier/{{ team.organizationLevel.id }}/node"
+                hx-target="closest .org-node-body"
+                hx-swap="innerHTML">{{ fluent(key="cancel-button", lang=lang) }}</button>
+    </div>
+</form>

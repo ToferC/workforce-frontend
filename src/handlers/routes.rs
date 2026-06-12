@@ -23,6 +23,12 @@ use crate::handlers::{
     // person
     person_by_id,
     person_by_name,
+    create_person_form,
+    create_person_post,
+    edit_person_form,
+    edit_person_post,
+    retire_person_form,
+    retire_person_post,
 
     // role
     role_by_id,
@@ -55,6 +61,12 @@ use crate::handlers::{
 
     // team
     team_by_id,
+    create_team_form,
+    create_team_post,
+    edit_team_form,
+    edit_team_post,
+    retire_team_form,
+    retire_team_post,
     
     // publication
     publication_by_id,
@@ -76,6 +88,13 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(login_form_input);
 
     // person
+    // "new" must be registered before the {person_id} catch-all
+    config.service(create_person_form);
+    config.service(create_person_post);
+    config.service(edit_person_form);
+    config.service(edit_person_post);
+    config.service(retire_person_form);
+    config.service(retire_person_post);
     config.service(person_by_id);
     config.service(person_by_name);
 
@@ -111,6 +130,13 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(org_tier_panel_partial);
 
     // team
+    // "new" must be registered before the {team_id} catch-all
+    config.service(create_team_form);
+    config.service(create_team_post);
+    config.service(edit_team_form);
+    config.service(edit_team_post);
+    config.service(retire_team_form);
+    config.service(retire_team_post);
     config.service(team_by_id);
 
     // publication
