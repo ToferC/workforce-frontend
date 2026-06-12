@@ -13,6 +13,12 @@
         </h1>
         <p class="lead text-muted">{% if lang == "fr" %}{{ organization.acronymFr }}{% else %}{{ organization.acronymEn }}{% endif %}</p>
 
+        <div class="mb-2">
+            <a class="btn btn-outline-secondary" href="/{{ lang }}/organization/{{ organization.id }}/org_chart">
+                <i class="bi bi-diagram-3"></i> {{ fluent(key="org-chart", lang=lang) }}
+            </a>
+        </div>
+
         {% if role == "operator" or role == "admin" %}
         <div class="mb-2">
             <a class="btn btn-primary" href="/{{ lang }}/organization/{{ organization.id }}/edit">

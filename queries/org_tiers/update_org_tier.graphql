@@ -1,0 +1,7 @@
+mutation UpdateOrgTier($data: OrgTierData!) {
+  updateOrgTier(data: $data) {
+    id
+    nameEn
+    retiredAt
+  }
+}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    {% if edit %}
+    <title>{{ fluent(key="edit-org-tier", lang=lang) }}</title>
+    {% else %}
+    <title>{{ fluent(key="create-org-tier", lang=lang) }}</title>
+    {% endif %}
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+
+    {% if edit %}
+    <h1 class="mb-4"><i class="bi bi-diagram-3"></i> {{ fluent(key="edit-org-tier", lang=lang) }}</h1>
+    {% else %}
+    <h1 class="mb-4"><i class="bi bi-diagram-3"></i> {{ fluent(key="create-org-tier", lang=lang) }}</h1>
+    {% endif %}
+
+    {% set label_name_en = fluent(key="name-english", lang=lang) %}
+    {% set label_name_fr = fluent(key="name-french", lang=lang) %}
+    {% set label_tier_level = fluent(key="tier-level", lang=lang) %}
+    {% set help_tier_level = fluent(key="tier-level-helper", lang=lang) %}
+    {% set label_domain = fluent(key="primary-domain", lang=lang) %}
+    {% set label_parent = fluent(key="parent-tier", lang=lang) %}
+    {% set blank_parent = fluent(key="none-top-tier", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+
+    {% if edit %}
+    {% set form_action = "/" ~ lang ~ "/org_tier/" ~ org_tier.id ~ "/edit" %}
+    {% set cancel_url = "/" ~ lang ~ "/org_tier/" ~ org_tier.id %}
+    {% else %}
+    {% set form_action = "/" ~ lang ~ "/org_tier/new" %}
+    {% set cancel_url = "/" ~ lang ~ "/organization/" ~ org_tier.organization.id %}
+    {% endif %}
+
+    {% if org_tier.parentOrganizationTier %}
+    {% set selected_parent = org_tier.parentOrganizationTier.id %}
+    {% else %}
+    {% set selected_parent = "" %}
+    {% endif %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="{{ form_action | safe }}">
+                {{ forms::csrf(token=csrf_token) }}
+                <input type="hidden" name="organization_id" value="{{ org_tier.organization.id }}">
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="name_en", label=label_name_en, value=org_tier.nameEn) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="name_fr", label=label_name_fr, value=org_tier.nameFr) }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ forms::text_input(name="tier_level", label=label_tier_level, value=org_tier.tierLevel, type="number", help=help_tier_level) }}
+                    </div>
+                    <div class="col-md-8">
+                        {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, selected=org_tier.primaryDomain) }}
+                    </div>
+                </div>
+
+                {{ forms::select(name="parent_tier", label=label_parent, options=parent_tier_options, selected=selected_parent, required=false, blank_label=blank_parent) }}
+
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

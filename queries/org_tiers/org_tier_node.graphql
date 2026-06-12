@@ -1,0 +1,41 @@
+# One expandable node of the org chart: a tier's child tiers plus its
+# teams with their roles and the people occupying them.
+query OrgTierNode($id: UUID!) {
+  orgTierById(id: $id) {
+    id
+    nameEn
+    nameFr
+    tierLevel
+    retiredAt
+    organization {
+      id
+    }
+    childOrganizationTier {
+      id
+      nameEn
+      nameFr
+      tierLevel
+      retiredAt
+    }
+    teams {
+      id
+      nameEnglish
+      nameFrench
+      occupiedRoles {
+      id
+      titleEnglish
+      titleFrench
+      person {
+        id
+        givenName
+        familyName
+      }
+      }
+      vacantRoles {
+        id
+        titleEnglish
+        titleFrench
+      }
+    }
+  }
+}

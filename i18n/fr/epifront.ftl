@@ -198,3 +198,32 @@ save-button = Enregistrer
 cancel-button = Annuler
 confirm-retire-button = Oui, retirer
 retired = Retirée
+
+## Org Tier Forms
+create-org-tier = Créer un niveau organisationnel
+edit-org-tier = Modifier le niveau organisationnel
+retire-org-tier = Retirer le niveau
+retire-org-tier-confirm = Êtes-vous sûr de vouloir retirer ce niveau organisationnel? Il sera marqué comme retiré, mais son historique sera conservé. Les niveaux enfants et les équipes ne sont pas modifiés.
+tier-level = Niveau hiérarchique
+tier-level-helper = 1 est le sommet de l'organisation; les nombres plus élevés sont plus profonds dans la hiérarchie.
+primary-domain = Domaine principal
+parent-tier = Niveau parent
+none-top-tier = Aucun (niveau supérieur)
+owner = Responsable
+child-tiers = Niveaux enfants
+teams = Équipes
+
+## Org Chart Builder
+org-chart = Organigramme
+org-chart-help = Cliquez sur le bouton d'information d'un niveau pour voir ses détails ici. Développez les niveaux à droite pour explorer les niveaux enfants, les équipes, les rôles et les personnes.
+back-to-organization = Retour à l'organisation
+tier-info = Détails du niveau
+tier-count = Niveaux
+no-org-tiers = Cette organisation n'a pas encore de niveaux.
+add-top-tier = Ajouter un niveau supérieur
+add-child-tier = Ajouter un niveau enfant
+empty-tier = Aucun niveau enfant ni équipe sous ce niveau.
+loading = Chargement...
+occupied = occupés
+vacant = Vacant
+no-roles = Aucun rôle dans cette équipe.

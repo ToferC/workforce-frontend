@@ -198,3 +198,32 @@ save-button = Save
 cancel-button = Cancel
 confirm-retire-button = Yes, retire
 retired = Retired
+
+## Org Tier Forms
+create-org-tier = Create Organization Tier
+edit-org-tier = Edit Organization Tier
+retire-org-tier = Retire Tier
+retire-org-tier-confirm = Are you sure you want to retire this organization tier? It will be marked as retired but its history is preserved. Child tiers and teams are not changed.
+tier-level = Tier Level
+tier-level-helper = 1 is the top of the organization; higher numbers are deeper in the hierarchy.
+primary-domain = Primary Domain
+parent-tier = Parent Tier
+none-top-tier = None (top-level tier)
+owner = Owner
+child-tiers = Child tiers
+teams = Teams
+
+## Org Chart Builder
+org-chart = Org Chart
+org-chart-help = Click a tier's info button to see its details here. Expand tiers on the right to explore child tiers, teams, roles, and the people in them.
+back-to-organization = Back to organization
+tier-info = Tier info
+tier-count = Tiers
+no-org-tiers = This organization has no tiers yet.
+add-top-tier = Add top-level tier
+add-child-tier = Add child tier
+empty-tier = No child tiers or teams under this tier.
+loading = Loading...
+occupied = occupied
+vacant = Vacant
+no-roles = No roles in this team.

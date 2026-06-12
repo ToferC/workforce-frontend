@@ -7,7 +7,32 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-diagram-3"></i> {{ org_tier.nameEn }}</h1>
+        <h1 class="display-4 mb-2"><i class="bi bi-diagram-3"></i>
+            {% if lang == "fr" %}{{ org_tier.nameFr }}{% else %}{{ org_tier.nameEn }}{% endif %}
+            {% if org_tier.retiredAt %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+        </h1>
+
+        <div class="mb-2">
+            <a class="btn btn-outline-secondary" href="/{{ lang }}/organization/{{ org_tier.organization.id }}/org_chart">
+                <i class="bi bi-diagram-3"></i> {{ fluent(key="org-chart", lang=lang) }}
+            </a>
+        </div>
+
+        {% if role == "operator" or role == "admin" %}
+        <div class="mb-2">
+            <a class="btn btn-primary" href="/{{ lang }}/org_tier/{{ org_tier.id }}/edit">
+                <i class="bi bi-pencil"></i> {{ fluent(key="edit-org-tier", lang=lang) }}
+            </a>
+            <a class="btn btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ org_tier.organization.id }}&parent={{ org_tier.id }}">
+                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-child-tier", lang=lang) }}
+            </a>
+            {% if not org_tier.retiredAt %}
+            <a class="btn btn-outline-danger" href="/{{ lang }}/org_tier/{{ org_tier.id }}/retire">
+                <i class="bi bi-x-circle"></i> {{ fluent(key="retire-org-tier", lang=lang) }}
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- Details -->

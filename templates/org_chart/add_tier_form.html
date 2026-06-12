@@ -1,0 +1,51 @@
+{# HTMX partial: compact inline form for adding a tier from the builder.
+   Errors re-render the form in place (hx-target=this); on success the
+   server retargets the swap at the parent node's body (HX-Retarget). #}
+{% import "macros/forms.html" as forms %}
+
+<form class="card card-body border-primary"
+      hx-post="/{{ lang }}/org_tier/new"
+      hx-target="this"
+      hx-swap="outerHTML">
+    {{ forms::csrf(token=csrf_token) }}
+    <input type="hidden" name="organization_id" value="{{ org_tier.organization.id }}">
+    <input type="hidden" name="parent_tier" value="{% if org_tier.parentOrganizationTier %}{{ org_tier.parentOrganizationTier.id }}{% endif %}">
+
+    {% if form_error %}
+    <div class="alert alert-danger py-1 px-2 small">{{ form_error }}</div>
+    {% endif %}
+
+    {% set label_name_en = fluent(key="name-english", lang=lang) %}
+    {% set label_name_fr = fluent(key="name-french", lang=lang) %}
+    {% set label_tier_level = fluent(key="tier-level", lang=lang) %}
+    {% set label_domain = fluent(key="primary-domain", lang=lang) %}
+
+    <div class="row">
+        <div class="col-md-6">
+            {{ forms::text_input(name="name_en", label=label_name_en, value=org_tier.nameEn) }}
+        </div>
+        <div class="col-md-6">
+            {{ forms::text_input(name="name_fr", label=label_name_fr, value=org_tier.nameFr) }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            {{ forms::text_input(name="tier_level", label=label_tier_level, value=org_tier.tierLevel, type="number") }}
+        </div>
+        <div class="col-md-8">
+            {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, selected=org_tier.primaryDomain) }}
+        </div>
+    </div>
+
+    <div>
+        <button type="submit" class="btn btn-sm btn-primary">{{ fluent(key="save-button", lang=lang) }}</button>
+        {% if org_tier.parentOrganizationTier %}
+        <button type="button" class="btn btn-sm btn-secondary"
+                hx-get="/{{ lang }}/org_tier/{{ org_tier.parentOrganizationTier.id }}/node"
+                hx-target="closest .org-node-body"
+                hx-swap="innerHTML">{{ fluent(key="cancel-button", lang=lang) }}</button>
+        {% else %}
+        <a class="btn btn-sm btn-secondary" href="/{{ lang }}/organization/{{ org_tier.organization.id }}/org_chart">{{ fluent(key="cancel-button", lang=lang) }}</a>
+        {% endif %}
+    </div>
+</form>

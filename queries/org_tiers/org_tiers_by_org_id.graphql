@@ -2,8 +2,10 @@ query OrgTiersByOrgId($id:UUID!) {
   orgTiersByOrgId(id:$id) {
     id
     nameEn
+    nameFr
     primaryDomain
     tierLevel
+    retiredAt
     parentOrganizationTier {
       id
       nameEn

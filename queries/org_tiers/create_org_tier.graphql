@@ -1,0 +1,6 @@
+mutation CreateOrgTier($data: NewOrgTier!) {
+  createOrgTier(data: $data) {
+    id
+    nameEn
+  }
+}

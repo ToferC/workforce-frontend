@@ -136,13 +136,13 @@ Exit criteria: create → edit → retire round-trip works against a locally
 running workforce_analytics API as an operator, and is correctly refused
 (403 page / hidden buttons) as a plain user.
 
-### Phase 2 — Core org-structure entities
+### Phase 2 — Core org-structure entities (IN PROGRESS)
 
 Same slice, in dependency order, reusing the macros and helper:
 
 | Entity | Notes specific to its forms |
 |---|---|
-| **OrgTier** | `organizationId` + optional `parentTier` selects. HTMX: choosing the organization repopulates the parent-tier select via existing `orgTiersByOrgId` query. Retire via `retiredAt`. |
+| **OrgTier** ✅ | Done, including the **org chart builder** (`/{lang}/organization/{id}/org_chart`): two-pane view with HTMX lazy-loaded tier tree (tiers → teams → roles → people), info panel, and inline add-child-tier. See `docs/ORG_CHART_BUILDER.md` and the mockup in `docs/mockups/`. Two backend bugs found and fixed: `OrgTier.owner` panic for ownerless tiers, and `SkillDomain` schema drift (16 live values vs 13 stale). |
 | **Team** | Needs organization + org_tier selects (same dependent-select partial). |
 | **Person** | Largest form (address, IDs). Tied to a `userId` — creating a person needs a user account; document that flow. Retire via `retiredAt`. |
 | **Role** | Finish the stub handlers (`src/handlers/role.rs:51-90`) — note the existing `AddRoleForm` fields (`hr_roup`, `hr_level`, `requirements`) don't match the API's `NewRole` (team, titles, effort, occupation, rank, dates) and must be rewritten. `updateRole` only accepts `active`/dates **by design** (history preservation): the edit UI is therefore "end this role" + "create new role", not a free edit form. Person select with HTMX typeahead on `personByName`; vacant roles = omit `personId`. |
