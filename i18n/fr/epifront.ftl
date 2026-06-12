@@ -181,3 +181,20 @@ return-main-page = return to the main page
 ## Record not found
 record-not-found = Record not found
 record-not-found-explain = The Record you are searching for is not available.
+## Organization Forms
+create-organization = Créer une organisation
+edit-organization = Modifier l'organisation
+retire-organization = Retirer l'organisation
+retire-organization-confirm = Êtes-vous sûr de vouloir retirer cette organisation? Elle sera marquée comme retirée et masquée des listes actives, mais son historique sera conservé.
+new-organization-button = Nouvelle organisation
+name-english = Nom (anglais)
+name-french = Nom (français)
+acronym-english = Acronyme (anglais)
+acronym-french = Acronyme (français)
+organization-type = Type d'organisation
+organization-type-helper = p. ex. ministère, agence, partenaire
+website-url = Adresse du site Web
+save-button = Enregistrer
+cancel-button = Annuler
+confirm-retire-button = Oui, retirer
+retired = Retirée

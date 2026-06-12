@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    <title>{{ fluent(key="retire-organization", lang=lang) }}</title>
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+
+    <h1 class="mb-4"><i class="bi bi-building-x"></i> {{ fluent(key="retire-organization", lang=lang) }}</h1>
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <div class="alert alert-warning">
+                {{ fluent(key="retire-organization-confirm", lang=lang) }}
+            </div>
+
+            <p class="lead">
+                {% if lang == "fr" %}{{ organization.nameFr }} ({{ organization.acronymFr }})
+                {% else %}{{ organization.nameEn }} ({{ organization.acronymEn }}){% endif %}
+            </p>
+
+            <form method="post" action="/{{ lang }}/organization/{{ organization.id }}/retire">
+                {{ forms::csrf(token=csrf_token) }}
+                <button type="submit" class="btn btn-danger">{{ fluent(key="confirm-retire-button", lang=lang) }}</button>
+                <a class="btn btn-secondary" href="/{{ lang }}/organization/{{ organization.id }}">{{ fluent(key="cancel-button", lang=lang) }}</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

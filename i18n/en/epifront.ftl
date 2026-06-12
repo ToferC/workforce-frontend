@@ -181,3 +181,20 @@ return-main-page = return to the main page
 ## Record not found
 record-not-found = Record not found
 record-not-found-explain = The Record you are searching for is not available.
+## Organization Forms
+create-organization = Create Organization
+edit-organization = Edit Organization
+retire-organization = Retire Organization
+retire-organization-confirm = Are you sure you want to retire this organization? It will be marked as retired and hidden from active listings, but its history is preserved.
+new-organization-button = New Organization
+name-english = Name (English)
+name-french = Name (French)
+acronym-english = Acronym (English)
+acronym-french = Acronym (French)
+organization-type = Organization Type
+organization-type-helper = e.g. department, agency, partner
+website-url = Website URL
+save-button = Save
+cancel-button = Cancel
+confirm-retire-button = Yes, retire
+retired = Retired

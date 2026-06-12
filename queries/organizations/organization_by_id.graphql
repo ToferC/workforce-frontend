@@ -1,9 +1,13 @@
 query OrganizationById($id:UUID!) {
   organizationById(id:$id) {
+    id
     nameEn
+    nameFr
     acronymEn
+    acronymFr
     orgType
     url
+    retiredAt
     topOrgTier {
       id
       nameEn

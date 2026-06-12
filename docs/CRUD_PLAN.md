@@ -94,7 +94,20 @@ Why HTMX fits:
 5. ✅ **Vendor HTMX** — htmx 2.0.4 at `static/htmx/htmx.min.js`, loaded in
    `base.html`.
 
-### Phase 1 — Pilot entity: Organization (establish the full pattern)
+### Phase 1 — Pilot entity: Organization (establish the full pattern) ✅ DONE
+
+Implemented as planned (mutation queries, handlers, shared form template,
+retire-confirm page, EN/FR strings, operator/admin-only buttons). Notes:
+
+- Verified end-to-end against a locally running API: create → edit →
+  CSRF rejection → retire round trip as admin; unauthenticated requests
+  redirect to log-in.
+- Template render tests added in `tests/templates_render.rs` (run with
+  `cargo test`) — they catch Tera runtime errors the startup parse doesn't.
+- Two cross-cutting fixes landed here: session roles are normalized to
+  lowercase at login (the API returns "ADMIN", templates compare "admin"),
+  and URL strings built with Tera `~` concatenation need `| safe` to avoid
+  HTML-escaping of slashes.
 
 Organization is the simplest entity (no foreign keys in its create input).
 Build the complete vertical slice once, then copy it:

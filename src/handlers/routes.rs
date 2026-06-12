@@ -32,6 +32,12 @@ use crate::handlers::{
 
     // organization
     organization_by_id,
+    create_organization_form,
+    create_organization_post,
+    edit_organization_form,
+    edit_organization_post,
+    retire_organization_form,
+    retire_organization_post,
 
     // org_tier
     org_tier_by_id,
@@ -69,6 +75,13 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(capability_search);
 
     // organization
+    // "new" must be registered before the {organization_id} catch-all
+    config.service(create_organization_form);
+    config.service(create_organization_post);
+    config.service(edit_organization_form);
+    config.service(edit_organization_post);
+    config.service(retire_organization_form);
+    config.service(retire_organization_post);
     config.service(organization_by_id);
 
     // org_tier

@@ -56,6 +56,6 @@
 {% macro submit_row(label, cancel_url="", cancel_label="") %}
 <div class="mb-3">
     <button type="submit" class="btn btn-primary">{{ label }}</button>
-    {% if cancel_url %}<a class="btn btn-secondary" href="{{ cancel_url }}">{{ cancel_label }}</a>{% endif %}
+    {% if cancel_url %}<a class="btn btn-secondary" href="{{ cancel_url | safe }}">{{ cancel_label }}</a>{% endif %}
 </div>
 {% endmacro submit_row %}

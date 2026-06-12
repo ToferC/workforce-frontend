@@ -7,8 +7,24 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-building"></i> {{ organization.nameEn }}</h1>
-        <p class="lead text-muted">{{ organization.acronymEn }}</p>
+        <h1 class="display-4 mb-2"><i class="bi bi-building"></i>
+            {% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}
+            {% if organization.retiredAt %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+        </h1>
+        <p class="lead text-muted">{% if lang == "fr" %}{{ organization.acronymFr }}{% else %}{{ organization.acronymEn }}{% endif %}</p>
+
+        {% if role == "operator" or role == "admin" %}
+        <div class="mb-2">
+            <a class="btn btn-primary" href="/{{ lang }}/organization/{{ organization.id }}/edit">
+                <i class="bi bi-pencil"></i> {{ fluent(key="edit-organization", lang=lang) }}
+            </a>
+            {% if not organization.retiredAt %}
+            <a class="btn btn-outline-danger" href="/{{ lang }}/organization/{{ organization.id }}/retire">
+                <i class="bi bi-building-x"></i> {{ fluent(key="retire-organization", lang=lang) }}
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- Details -->
