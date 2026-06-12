@@ -1,23 +1,11 @@
-use graphql_client::{GraphQLQuery, Response};
+use graphql_client::GraphQLQuery;
 use serde::{Serialize, Deserialize};
-use std::error::Error;
 use reqwest::Client;
 use std::sync::Arc;
 
-type UUID = String;
+use super::{post_graphql, ApiError};
 
-/*
-#[derive(Debug, PartialEq, Display, EnumString)]
-#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-/// Enums for Capability
-pub enum CapabilityLevel {
-    Desired,
-    Novice,
-    Experienced,
-    Expert,
-    Specialist
-}
-*/
+type UUID = String;
 
 #[derive(GraphQLQuery, Serialize, Deserialize, Clone, Copy)]
 #[graphql(
@@ -27,32 +15,9 @@ pub enum CapabilityLevel {
 )]
 pub struct CapabilityByNameAndLevel;
 
-pub async fn get_capability_by_name_and_level(name: String, level: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<capability_by_name_and_level::ResponseData, Box<dyn Error>> {
-
-    let request_body = CapabilityByNameAndLevel::build_query(capability_by_name_and_level::Variables {
+pub async fn get_capability_by_name_and_level(name: String, level: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<capability_by_name_and_level::ResponseData, ApiError> {
+    post_graphql::<CapabilityByNameAndLevel>(&client, api_url, &bearer, capability_by_name_and_level::Variables {
         name,
         level,
-    });
-
-    let res = client
-        .post(api_url)
-        .header("Bearer", bearer)
-        .json(&request_body)
-        .send()
-        .await?;
-
-    let response_body: Response<capability_by_name_and_level::ResponseData> = res.json().await?;
-
-    if let Some(errors) = response_body.errors {
-        println!("there are errors:");
-
-        for error in &errors {
-            println!("{:?}", error);
-        }
-    };
-
-    let response = response_body.data
-        .expect("missing response data");
-
-    Ok(response)
+    }).await
 }

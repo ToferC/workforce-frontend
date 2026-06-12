@@ -71,32 +71,28 @@ Why HTMX fits:
 
 ## 3. Implementation plan
 
-### Phase 0 — Foundations (do once, everything else builds on it)
+### Phase 0 — Foundations (do once, everything else builds on it) ✅ DONE
 
-1. **Shared GraphQL helper.** Every handler currently repeats the
-   build-query/POST/unwrap dance (`src/graphql/organization.rs:17-44`).
-   Extract one generic function in `src/graphql/mod.rs`:
-   `post_graphql<Q: GraphQLQuery>(client, api_url, bearer, variables) ->
-   Result<Q::ResponseData, ApiError>` that surfaces GraphQL `errors[]` (e.g.
-   permission denials) instead of `.expect()` panics.
-2. **Sync the schema.** Copy the backend's `schema.graphqls` over the local
-   `schema.graphql` and add a note in CLAUDE.md about keeping them in sync —
-   all generated mutation types derive from it.
-3. **Handler-level authorization.** Add an extractor/guard
-   (`require_role(session, Role::Operator)`) used by every mutating handler:
-   redirects to log-in when there is no bearer / session expired, renders a
-   403 page when the role is insufficient. Mirror the backend hierarchy
-   `user < analyst < operator < admin`. Keep template checks only for
-   hiding buttons.
-4. **Feedback + safety plumbing:**
-   - Session-based flash messages ("Organization created", error banners).
-   - CSRF token helper for all POST forms (random token in session, hidden
-     input, verified in handlers) — cookie-session auth makes CSRF a real
-     concern.
-   - A shared Tera macro file `templates/macros/forms.html` for Bootstrap
-     field rendering (text input, EN/FR paired inputs, select-from-enum,
-     date picker) so per-entity forms stay tiny.
-5. **Vendor HTMX** into `static/` and load it from `base.html`.
+1. ✅ **Shared GraphQL helper.** `post_graphql<Q: GraphQLQuery>` in
+   `src/graphql/client.rs` with an `ApiError` enum that surfaces GraphQL
+   `errors[]` instead of `.expect()` panics. All entity modules migrated.
+   This also fixed a latent auth bug: the old code sent the JWT in a header
+   literally named `Bearer`, but the API only reads `Authorization: Bearer
+   <token>` — no frontend request was actually authenticated before.
+2. ✅ **Sync the schema.** It turned out the *frontend's* `schema.graphql` was
+   current and the backend's checked-in `schema.graphqls` was stale (missing
+   `UserResponse.id` / `expiresAt`); the backend file was updated to match the
+   code. Sync rule documented in CLAUDE.md.
+3. ✅ **Handler-level authorization.** `security::require_role(&session, &lang,
+   MinimumRole::Operator)` redirects to log-in on missing/expired session and
+   to `/not_authorized` on insufficient role.
+4. ✅ **Feedback + safety plumbing:** session flash messages
+   (`security::add_flash`, rendered as alerts in `base.html`), CSRF helpers
+   (`get_or_create_csrf_token` / `verify_csrf_token`, token injected into
+   every context by `generate_basic_context`), and shared Bootstrap form
+   macros in `templates/macros/forms.html`.
+5. ✅ **Vendor HTMX** — htmx 2.0.4 at `static/htmx/htmx.min.js`, loaded in
+   `base.html`.
 
 ### Phase 1 — Pilot entity: Organization (establish the full pattern)
 

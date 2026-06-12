@@ -90,6 +90,27 @@ Required `.env` variables:
 - **Bilingual Support**: All user-facing strings use Fluent i18n system
 - **Static File Compilation**: Build-time asset bundling via `build.rs`
 
+## GraphQL Client Conventions
+
+- `schema.graphql` is the source of truth for generated client types. It must
+  stay in sync with `schema.graphqls` in the workforce_analytics repo (the API).
+- All API calls go through `post_graphql` in `src/graphql/client.rs`. It sends
+  the JWT as `Authorization: Bearer <token>` (the header the API validates) and
+  returns `ApiError` instead of panicking when the response carries GraphQL
+  errors. Do not hand-roll reqwest calls in entity modules.
+- Handlers that render forms or call guarded mutations must enforce access with
+  `security::require_role(&session, &lang, MinimumRole::...)`, mirroring the
+  API's `user < analyst < operator < admin` hierarchy. Template role checks are
+  for hiding buttons only.
+- Mutating POST handlers must validate the form's `csrf_token` field with
+  `security::verify_csrf_token`. `generate_basic_context` injects `csrf_token`
+  and `flash_messages` into every template context; queue user feedback with
+  `security::add_flash(session, "success" | "danger", message)`.
+- Entity create/edit forms use the macros in `templates/macros/forms.html`
+  (`{% import "macros/forms.html" as forms %}`).
+- HTMX is vendored at `static/htmx/htmx.min.js` and loaded in `base.html` for
+  progressive enhancement; forms must still work as plain POST + redirect.
+
 ## Development Notes
 
 - Database changes require new Diesel migrations

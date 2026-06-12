@@ -29,6 +29,8 @@
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.4/umd/popper.min.js"></script>
         <!-- Bootstrap core JavaScript -->
         <script type="text/javascript" src="/static/bootstrap/js/bootstrap.min.js"></script>
+        <!-- HTMX for progressive enhancement of forms and partial page updates -->
+        <script type="text/javascript" src="/static/htmx/htmx.min.js"></script>
     {% endblock preload %}
         
     {% block style %}
@@ -100,6 +102,19 @@
     </div>
 
     <div class="container">
+
+    {% if flash_messages %}
+    <div class="row mt-2">
+        <div class="col">
+            {% for flash in flash_messages %}
+            <div class="alert alert-{{ flash.level }} alert-dismissible fade show" role="alert">
+                {{ flash.message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <div class="row">
             {% block content %}

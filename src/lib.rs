@@ -2,6 +2,7 @@ pub mod models;
 pub mod handlers;
 pub mod graphql;
 pub mod errors;
+pub mod security;
 
 use actix_web::Error;
 use tera::{Tera, Context};
@@ -57,6 +58,10 @@ pub fn generate_basic_context(
 
     ctx.insert("lang", &validated_lang);
     ctx.insert("path", &path);
+
+    // One-time flash messages and the CSRF token for any forms on the page
+    ctx.insert("flash_messages", &security::take_flash(session));
+    ctx.insert("csrf_token", &security::get_or_create_csrf_token(session));
 
     ctx
 }
