@@ -1,0 +1,61 @@
+{# Shared Bootstrap form macros for entity create/edit forms.
+
+   Import with: {% import "macros/forms.html" as forms %}
+   Labels are passed in by the caller so pages keep using Fluent, e.g.:
+   {{ forms::text_input(name="name_en", label=fluent(key="name-english", lang=lang), value=org.nameEn) }}
+#}
+
+{% macro csrf(token) %}
+<input type="hidden" name="csrf_token" value="{{ token }}">
+{% endmacro csrf %}
+
+{% macro text_input(name, label, value="", required=true, type="text", help="", placeholder="") %}
+<div class="mb-3">
+    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <input type="{{ type }}" class="form-control" id="{{ name }}" name="{{ name }}"
+        value="{{ value }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}>
+    {% if help %}<div class="form-text">{{ help }}</div>{% endif %}
+</div>
+{% endmacro text_input %}
+
+{% macro textarea(name, label, value="", required=true, rows=3, help="") %}
+<div class="mb-3">
+    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <textarea class="form-control" id="{{ name }}" name="{{ name }}" rows="{{ rows }}"{% if required %} required{% endif %}>{{ value }}</textarea>
+    {% if help %}<div class="form-text">{{ help }}</div>{% endif %}
+</div>
+{% endmacro textarea %}
+
+{# options is a list of {value, label} objects #}
+{% macro select(name, label, options, selected="", required=true, blank_label="") %}
+<div class="mb-3">
+    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <select class="form-select" id="{{ name }}" name="{{ name }}"{% if required %} required{% endif %}>
+        {% if blank_label %}<option value=""{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>{% endif %}
+        {% for option in options %}
+        <option value="{{ option.value }}"{% if option.value == selected %} selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro select %}
+
+{% macro date_input(name, label, value="", required=false) %}
+<div class="mb-3">
+    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <input type="date" class="form-control" id="{{ name }}" name="{{ name }}" value="{{ value }}"{% if required %} required{% endif %}>
+</div>
+{% endmacro date_input %}
+
+{% macro checkbox(name, label, checked=false) %}
+<div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" id="{{ name }}" name="{{ name }}" value="true"{% if checked %} checked{% endif %}>
+    <label class="form-check-label" for="{{ name }}">{{ label }}</label>
+</div>
+{% endmacro checkbox %}
+
+{% macro submit_row(label, cancel_url="", cancel_label="") %}
+<div class="mb-3">
+    <button type="submit" class="btn btn-primary">{{ label }}</button>
+    {% if cancel_url %}<a class="btn btn-secondary" href="{{ cancel_url }}">{{ cancel_label }}</a>{% endif %}
+</div>
+{% endmacro submit_row %}

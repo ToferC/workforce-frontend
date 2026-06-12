@@ -1,3 +1,4 @@
+pub mod client;
 pub mod log_in_mutation;
 pub mod person;
 pub mod role;
@@ -9,6 +10,7 @@ pub mod work;
 pub mod task;
 pub mod capability;
 
+pub use client::*;
 pub use log_in_mutation::*;
 pub use person::*;
 pub use role::*;

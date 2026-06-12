@@ -1,8 +1,9 @@
-use graphql_client::{GraphQLQuery, Response};
+use graphql_client::GraphQLQuery;
 use serde::{Serialize, Deserialize};
-use std::error::Error;
 use reqwest::Client;
 use std::sync::Arc;
+
+use super::{post_graphql, ApiError};
 
 type UUID = String;
 
@@ -14,33 +15,10 @@ type UUID = String;
 )]
 pub struct OrgTierById;
 
-pub async fn get_org_tier_by_id(id: UUID, bearer: String, api_url: &str, client: Arc<Client>) -> Result<org_tier_by_id::ResponseData, Box<dyn Error>> {
-
-    let request_body = OrgTierById::build_query(org_tier_by_id::Variables {
+pub async fn get_org_tier_by_id(id: UUID, bearer: String, api_url: &str, client: Arc<Client>) -> Result<org_tier_by_id::ResponseData, ApiError> {
+    post_graphql::<OrgTierById>(&client, api_url, &bearer, org_tier_by_id::Variables {
         id,
-    });
-
-    let res = client
-        .post(api_url)
-        .header("Bearer", bearer)
-        .json(&request_body)
-        .send()
-        .await?;
-
-    let response_body: Response<org_tier_by_id::ResponseData> = res.json().await?;
-
-    if let Some(errors) = response_body.errors {
-        println!("there are errors:");
-
-        for error in &errors {
-            println!("{:?}", error);
-        }
-    };
-
-    let response = response_body.data
-        .expect("missing response data");
-
-    Ok(response)
+    }).await
 }
 
 #[derive(GraphQLQuery, Serialize, Deserialize)]
@@ -51,31 +29,8 @@ pub async fn get_org_tier_by_id(id: UUID, bearer: String, api_url: &str, client:
 )]
 pub struct OrgTiersByOrgId;
 
-pub async fn get_org_tiers_by_org_id(id: UUID, bearer: String, api_url: &str, client: Arc<Client>) -> Result<org_tiers_by_org_id::ResponseData, Box<dyn Error>> {
-
-    let request_body = OrgTiersByOrgId::build_query(org_tiers_by_org_id::Variables {
+pub async fn get_org_tiers_by_org_id(id: UUID, bearer: String, api_url: &str, client: Arc<Client>) -> Result<org_tiers_by_org_id::ResponseData, ApiError> {
+    post_graphql::<OrgTiersByOrgId>(&client, api_url, &bearer, org_tiers_by_org_id::Variables {
         id,
-    });
-
-    let res = client
-        .post(api_url)
-        .header("Bearer", bearer)
-        .json(&request_body)
-        .send()
-        .await?;
-
-    let response_body: Response<org_tiers_by_org_id::ResponseData> = res.json().await?;
-
-    if let Some(errors) = response_body.errors {
-        println!("there are errors:");
-
-        for error in &errors {
-            println!("{:?}", error);
-        }
-    };
-
-    let response = response_body.data
-        .expect("missing response data");
-
-    Ok(response)
+    }).await
 }
