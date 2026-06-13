@@ -124,11 +124,44 @@
                         {% if cap.validatedLevel %}<span class="badge bg-success">{{ cap.validatedLevel }}</span>{% endif %}
                     </span>
                     {% if role == "operator" or role == "admin" %}
-                    <form method="post" action="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/retire" class="m-0">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="retire-button", lang=lang) }}</button>
-                    </form>
+                    <span class="d-flex gap-1">
+                        {% if role == "admin" %}
+                        <a class="btn btn-sm btn-outline-success" href="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/validate">{{ fluent(key="validate-button", lang=lang) }}</a>
+                        {% endif %}
+                        <form method="post" action="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/retire" class="m-0">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="retire-button", lang=lang) }}</button>
+                        </form>
+                    </span>
                     {% endif %}
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Languages -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="h4 mb-0"><i class="bi bi-translate"></i> {{ fluent(key="languages", lang=lang) }}</h2>
+            {% if role == "operator" or role == "admin" %}
+            <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/language/new">
+                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-language", lang=lang) }}
+            </a>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                {% for lng in person.languageData %}
+                <li class="list-group-item">
+                    {{ lng.languageName }}
+                    <span class="text-muted small ms-2">
+                        {{ fluent(key="reading", lang=lang) }}: {{ lng.reading | default(value="—") }} &middot;
+                        {{ fluent(key="writing", lang=lang) }}: {{ lng.writing | default(value="—") }} &middot;
+                        {{ fluent(key="speaking", lang=lang) }}: {{ lng.speaking | default(value="—") }}
+                    </span>
                 </li>
                 {% else %}
                 <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>

@@ -291,6 +291,7 @@ fn sample_person() -> serde_json::Value {
         "retiredAt": null,
         "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization"},
         "capabilities": [],
+        "languageData": [],
         "activeRoles": [],
         "inactiveRoles": [],
         "findMatches": [],
@@ -621,6 +622,82 @@ fn person_page_capability_actions_operator_only() {
     ctx.insert("person", &person);
     let html = tera.render("person/person.html", &ctx).unwrap();
     assert!(!html.contains("/capability/new"));
+}
+
+#[test]
+fn requirement_form_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_id", "77777777-7777-7777-7777-777777777777");
+    ctx.insert("skill_options", &json!([{"value": "dddddddd-0000-0000-0000-000000000001", "label": "Threat Analysis"}]));
+    ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+    let html = tera.render("role/requirement_form.html", &ctx).unwrap();
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/requirement/new"));
+    assert!(html.contains("name=\"skill_id\""));
+    assert!(html.contains("name=\"required_level\""));
+}
+
+#[test]
+fn role_page_requirement_actions_operator_only() {
+    let tera = tera();
+    let mut role = sample_role_record();
+    role["requirements"] = json!([{"id": "eeee0000-0000-0000-0000-000000000001", "nameEn": "Threat Analysis", "domain": "CYBER_SECURITY", "requiredLevel": "EXPERT"}]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_record", &role);
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/requirement/new"));
+    assert!(html.contains("/requirement/eeee0000-0000-0000-0000-000000000001/retire"));
+
+    let mut ctx = base_context("en", "user");
+    ctx.insert("role_record", &role);
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(!html.contains("/requirement/new"));
+}
+
+#[test]
+fn validation_form_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "admin");
+    ctx.insert("person_id", "88888888-8888-8888-8888-888888888888");
+    ctx.insert("capability_id", "cccccccc-0000-0000-0000-000000000001");
+    ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+    let html = tera.render("capability/validation_form.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/capability/cccccccc-0000-0000-0000-000000000001/validate"));
+    assert!(html.contains("name=\"validator_name\""));
+}
+
+#[test]
+fn language_form_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &sample_person());
+    ctx.insert("language_names", &json!([{"value": "ENGLISH", "label": "English"}]));
+    ctx.insert("language_levels", &json!([{"value": "C", "label": "C"}]));
+    let html = tera.render("person/language_form.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/language/new"));
+    assert!(html.contains("name=\"language_name\""));
+    assert!(html.contains("name=\"reading\""));
+}
+
+#[test]
+fn person_page_shows_languages_and_validate_for_admin() {
+    let tera = tera();
+    let mut person = sample_person();
+    person["languageData"] = json!([{"id": "ffff0000-0000-0000-0000-000000000001", "languageName": "FRENCH", "reading": "C", "writing": "B", "speaking": "C"}]);
+    person["capabilities"] = json!([{"id": "cccccccc-0000-0000-0000-000000000001", "nameEn": "Threat Analysis", "domain": "CYBER_SECURITY", "selfIdentifiedLevel": "EXPERT", "validatedLevel": null}]);
+    // admin sees validate
+    let mut ctx = base_context("en", "admin");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/language/new"));
+    assert!(html.contains("FRENCH"));
+    assert!(html.contains("/capability/cccccccc-0000-0000-0000-000000000001/validate"));
+    // operator does NOT see validate (admin-only) but sees retire
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(!html.contains("/validate"));
+    assert!(html.contains("/capability/cccccccc-0000-0000-0000-000000000001/retire"));
 }
 
 #[test]

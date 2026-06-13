@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, create_affiliation, update_affiliation};
+use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, create_affiliation, update_affiliation, create_language_data};
 use crate::security::{self, MinimumRole};
 
 #[derive(Deserialize, Debug)]
@@ -591,6 +591,124 @@ pub async fn end_affiliation_post(
 
     match update_affiliation(affiliation_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Affiliation ended.", "Affiliation terminée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/person/{}", &lang, &person_id))
+}
+
+/// LanguageName enum values, kept in sync with the API schema.
+pub const LANGUAGE_NAMES: [&str; 10] = [
+    "ENGLISH", "FRENCH", "ARABIC", "CHINESE", "SPANISH",
+    "GERMAN", "JAPANESE", "KOREAN", "ITALIAN", "OTHER",
+];
+
+/// LanguageLevel enum values (Canadian government scale; X = none).
+pub const LANGUAGE_LEVELS: [&str; 5] = ["A", "B", "C", "E", "X"];
+
+#[derive(Deserialize, Debug)]
+pub struct LanguageForm {
+    pub csrf_token: String,
+    pub language_name: String,
+    #[serde(default)]
+    pub reading: String,
+    #[serde(default)]
+    pub writing: String,
+    #[serde(default)]
+    pub speaking: String,
+}
+
+fn language_name_options() -> serde_json::Value {
+    json!(LANGUAGE_NAMES.iter()
+        .map(|n| {
+            let lower = n.to_lowercase();
+            let mut chars = lower.chars();
+            let label = match chars.next() {
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                None => String::new(),
+            };
+            json!({"value": n, "label": label})
+        })
+        .collect::<Vec<serde_json::Value>>())
+}
+
+fn language_level_options() -> serde_json::Value {
+    json!(LANGUAGE_LEVELS.iter().map(|l| json!({"value": l, "label": l})).collect::<Vec<serde_json::Value>>())
+}
+
+/// Parse a blank-or-level string into the generated LanguageLevel enum.
+/// Blank means "not specified" (None).
+fn parse_level(value: &str) -> Option<create_language_data::LanguageLevel> {
+    if value.trim().is_empty() {
+        None
+    } else {
+        serde_json::from_value(json!(value)).ok()
+    }
+}
+
+#[get("/{lang}/person/{person_id}/language/new")]
+pub async fn create_language_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let person = match get_person_by_id(person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.person_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}", &lang));
+        },
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("person", &person);
+    ctx.insert("language_names", &language_name_options());
+    ctx.insert("language_levels", &language_level_options());
+
+    let rendered = data.tmpl.render("person/language_form.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/person/{person_id}/language/new")]
+pub async fn create_language_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<LanguageForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/person/{}/language/new", &lang, &person_id));
+    }
+
+    let new_language = create_language_data::NewLanguageData {
+        person_id: person_id.clone(),
+        language_name: serde_json::from_value(json!(form.language_name)).expect("LanguageName deserialization is infallible"),
+        reading: parse_level(&form.reading),
+        writing: parse_level(&form.writing),
+        speaking: parse_level(&form.speaking),
+    };
+
+    match create_language_data(new_language, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Language added.", "Langue ajoutée.")),
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 

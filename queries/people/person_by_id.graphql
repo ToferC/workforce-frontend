@@ -17,6 +17,13 @@ query PersonById($id:UUID!) {
       id
       nameEn
     }
+    languageData {
+      id
+      languageName
+      reading
+      writing
+      speaking
+    }
     capabilities {
       id
       nameEn

@@ -32,6 +32,8 @@ use crate::handlers::{
     create_affiliation_form,
     create_affiliation_post,
     end_affiliation_post,
+    create_language_form,
+    create_language_post,
 
     // role
     role_by_id,
@@ -41,12 +43,17 @@ use crate::handlers::{
     edit_role_post,
     end_role_form,
     end_role_post,
+    create_requirement_form,
+    create_requirement_post,
+    retire_requirement_post,
 
     // capability
     capability_search,
     create_capability_form,
     create_capability_post,
     retire_capability_post,
+    validate_capability_form,
+    validate_capability_post,
 
     // skill
     skill_index,
@@ -122,6 +129,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(create_affiliation_form);
     config.service(create_affiliation_post);
     config.service(end_affiliation_post);
+    config.service(create_language_form);
+    config.service(create_language_post);
     config.service(person_by_id);
     config.service(person_by_name);
 
@@ -133,6 +142,9 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_role_post);
     config.service(end_role_form);
     config.service(end_role_post);
+    config.service(create_requirement_form);
+    config.service(create_requirement_post);
+    config.service(retire_requirement_post);
     config.service(role_by_id);
 
     // capability
@@ -140,6 +152,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(create_capability_form);
     config.service(create_capability_post);
     config.service(retire_capability_post);
+    config.service(validate_capability_form);
+    config.service(validate_capability_post);
 
     // skill
     // "new" must be registered before the {skill_id} catch-all

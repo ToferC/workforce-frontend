@@ -154,9 +154,11 @@ Same slice, in dependency order, reusing the macros and helper:
 |---|---|
 | **Skill** ✅ | Done: index page (`/{lang}/skills`, linked from the home page), detail page (with people-who-have-it), create/edit forms (bilingual name/description + `domain` select). No retire — `SkillData` has no `retiredAt` (backend gap, §5). |
 | **Capability** ✅ | Done: "Add capability" on the person page (skill select + self-identified level; the chosen skill supplies name/domain, the person supplies the org, `validationValues` starts empty) and per-row "Retire" (sets `retiredAt`). Found & fixed a latent backend panic: `findMatches` unwrapped `validated_level`, so any capability with no validations yet (i.e. every freshly created one) crashed the person page. Inline HTMX level editing is still a future enhancement. |
-| **Requirement** | Created from a role's page (skill + required level). |
-| **Validation** | Admin-only (matches backend guard); simple level form on the capability page. |
-| **LanguageData** | Section on the person page; Canadian A/B/C/E/X level selects. |
+| **Requirement** ✅ | Done: "Add requirement" on the role page (skill select supplies name/domain + required level) and per-row "Retire" (`retiredAt`). |
+| **Validation** ✅ | Done: admin-only "Validate" button per capability on the person page → form (validator resolved by typed full name + validated level). The API recalculates the capability's validated level as the average of its validations (verified). |
+| **LanguageData** ✅ | Done: "Add language" on the person page (language select + reading/writing/speaking on the Canadian A/B/C/E/X scale, each optional). Languages section added to the person page. |
+
+**Schema-drift fix during this slice:** the merged `main` made `Role.militaryOccupation`/`rank` nullable (civilian personnel) in the Rust models but never regenerated the checked-in SDL, so the running API returned null for fields the frontend's `schema.graphql` still marked `!`, panicking the role/person/team pages for civilian roles. Relaxed both fields to nullable in both schema files (introspection is the source of truth; the SDL files lag).
 
 ### Phase 4 — Work-tracking & publications
 

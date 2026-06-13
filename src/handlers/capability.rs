@@ -5,8 +5,9 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_capability_by_name_and_level, all_skills, get_skill_by_id, get_person_by_id, create_capability, update_capability};
+use crate::graphql::{get_capability_by_name_and_level, all_skills, get_skill_by_id, get_person_by_id, create_capability, update_capability, create_validation};
 use crate::security::{self, MinimumRole};
+use super::person::resolve_person_by_name;
 
 /// CapabilityLevel enum values, kept in sync with the API schema.
 pub const CAPABILITY_LEVELS: [&str; 5] = ["DESIRED", "NOVICE", "EXPERIENCED", "EXPERT", "SPECIALIST"];
@@ -197,6 +198,79 @@ pub async fn retire_capability_post(
     match update_capability(capability_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Capability retired.", "Capacité retirée.")),
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/person/{}", &lang, &person_id))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ValidationForm {
+    pub csrf_token: String,
+    pub validator_name: String,
+    pub validated_level: String,
+}
+
+/// Admin-only: validate someone's capability. The validator is resolved
+/// by typed full name. The API recalculates the capability's validated
+/// level from the average of its validations.
+#[get("/{lang}/person/{person_id}/capability/{capability_id}/validate")]
+pub async fn validate_capability_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id, capability_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    if let Err(response) = security::require_role(&session, &lang, MinimumRole::Admin) {
+        return response;
+    }
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("person_id", &person_id);
+    ctx.insert("capability_id", &capability_id);
+    ctx.insert("capability_levels", &level_options());
+
+    let rendered = data.tmpl.render("capability/validation_form.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/person/{person_id}/capability/{capability_id}/validate")]
+pub async fn validate_capability_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+    form: web::Form<ValidationForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id, capability_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Admin) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        security::add_flash(&session, "danger", by_lang(&lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."));
+        return redirect_to(format!("/{}/person/{}/capability/{}/validate", &lang, &person_id, &capability_id));
+    }
+
+    match resolve_person_by_name(&form.validator_name, &auth.bearer, &lang, &data).await {
+        Ok(Some(validator_id)) => {
+            let new_validation = create_validation::NewValidation {
+                validator_id,
+                capability_id: capability_id.clone(),
+                validated_level: serde_json::from_value(json!(form.validated_level)).expect("CapabilityLevel deserialization is infallible"),
+            };
+            match create_validation(new_validation, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+                Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Validation recorded.", "Validation enregistrée.")),
+                Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+            };
+        },
+        Ok(None) => security::add_flash(&session, "danger", by_lang(&lang, "Enter the validator's name.", "Entrez le nom du validateur.")),
+        Err(message) => security::add_flash(&session, "danger", &message),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))

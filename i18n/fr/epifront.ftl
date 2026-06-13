@@ -302,3 +302,19 @@ people-with-skill = Personnes ayant cette compétence
 add-capability = Ajouter une capacité
 self-identified-level = Niveau auto-évalué
 retire-button = Retirer
+
+## Requirements, Validations, Languages
+add-requirement = Ajouter une exigence
+required-level = Niveau requis
+validate-capability = Valider la capacité
+validate-capability-help = Enregistrez la validation de cette capacité par une autre personne. Le niveau validé est recalculé comme la moyenne de toutes les validations.
+validate-button = Valider
+validator-name = Nom du validateur
+validated-level = Niveau validé
+languages = Langues
+language = Langue
+add-language = Ajouter une langue
+reading = Lecture
+writing = Écriture
+speaking = Expression orale
+not-specified = Non précisé

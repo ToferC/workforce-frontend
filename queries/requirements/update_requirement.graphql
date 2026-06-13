@@ -1,0 +1,3 @@
+mutation UpdateRequirement($data: RequirementData!) {
+  updateRequirement(data: $data) { id retiredAt }
+}

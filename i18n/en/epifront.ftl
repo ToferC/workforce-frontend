@@ -302,3 +302,19 @@ people-with-skill = People with this skill
 add-capability = Add capability
 self-identified-level = Self-identified level
 retire-button = Retire
+
+## Requirements, Validations, Languages
+add-requirement = Add requirement
+required-level = Required level
+validate-capability = Validate capability
+validate-capability-help = Record another person's validation of this capability. The validated level is recalculated as the average of all validations.
+validate-button = Validate
+validator-name = Validator's name
+validated-level = Validated level
+languages = Languages
+language = Language
+add-language = Add language
+reading = Reading
+writing = Writing
+speaking = Speaking
+not-specified = Not specified
