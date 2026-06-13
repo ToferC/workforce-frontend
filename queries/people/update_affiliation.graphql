@@ -1,0 +1,6 @@
+mutation UpdateAffiliation($data: AffiliationData!) {
+  updateAffiliation(data: $data) {
+    id
+    endDate
+  }
+}

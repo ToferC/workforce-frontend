@@ -6,8 +6,9 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier};
+use crate::graphql::{get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership};
 use crate::security::{self, MinimumRole};
+use super::person::resolve_person_by_name;
 
 /// SkillDomain enum values, kept in sync with the API schema. Used to
 /// populate the primary domain select on tier forms.
@@ -452,6 +453,81 @@ pub async fn retire_org_tier_post(
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
         },
+    };
+
+    redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct OwnerForm {
+    pub csrf_token: String,
+    pub person_name: String,
+}
+
+#[get("/{lang}/org_tier/{org_tier_id}/owner")]
+pub async fn assign_org_owner_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, org_tier_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let r = match get_org_tier_by_id(org_tier_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}", &lang));
+        },
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("org_tier", &r.org_tier_by_id);
+
+    let rendered = data.tmpl.render("org_tier/assign_owner.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/org_tier/{org_tier_id}/owner")]
+pub async fn assign_org_owner_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<OwnerForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, org_tier_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/org_tier/{}/owner", &lang, &org_tier_id));
+    }
+
+    match resolve_person_by_name(&form.person_name, &auth.bearer, &lang, &data).await {
+        Ok(Some(person_id)) => {
+            let new_ownership = create_org_ownership::NewOrgOwnership {
+                owner_id: person_id,
+                org_tier_id: org_tier_id.clone(),
+            };
+            match create_org_ownership(new_ownership, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+                Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
+                Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+            };
+        },
+        Ok(None) => security::add_flash(&session, "danger", by_lang(&lang, "Enter the owner's name.", "Entrez le nom du responsable.")),
+        Err(message) => security::add_flash(&session, "danger", &message),
     };
 
     redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id))

@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations};
+use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, create_affiliation, update_affiliation};
 use crate::security::{self, MinimumRole};
 
 #[derive(Deserialize, Debug)]
@@ -50,13 +50,51 @@ fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
     );
 }
 
-async fn organization_options(bearer: &str, data: &AppData) -> serde_json::Value {
+pub async fn organization_options(bearer: &str, data: &AppData) -> serde_json::Value {
     match all_organizations(bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => json!(r.all_organizations
             .iter()
             .map(|org| json!({"value": org.id, "label": org.name_en}))
             .collect::<Vec<serde_json::Value>>()),
         Err(_) => json!([]),
+    }
+}
+
+/// Resolve a typed "Given Family" name to a person id. The API's
+/// personByName does ilike on family OR given name separately, so it
+/// can't match a concatenated name; search the last token and filter for
+/// an exact full-name match. Returns Ok(None) for blank input,
+/// Ok(Some(id)) when resolved, Err(message) when not found / ambiguous.
+pub async fn resolve_person_by_name(name: &str, bearer: &str, lang: &str, data: &AppData) -> Result<Option<String>, String> {
+    let typed = name.trim().to_string();
+    if typed.is_empty() {
+        return Ok(None);
+    }
+    let token = typed.split_whitespace().last().unwrap_or(&typed).to_string();
+    match get_people_by_name(token, bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => {
+            let matches = r.person_by_name;
+            let exact: Vec<_> = matches
+                .iter()
+                .filter(|p| format!("{} {}", p.given_name, p.family_name).eq_ignore_ascii_case(&typed))
+                .collect();
+            if exact.len() == 1 {
+                Ok(Some(exact[0].id.clone()))
+            } else if exact.len() > 1 {
+                Err(by_lang(lang,
+                    "Several people share that exact name — assign from the person's page instead.",
+                    "Plusieurs personnes portent exactement ce nom — affectez depuis la page de la personne.").to_string())
+            } else if matches.len() == 1 {
+                Ok(Some(matches[0].id.clone()))
+            } else if matches.is_empty() {
+                Err(by_lang(lang, "No person found with that name.", "Aucune personne trouvée avec ce nom.").to_string())
+            } else {
+                Err(by_lang(lang,
+                    "Several people match that name — please use the full given and family name.",
+                    "Plusieurs personnes correspondent à ce nom — veuillez utiliser le prénom et le nom complets.").to_string())
+            }
+        },
+        Err(e) => Err(e.to_string()),
     }
 }
 
@@ -420,6 +458,140 @@ pub async fn retire_person_post(
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
         },
+    };
+
+    redirect_to(format!("/{}/person/{}", &lang, &person_id))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct AffiliationForm {
+    pub csrf_token: String,
+    pub organization_id: String,
+    pub affiliation_role: String,
+    #[serde(default)]
+    pub end_date: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct EndAffiliationForm {
+    pub csrf_token: String,
+}
+
+fn parse_date(value: &str) -> Option<chrono::NaiveDateTime> {
+    chrono::NaiveDate::parse_from_str(value.trim(), "%Y-%m-%d")
+        .ok()
+        .and_then(|date| date.and_hms_opt(0, 0, 0))
+}
+
+#[get("/{lang}/person/{person_id}/affiliation/new")]
+pub async fn create_affiliation_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let person = match get_person_by_id(person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.person_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}", &lang));
+        },
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("person", &person);
+    ctx.insert("affiliation", &json!({"organization": {"id": ""}, "affiliationRole": "", "endDate": ""}));
+    ctx.insert("organization_options", &organization_options(&auth.bearer, &data).await);
+
+    let rendered = data.tmpl.render("person/affiliation_form.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/person/{person_id}/affiliation/new")]
+pub async fn create_affiliation_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<AffiliationForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/person/{}/affiliation/new", &lang, &person_id));
+    }
+
+    // homeOrgId is the person's own organization
+    let home_org_id = match get_person_by_id(person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.person_by_id.organization.id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/person/{}", &lang, &person_id));
+        },
+    };
+
+    let new_affiliation = create_affiliation::NewAffiliation {
+        person_id: person_id.clone(),
+        organization_id: form.organization_id.clone(),
+        home_org_id,
+        affiliation_role: form.affiliation_role.trim().to_string(),
+        end_date: parse_date(&form.end_date),
+    };
+
+    match create_affiliation(new_affiliation, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Affiliation added.", "Affiliation ajoutée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/person/{}", &lang, &person_id))
+}
+
+#[post("/{lang}/person/{person_id}/affiliation/{affiliation_id}/end")]
+pub async fn end_affiliation_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+    form: web::Form<EndAffiliationForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id, affiliation_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/person/{}", &lang, &person_id));
+    }
+
+    let affiliation_data = update_affiliation::AffiliationData {
+        id: affiliation_id,
+        affiliation_role: None,
+        start_datestamp: None,
+        end_date: Some(chrono::Utc::now().naive_utc()),
+    };
+
+    match update_affiliation(affiliation_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Affiliation ended.", "Affiliation terminée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))

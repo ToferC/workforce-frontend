@@ -79,3 +79,32 @@ pub async fn update_person(data: update_person::PersonData, bearer: String, api_
         data,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/people/create_affiliation.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct CreateAffiliation;
+
+pub async fn create_affiliation(data: create_affiliation::NewAffiliation, bearer: String, api_url: &str, client: Arc<Client>) -> Result<create_affiliation::ResponseData, ApiError> {
+    post_graphql::<CreateAffiliation>(&client, api_url, &bearer, create_affiliation::Variables {
+        data,
+    }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/people/update_affiliation.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct UpdateAffiliation;
+
+/// End an affiliation by setting its end date.
+pub async fn update_affiliation(data: update_affiliation::AffiliationData, bearer: String, api_url: &str, client: Arc<Client>) -> Result<update_affiliation::ResponseData, ApiError> {
+    post_graphql::<UpdateAffiliation>(&client, api_url, &bearer, update_affiliation::Variables {
+        data,
+    }).await
+}

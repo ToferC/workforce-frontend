@@ -279,3 +279,14 @@ start-date = Date de début
 end-date = Date de fin
 assign-person = Affecter une personne (facultatif)
 assign-person-helper = Prénom et nom complets d'une personne existante. Laissez vide pour créer un rôle vacant.
+
+## Link Entities (ownership, affiliation)
+assign-owner = Assigner un responsable
+owner-name = Nom du responsable
+owner-name-helper = Prénom et nom complets d'une personne existante.
+add-affiliation = Ajouter une affiliation
+end-affiliation = Terminer
+affiliated-organization = Organisation affiliée
+affiliation-role = Rôle d'affiliation
+affiliation-role-helper = p. ex. Détachement, Liaison, Conseiller.
+none-label = Aucune

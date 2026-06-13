@@ -6,9 +6,10 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_team_by_id, create_team, update_team};
+use crate::graphql::{get_team_by_id, create_team, update_team, create_team_ownership};
 use crate::security::{self, MinimumRole};
-use super::org_tier::{parent_tier_options, skill_domain_options};
+use super::org_tier::{parent_tier_options, skill_domain_options, OwnerForm};
+use super::person::resolve_person_by_name;
 
 #[derive(Deserialize, Debug)]
 pub struct TeamForm {
@@ -382,6 +383,77 @@ pub async fn retire_team_post(
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
         },
+    };
+
+    redirect_to(format!("/{}/team/{}", &lang, &team_id))
+}
+
+#[get("/{lang}/team/{team_id}/owner")]
+pub async fn assign_team_owner_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, team_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let r = match get_team_by_id(team_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}", &lang));
+        },
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("team", &r.team_by_id);
+
+    let rendered = data.tmpl.render("team/assign_owner.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/team/{team_id}/owner")]
+pub async fn assign_team_owner_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<OwnerForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, team_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/team/{}/owner", &lang, &team_id));
+    }
+
+    match resolve_person_by_name(&form.person_name, &auth.bearer, &lang, &data).await {
+        Ok(Some(person_id)) => {
+            let new_ownership = create_team_ownership::NewTeamOwnership {
+                person_id,
+                team_id: team_id.clone(),
+                start_datestamp: chrono::Utc::now().naive_utc(),
+                end_date: None,
+            };
+            match create_team_ownership(new_ownership, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+                Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
+                Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+            };
+        },
+        Ok(None) => security::add_flash(&session, "danger", by_lang(&lang, "Enter the owner's name.", "Entrez le nom du responsable.")),
+        Err(message) => security::add_flash(&session, "danger", &message),
     };
 
     redirect_to(format!("/{}/team/{}", &lang, &team_id))

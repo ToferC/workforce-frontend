@@ -80,3 +80,20 @@ pub async fn update_org_tier(data: update_org_tier::OrgTierData, bearer: String,
         data,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/org_tiers/create_org_ownership.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct CreateOrgOwnership;
+
+/// Assign an owner to an org tier. Tiers created via createOrgTier have no
+/// ownership record (owner() then inherits up the parent chain); this
+/// creates one so the tier has its own owner.
+pub async fn create_org_ownership(data: create_org_ownership::NewOrgOwnership, bearer: String, api_url: &str, client: Arc<Client>) -> Result<create_org_ownership::ResponseData, ApiError> {
+    post_graphql::<CreateOrgOwnership>(&client, api_url, &bearer, create_org_ownership::Variables {
+        data,
+    }).await
+}

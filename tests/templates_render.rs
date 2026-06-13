@@ -481,6 +481,63 @@ fn org_chart_team_node_offers_add_role_for_operator() {
 }
 
 #[test]
+fn org_tier_assign_owner_page_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("org_tier", &sample_org_tier());
+    let html = tera.render("org_tier/assign_owner.html", &ctx).unwrap();
+    assert!(html.contains("/org_tier/22222222-2222-2222-2222-222222222222/owner"));
+    assert!(html.contains("name=\"person_name\""));
+    assert!(html.contains("name=\"csrf_token\""));
+}
+
+#[test]
+fn team_assign_owner_page_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("team", &sample_team());
+    let html = tera.render("team/assign_owner.html", &ctx).unwrap();
+    assert!(html.contains("/team/66666666-6666-6666-6666-666666666666/owner"));
+    assert!(html.contains("name=\"person_name\""));
+}
+
+#[test]
+fn affiliation_form_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &sample_person());
+    ctx.insert("affiliation", &json!({"organization": {"id": ""}, "affiliationRole": "", "endDate": ""}));
+    ctx.insert("organization_options", &json!([
+        {"value": "11111111-1111-1111-1111-111111111111", "label": "Test Organization"}
+    ]));
+    let html = tera.render("person/affiliation_form.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/affiliation/new"));
+    assert!(html.contains("name=\"organization_id\""));
+    assert!(html.contains("name=\"affiliation_role\""));
+}
+
+#[test]
+fn person_page_affiliation_actions_operator_only() {
+    let tera = tera();
+    let mut person = sample_person();
+    person["affiliations"] = json!([
+        {"id": "aaaaaaaa-0000-0000-0000-000000000001", "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Partner Org"}, "affiliationRole": "Liaison"}
+    ]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/affiliation/new"));
+    assert!(html.contains("/affiliation/aaaaaaaa-0000-0000-0000-000000000001/end"));
+    assert!(html.contains("Liaison"));
+
+    let mut ctx = base_context("en", "user");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(!html.contains("/affiliation/new"));
+    assert!(!html.contains("/end"));
+}
+
+#[test]
 fn index_shows_new_organization_button_for_operator_only() {
     let tera = tera();
     let mut ctx = base_context("en", "operator");

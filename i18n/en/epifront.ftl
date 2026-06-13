@@ -279,3 +279,14 @@ start-date = Start date
 end-date = End date
 assign-person = Assign person (optional)
 assign-person-helper = Full given and family name of an existing person. Leave blank to create a vacant role.
+
+## Link Entities (ownership, affiliation)
+assign-owner = Assign owner
+owner-name = Owner's name
+owner-name-helper = Full given and family name of an existing person.
+add-affiliation = Add affiliation
+end-affiliation = End
+affiliated-organization = Affiliated organization
+affiliation-role = Affiliation role
+affiliation-role-helper = e.g. Secondment, Liaison, Advisor.
+none-label = None

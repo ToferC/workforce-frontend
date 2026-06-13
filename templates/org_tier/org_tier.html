@@ -26,6 +26,9 @@
             <a class="btn btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ org_tier.organization.id }}&parent={{ org_tier.id }}">
                 <i class="bi bi-plus-lg"></i> {{ fluent(key="add-child-tier", lang=lang) }}
             </a>
+            <a class="btn btn-outline-secondary" href="/{{ lang }}/org_tier/{{ org_tier.id }}/owner">
+                <i class="bi bi-person-gear"></i> {{ fluent(key="assign-owner", lang=lang) }}
+            </a>
             {% if not org_tier.retiredAt %}
             <a class="btn btn-outline-danger" href="/{{ lang }}/org_tier/{{ org_tier.id }}/retire">
                 <i class="bi bi-x-circle"></i> {{ fluent(key="retire-org-tier", lang=lang) }}

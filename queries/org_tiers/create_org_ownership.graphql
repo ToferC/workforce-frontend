@@ -1,0 +1,6 @@
+mutation CreateOrgOwnership($data: NewOrgOwnership!) {
+  createOrgOwnership(data: $data) {
+    id
+    orgTierId
+  }
+}

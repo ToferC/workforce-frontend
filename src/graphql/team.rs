@@ -63,3 +63,18 @@ pub async fn update_team(data: update_team::TeamData, bearer: String, api_url: &
         data,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/teams/create_team_ownership.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct CreateTeamOwnership;
+
+/// Assign an owner to a team (creates a TeamOwnership record).
+pub async fn create_team_ownership(data: create_team_ownership::NewTeamOwnership, bearer: String, api_url: &str, client: Arc<Client>) -> Result<create_team_ownership::ResponseData, ApiError> {
+    post_graphql::<CreateTeamOwnership>(&client, api_url, &bearer, create_team_ownership::Variables {
+        data,
+    }).await
+}
