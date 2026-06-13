@@ -1,0 +1,61 @@
+{# HTMX partial: compact inline form for adding a role from the builder.
+   Errors re-render in place; success retargets at the tier node body
+   so the new role appears in its team. #}
+{% import "macros/forms.html" as forms %}
+
+<form class="card card-body border-info"
+      hx-post="/{{ lang }}/role/new"
+      hx-target="this"
+      hx-swap="outerHTML">
+    {{ forms::csrf(token=csrf_token) }}
+    <input type="hidden" name="team_id" value="{{ role_form.teamId }}">
+    <input type="hidden" name="org_tier_id" value="{{ role_form.orgTierId }}">
+    <input type="hidden" name="organization_id" value="{{ role_form.organizationId }}">
+
+    {% if form_error %}
+    <div class="alert alert-danger py-1 px-2 small">{{ form_error }}</div>
+    {% endif %}
+
+    {% set label_title_en = fluent(key="title-english", lang=lang) %}
+    {% set label_title_fr = fluent(key="title-french", lang=lang) %}
+    {% set label_rank = fluent(key="rank", lang=lang) %}
+    {% set label_occupation = fluent(key="military-occupation", lang=lang) %}
+    {% set label_effort = fluent(key="effort", lang=lang) %}
+    {% set label_start = fluent(key="start-date", lang=lang) %}
+    {% set label_person = fluent(key="assign-person", lang=lang) %}
+    {% set help_person = fluent(key="assign-person-helper", lang=lang) %}
+
+    <div class="row">
+        <div class="col-md-6">
+            {{ forms::text_input(name="title_en", label=label_title_en, value=role_form.titleEnglish) }}
+        </div>
+        <div class="col-md-6">
+            {{ forms::text_input(name="title_fr", label=label_title_fr, value=role_form.titleFrench) }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            {{ forms::select(name="rank", label=label_rank, options=ranks, selected=role_form.rank) }}
+        </div>
+        <div class="col-md-6">
+            {{ forms::select(name="military_occupation", label=label_occupation, options=military_occupations, selected=role_form.militaryOccupation) }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            {{ forms::text_input(name="effort", label=label_effort, value=role_form.effort, type="number") }}
+        </div>
+        <div class="col-md-6">
+            {{ forms::date_input(name="start_date", label=label_start, value=role_form.startDate, required=true) }}
+        </div>
+    </div>
+    {{ forms::text_input(name="person_name", label=label_person, value=role_form.personName, required=false, help=help_person) }}
+
+    <div>
+        <button type="submit" class="btn btn-sm btn-info">{{ fluent(key="save-button", lang=lang) }}</button>
+        <button type="button" class="btn btn-sm btn-secondary"
+                hx-get="/{{ lang }}/org_tier/{{ role_form.orgTierId }}/node"
+                hx-target="closest .org-node-body"
+                hx-swap="innerHTML">{{ fluent(key="cancel-button", lang=lang) }}</button>
+    </div>
+</form>

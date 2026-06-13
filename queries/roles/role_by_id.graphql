@@ -2,6 +2,8 @@ query RoleById($id:UUID!) {
   	roleById(id:$id) {
     id
     titleEnglish
+    titleFrench
+    active
     militaryOccupation
     rank
     startDate

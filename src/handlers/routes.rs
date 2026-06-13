@@ -32,6 +32,12 @@ use crate::handlers::{
 
     // role
     role_by_id,
+    create_role_form,
+    create_role_post,
+    edit_role_form,
+    edit_role_post,
+    end_role_form,
+    end_role_post,
 
     // capability
     capability_search,
@@ -99,6 +105,13 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(person_by_name);
 
     // role
+    // "new" must be registered before the {role_id} catch-all
+    config.service(create_role_form);
+    config.service(create_role_post);
+    config.service(edit_role_form);
+    config.service(edit_role_post);
+    config.service(end_role_form);
+    config.service(end_role_post);
     config.service(role_by_id);
 
     // capability

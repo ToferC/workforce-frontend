@@ -33,7 +33,7 @@
 </details>
 {% endmacro tier_node %}
 
-{% macro team_node(team, lang) %}
+{% macro team_node(team, lang, role="", org_tier_id="", organization_id="") %}
 <details class="card mb-2 team-node">
     <summary class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;">
         <span>
@@ -68,6 +68,17 @@
         {% endfor %}
         {% if team.occupiedRoles | length == 0 and team.vacantRoles | length == 0 %}
         <li class="list-group-item text-muted">{{ fluent(key="no-roles", lang=lang) }}</li>
+        {% endif %}
+        {% if org_tier_id and role and (role == "operator" or role == "admin") %}
+        <li class="list-group-item" id="role-slot-{{ team.id }}">
+            <a class="btn btn-sm btn-outline-info"
+               href="/{{ lang }}/role/new?team={{ team.id }}&org_tier={{ org_tier_id }}&organization={{ organization_id }}"
+               hx-get="/{{ lang }}/role/new?team={{ team.id }}&org_tier={{ org_tier_id }}&organization={{ organization_id }}"
+               hx-target="#role-slot-{{ team.id }}"
+               hx-swap="innerHTML">
+                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-role", lang=lang) }}
+            </a>
+        </li>
         {% endif %}
     </ul>
 </details>

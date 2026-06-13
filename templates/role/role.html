@@ -7,11 +7,27 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-briefcase"></i> {{ role.titleEnglish }}</h1>
-        <p class="lead text-muted">{{ role.militaryOccupation }}-{{ role.rank }}</p>
+        <h1 class="display-4 mb-2"><i class="bi bi-briefcase"></i>
+            {% if lang == "fr" %}{{ role_record.titleFrench }}{% else %}{{ role_record.titleEnglish }}{% endif %}
+            {% if role_record.active != "true" %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="role-ended", lang=lang) }}</span>{% endif %}
+        </h1>
+        <p class="lead text-muted">{{ role_record.militaryOccupation }}-{{ role_record.rank }}</p>
+
+        {% if role == "operator" or role == "admin" %}
+        <div class="mb-2">
+            <a class="btn btn-primary" href="/{{ lang }}/role/{{ role_record.id }}/edit">
+                <i class="bi bi-pencil"></i> {{ fluent(key="edit-role-status", lang=lang) }}
+            </a>
+            {% if role_record.active == "true" %}
+            <a class="btn btn-outline-danger" href="/{{ lang }}/role/{{ role_record.id }}/end">
+                <i class="bi bi-stop-circle"></i> {{ fluent(key="end-role", lang=lang) }}
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
-    {% if role.person %}
+    {% if role_record.person %}
     <!-- Occupied Role -->
     <div class="card shadow-lg mb-4">
         <div class="card-header">
@@ -20,11 +36,11 @@
         <div class="card-body p-0">
             <ul class="list-group list-group-flush">
                 <li class="list-group-item">
-                    <a href="/{{ lang }}/person/{{ role.person.id }}" class="fw-semibold">{{ role.person.givenName }} {{ role.person.familyName }}</a>
+                    <a href="/{{ lang }}/person/{{ role_record.person.id }}" class="fw-semibold">{{ role_record.person.givenName }} {{ role_record.person.familyName }}</a>
                 </li>
-                <li class="list-group-item"><span class="text-muted">Current Effort:</span> {{ role.effort }}</li>
-                <li class="list-group-item"><span class="text-muted">Email:</span> {{ role.person.email }}</li>
-                <li class="list-group-item"><span class="text-muted">Phone:</span> {{ role.person.phone }}</li>
+                <li class="list-group-item"><span class="text-muted">Current Effort:</span> {{ role_record.effort }}</li>
+                <li class="list-group-item"><span class="text-muted">Email:</span> {{ role_record.person.email }}</li>
+                <li class="list-group-item"><span class="text-muted">Phone:</span> {{ role_record.person.phone }}</li>
             </ul>
         </div>
     </div>
@@ -38,12 +54,12 @@
             <ul class="list-group list-group-flush">
                 <li class="list-group-item">
                     <span class="text-muted">Name:</span>
-                    <a href="/{{lang}}/team/{{role.team.id}}">{{ role.team.nameEnglish }}</a>
+                    <a href="/{{lang}}/team/{{role_record.team.id}}">{{ role_record.team.nameEnglish }}</a>
                 </li>
                 <li class="list-group-item">
                     <span class="text-muted">Owner:</span>
-                    <a href="/{{lang}}/person/{{role.team.owner.id}}">{{ role.team.owner.givenName }} {{ role.team.owner.familyName }}</a>
-                    &mdash; {{ role.team.owner.email }}
+                    <a href="/{{lang}}/person/{{role_record.team.owner.id}}">{{ role_record.team.owner.givenName }} {{ role_record.team.owner.familyName }}</a>
+                    &mdash; {{ role_record.team.owner.email }}
                 </li>
             </ul>
         </div>
@@ -55,9 +71,9 @@
             <h2 class="h4 mb-0"><i class="bi bi-check2-square"></i> Requirements</h2>
         </div>
         <div class="card-body p-0">
-            {% if role.requirements %}
+            {% if role_record.requirements %}
             <ul class="list-group list-group-flush">
-                {% for req in role.requirements %}
+                {% for req in role_record.requirements %}
                 <li class="list-group-item">
                     {{ req.nameEn }} <span class="text-muted">({{ req.domain }})</span> &mdash; {{ req.requiredLevel }}
                 </li>
@@ -75,9 +91,9 @@
             <h2 class="h4 mb-0"><i class="bi bi-kanban"></i> Work</h2>
         </div>
         <div class="card-body p-0">
-            {% if role.work %}
+            {% if role_record.work %}
             <ul class="list-group list-group-flush">
-                {% for work in role.work %}
+                {% for work in role_record.work %}
                 <li class="list-group-item">
                     <a href="/{{lang}}/work/{{work.id}}" class="fw-semibold">{{ work.workDescription }}</a>
                     <div class="small text-muted mt-1">
@@ -101,9 +117,9 @@
         <div class="card-body p-0">
             <div class="p-3">
                 <h3 class="h6 text-muted mb-2">Requirements</h3>
-                {% if role.requirements %}
+                {% if role_record.requirements %}
                 <ul class="list-group list-group-flush">
-                    {% for req in role.requirements %}
+                    {% for req in role_record.requirements %}
                     <li class="list-group-item px-0">
                         {{ req.nameEn }} <span class="text-muted">({{ req.domain }})</span> &mdash; {{ req.requiredLevel }}
                     </li>
@@ -122,7 +138,7 @@
             <h2 class="h4 mb-0"><i class="bi bi-bullseye"></i> Potential Matches</h2>
         </div>
         <div class="card-body p-0">
-            {% for person in role.findMatches %}
+            {% for person in role_record.findMatches %}
             <div class="p-3 border-bottom">
                 <a href="/{{lang}}/person/{{person.id}}" class="fw-semibold">{{ person.givenName }} {{ person.familyName }}</a>
                 <ul class="list-group list-group-flush mt-2">

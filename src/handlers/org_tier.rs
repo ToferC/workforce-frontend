@@ -20,7 +20,7 @@ pub const SKILL_DOMAINS: [&str; 16] = [
 ];
 
 /// Render "INFORMATION_TECHNOLOGY" as "Information Technology" for labels
-fn humanize(value: &str) -> String {
+pub fn humanize(value: &str) -> String {
     value
         .split('_')
         .map(|word| {

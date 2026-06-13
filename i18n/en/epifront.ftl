@@ -258,3 +258,24 @@ postal-code = Postal code
 country = Country
 peoplesoft-id = PeopleSoft ID
 orcid-id = ORCID iD
+
+## Role Forms
+create-role = Create Role
+add-role = Add role
+edit-role-status = Edit Role Status
+end-role = End Role
+end-role-confirm = Are you sure you want to end this role? It becomes inactive with an end date of today. To change titles or assignment, create a new role instead — history is preserved.
+confirm-end-role-button = Yes, end role
+role-ended = Ended
+role-active = Role is active
+role-edit-limited = Only the active flag and dates can be changed on an existing role. To change the title, rank, or person, end this role and create a new one — that preserves the history.
+title-english = Title (English)
+title-french = Title (French)
+rank = Rank
+military-occupation = Military Occupation
+effort = Effort
+effort-helper = Expected workload for this role; full time is around 10.
+start-date = Start date
+end-date = End date
+assign-person = Assign person (optional)
+assign-person-helper = Full given and family name of an existing person. Leave blank to create a vacant role.

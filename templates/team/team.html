@@ -18,6 +18,9 @@
             <a class="btn btn-primary" href="/{{ lang }}/team/{{ team.id }}/edit">
                 <i class="bi bi-pencil"></i> {{ fluent(key="edit-team", lang=lang) }}
             </a>
+            <a class="btn btn-outline-info" href="/{{ lang }}/role/new?team={{ team.id }}&org_tier={{ team.organizationLevel.id }}&organization={{ team.organization.id }}">
+                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-role", lang=lang) }}
+            </a>
             {% if not team.retiredAt %}
             <a class="btn btn-outline-danger" href="/{{ lang }}/team/{{ team.id }}/retire">
                 <i class="bi bi-x-circle"></i> {{ fluent(key="retire-team", lang=lang) }}

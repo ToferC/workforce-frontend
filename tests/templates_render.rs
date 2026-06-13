@@ -374,6 +374,112 @@ fn person_retire_page_renders() {
     assert!(html.contains("Sam Lee"));
 }
 
+fn sample_role_form() -> serde_json::Value {
+    json!({
+        "titleEnglish": "Analyst",
+        "titleFrench": "Analyste",
+        "effort": 1.0,
+        "militaryOccupation": "CYBER",
+        "rank": "CAPTAIN",
+        "startDate": "2026-06-12",
+        "personName": "",
+        "teamId": "66666666-6666-6666-6666-666666666666",
+        "orgTierId": "22222222-2222-2222-2222-222222222222",
+        "organizationId": "11111111-1111-1111-1111-111111111111",
+    })
+}
+
+fn sample_role_record() -> serde_json::Value {
+    json!({
+        "id": "77777777-7777-7777-7777-777777777777",
+        "titleEnglish": "Analyst",
+        "titleFrench": "Analyste",
+        "active": "true",
+        "militaryOccupation": "CYBER",
+        "rank": "CAPTAIN",
+        "effort": 1,
+        "startDate": "2026-01-01",
+        "endDate": "",
+        "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "phone": "555", "email": "s@e.com"},
+        "team": {
+            "id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team",
+            "organizationLevel": {"nameEn": "Tier", "primaryDomain": "CYBER_SECURITY"},
+            "owner": {"id": "44444444-4444-4444-4444-444444444444", "givenName": "Jane", "familyName": "Doe", "email": "j@e.com"},
+        },
+        "work": [],
+        "requirements": [],
+        "findMatches": [],
+    })
+}
+
+fn role_enum_options() -> (serde_json::Value, serde_json::Value) {
+    (
+        json!([{"value": "CAPTAIN", "label": "Captain"}]),
+        json!([{"value": "CYBER", "label": "Cyber"}]),
+    )
+}
+
+#[test]
+fn role_form_renders_full_page_and_partial() {
+    let tera = tera();
+    let (ranks, occupations) = role_enum_options();
+    for template in ["role/role_form.html", "org_chart/add_role_form.html"] {
+        let mut ctx = base_context("en", "operator");
+        ctx.insert("role_form", &sample_role_form());
+        ctx.insert("team", &sample_team());
+        ctx.insert("ranks", &ranks);
+        ctx.insert("military_occupations", &occupations);
+        let html = tera.render(template, &ctx).unwrap();
+        assert!(html.contains("name=\"team_id\" value=\"66666666-6666-6666-6666-666666666666\""));
+        assert!(html.contains("value=\"CAPTAIN\" selected"));
+        assert!(html.contains("name=\"person_name\""));
+    }
+}
+
+#[test]
+fn role_status_and_end_pages_render() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_record", &sample_role_record());
+    let html = tera.render("role/role_status_form.html", &ctx).unwrap();
+    // active checkbox pre-checked for an active role
+    assert!(html.contains("name=\"active\""));
+    assert!(html.contains("checked"));
+    let html = tera.render("role/role_end.html", &ctx).unwrap();
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/end"));
+    assert!(html.contains("Sam Lee"));
+}
+
+#[test]
+fn role_detail_shows_actions_for_operator_only() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_record", &sample_role_record());
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/edit"));
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/end"));
+
+    let mut ctx = base_context("en", "user");
+    ctx.insert("role_record", &sample_role_record());
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(!html.contains("/edit"));
+    assert!(!html.contains("/end"));
+}
+
+#[test]
+fn org_chart_team_node_offers_add_role_for_operator() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("node", &sample_org_tier());
+    let html = tera.render("org_chart/node.html", &ctx).unwrap();
+    assert!(html.contains("role/new?team=66666666-6666-6666-6666-666666666666"));
+
+    let mut ctx = base_context("en", "user");
+    ctx.insert("node", &sample_org_tier());
+    let html = tera.render("org_chart/node.html", &ctx).unwrap();
+    assert!(!html.contains("role/new?team="));
+}
+
 #[test]
 fn index_shows_new_organization_button_for_operator_only() {
     let tera = tera();

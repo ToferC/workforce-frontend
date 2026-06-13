@@ -16,6 +16,7 @@ right** (tiers → teams → roles → people). Static design mockup:
 | Inline add form | `GET /{lang}/org_tier/new` (with `HX-Request`) | `org_chart/add_tier_form.html` |
 | Create tier | `POST /{lang}/org_tier/new` | HTMX: re-rendered parent node; plain: redirect to tier page |
 | Inline add team | `GET/POST /{lang}/team/new` (with `HX-Request`) | `org_chart/add_team_form.html`, same swap pattern |
+| Inline add role | `GET/POST /{lang}/role/new` (with `HX-Request`) | `org_chart/add_role_form.html`, on team nodes; success retargets the tier node body |
 
 Tier CRUD (full pages, work without JS) lives alongside:
 `/{lang}/org_tier/new`, `/{id}/edit`, `/{id}/retire`.
