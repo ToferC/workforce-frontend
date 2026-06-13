@@ -97,3 +97,33 @@ pub async fn create_org_ownership(data: create_org_ownership::NewOrgOwnership, b
         data,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/org_tiers/org_ownership_by_tier_id.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct OrgOwnershipByTierId;
+
+/// Look up a tier's ownership record (and its id) so the owner can be
+/// reassigned. Returns an ApiError if the tier has no ownership record.
+pub async fn get_org_ownership_by_tier_id(org_tier_id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<org_ownership_by_tier_id::ResponseData, ApiError> {
+    post_graphql::<OrgOwnershipByTierId>(&client, api_url, &bearer, org_ownership_by_tier_id::Variables {
+        org_tier_id,
+    }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/org_tiers/update_org_ownership.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct UpdateOrgOwnership;
+
+pub async fn update_org_ownership(data: update_org_ownership::OrgOwnershipData, bearer: String, api_url: &str, client: Arc<Client>) -> Result<update_org_ownership::ResponseData, ApiError> {
+    post_graphql::<UpdateOrgOwnership>(&client, api_url, &bearer, update_org_ownership::Variables {
+        data,
+    }).await
+}

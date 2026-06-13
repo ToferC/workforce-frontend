@@ -1,0 +1,6 @@
+query OrgOwnershipByTierId($orgTierId: UUID!) {
+  orgOwnershipByTierId(orgTierId: $orgTierId) {
+    id
+    ownerId
+  }
+}

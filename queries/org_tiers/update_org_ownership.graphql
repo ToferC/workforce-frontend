@@ -1,0 +1,6 @@
+mutation UpdateOrgOwnership($data: OrgOwnershipData!) {
+  updateOrgOwnership(data: $data) {
+    id
+    ownerId
+  }
+}

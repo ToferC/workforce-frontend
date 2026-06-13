@@ -78,3 +78,33 @@ pub async fn create_team_ownership(data: create_team_ownership::NewTeamOwnership
         data,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/teams/team_ownership_by_team_id.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct TeamOwnershipByTeamId;
+
+/// Look up a team's ownership record (and its id) so the owner can be
+/// reassigned. Returns an ApiError if the team has no ownership record.
+pub async fn get_team_ownership_by_team_id(team_id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<team_ownership_by_team_id::ResponseData, ApiError> {
+    post_graphql::<TeamOwnershipByTeamId>(&client, api_url, &bearer, team_ownership_by_team_id::Variables {
+        team_id,
+    }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/teams/update_team_ownership.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct UpdateTeamOwnership;
+
+pub async fn update_team_ownership(data: update_team_ownership::TeamOwnershipData, bearer: String, api_url: &str, client: Arc<Client>) -> Result<update_team_ownership::ResponseData, ApiError> {
+    post_graphql::<UpdateTeamOwnership>(&client, api_url, &bearer, update_team_ownership::Variables {
+        data,
+    }).await
+}

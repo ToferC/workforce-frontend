@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_team_by_id, create_team, update_team, create_team_ownership};
+use crate::graphql::{get_team_by_id, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{parent_tier_options, skill_domain_options, OwnerForm};
 use super::person::resolve_person_by_name;
@@ -441,13 +441,26 @@ pub async fn assign_team_owner_post(
 
     match resolve_person_by_name(&form.person_name, &auth.bearer, &lang, &data).await {
         Ok(Some(person_id)) => {
-            let new_ownership = create_team_ownership::NewTeamOwnership {
-                person_id,
-                team_id: team_id.clone(),
-                start_datestamp: chrono::Utc::now().naive_utc(),
-                end_date: None,
+            // Reassign if the team already has an ownership record;
+            // otherwise create one.
+            let existing = get_team_ownership_by_team_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.ok();
+            let result = if let Some(existing) = existing {
+                update_team_ownership(update_team_ownership::TeamOwnershipData {
+                    id: existing.team_ownership_by_team_id.id,
+                    person_id: Some(person_id),
+                    team_id: None,
+                    start_datestamp: None,
+                    end_date: None,
+                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
+            } else {
+                create_team_ownership(create_team_ownership::NewTeamOwnership {
+                    person_id,
+                    team_id: team_id.clone(),
+                    start_datestamp: chrono::Utc::now().naive_utc(),
+                    end_date: None,
+                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
             };
-            match create_team_ownership(new_ownership, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+            match result {
                 Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
                 Err(e) => security::add_flash(&session, "danger", &e.to_string()),
             };

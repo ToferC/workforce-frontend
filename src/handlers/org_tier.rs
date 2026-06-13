@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership};
+use crate::graphql::{get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership, get_org_ownership_by_tier_id, update_org_ownership};
 use crate::security::{self, MinimumRole};
 use super::person::resolve_person_by_name;
 
@@ -517,11 +517,23 @@ pub async fn assign_org_owner_post(
 
     match resolve_person_by_name(&form.person_name, &auth.bearer, &lang, &data).await {
         Ok(Some(person_id)) => {
-            let new_ownership = create_org_ownership::NewOrgOwnership {
-                owner_id: person_id,
-                org_tier_id: org_tier_id.clone(),
+            // Reassign if the tier already has an ownership record;
+            // otherwise create one (tiers from createOrgTier have none).
+            let existing = get_org_ownership_by_tier_id(org_tier_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.ok();
+            let result = if let Some(existing) = existing {
+                update_org_ownership(update_org_ownership::OrgOwnershipData {
+                    id: existing.org_ownership_by_tier_id.id,
+                    owner_id: Some(person_id),
+                    org_tier_id: None,
+                    retired_at: None,
+                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
+            } else {
+                create_org_ownership(create_org_ownership::NewOrgOwnership {
+                    owner_id: person_id,
+                    org_tier_id: org_tier_id.clone(),
+                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
             };
-            match create_org_ownership(new_ownership, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+            match result {
                 Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
                 Err(e) => security::add_flash(&session, "danger", &e.to_string()),
             };
