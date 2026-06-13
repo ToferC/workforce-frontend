@@ -1,0 +1,6 @@
+mutation CreateCapability($data: NewCapability!) {
+  createCapability(data: $data) {
+    id
+    nameEn
+  }
+}

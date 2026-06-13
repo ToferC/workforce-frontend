@@ -152,8 +152,8 @@ Same slice, in dependency order, reusing the macros and helper:
 
 | Entity | Notes |
 |---|---|
-| **Skill** | Plain bilingual form + `domain` enum select. ⚠️ `SkillData` has **no** `retiredAt` — skills can't be retired through the API today (backend gap, §5). |
-| **Capability** | Created from a person's page (person + skill + org + self-identified level). Update = level changes + retire. HTMX inline level editing on the person page is the highest-value enhancement here. |
+| **Skill** ✅ | Done: index page (`/{lang}/skills`, linked from the home page), detail page (with people-who-have-it), create/edit forms (bilingual name/description + `domain` select). No retire — `SkillData` has no `retiredAt` (backend gap, §5). |
+| **Capability** ✅ | Done: "Add capability" on the person page (skill select + self-identified level; the chosen skill supplies name/domain, the person supplies the org, `validationValues` starts empty) and per-row "Retire" (sets `retiredAt`). Found & fixed a latent backend panic: `findMatches` unwrapped `validated_level`, so any capability with no validations yet (i.e. every freshly created one) crashed the person page. Inline HTMX level editing is still a future enhancement. |
 | **Requirement** | Created from a role's page (skill + required level). |
 | **Validation** | Admin-only (matches backend guard); simple level form on the capability page. |
 | **LanguageData** | Section on the person page; Canadian A/B/C/E/X level selects. |

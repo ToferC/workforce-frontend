@@ -290,3 +290,15 @@ affiliated-organization = Organisation affiliée
 affiliation-role = Rôle d'affiliation
 affiliation-role-helper = p. ex. Détachement, Liaison, Conseiller.
 none-label = Aucune
+
+## Skills & Capabilities
+skills = Compétences
+skill = Compétence
+description = Description
+create-skill = Créer une compétence
+edit-skill = Modifier la compétence
+new-skill-button = Nouvelle compétence
+people-with-skill = Personnes ayant cette compétence
+add-capability = Ajouter une capacité
+self-identified-level = Niveau auto-évalué
+retire-button = Retirer

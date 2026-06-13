@@ -1,0 +1,7 @@
+mutation UpdateCapability($data: CapabilityData!) {
+  updateCapability(data: $data) {
+    id
+    selfIdentifiedLevel
+    retiredAt
+  }
+}

@@ -16,6 +16,7 @@ pub mod publication;
 pub mod work;
 pub mod task;
 pub mod capability;
+pub mod skill;
 
 pub use authentication_hander::*;
 pub use base::{index, raw_index};
@@ -35,3 +36,4 @@ pub use publication::*;
 pub use work::*;
 pub use task::*;
 pub use capability::*;
+pub use skill::*;

@@ -18,8 +18,10 @@ query PersonById($id:UUID!) {
       nameEn
     }
     capabilities {
+      id
       nameEn
       domain
+      selfIdentifiedLevel
       validatedLevel
     }
     activeRoles {

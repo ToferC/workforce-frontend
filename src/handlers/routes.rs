@@ -44,6 +44,17 @@ use crate::handlers::{
 
     // capability
     capability_search,
+    create_capability_form,
+    create_capability_post,
+    retire_capability_post,
+
+    // skill
+    skill_index,
+    skill_by_id,
+    create_skill_form,
+    create_skill_post,
+    edit_skill_form,
+    edit_skill_post,
 
     // organization
     organization_by_id,
@@ -126,6 +137,18 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
 
     // capability
     config.service(capability_search);
+    config.service(create_capability_form);
+    config.service(create_capability_post);
+    config.service(retire_capability_post);
+
+    // skill
+    // "new" must be registered before the {skill_id} catch-all
+    config.service(skill_index);
+    config.service(create_skill_form);
+    config.service(create_skill_post);
+    config.service(edit_skill_form);
+    config.service(edit_skill_post);
+    config.service(skill_by_id);
 
     // organization
     // "new" must be registered before the {organization_id} catch-all

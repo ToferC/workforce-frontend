@@ -290,3 +290,15 @@ affiliated-organization = Affiliated organization
 affiliation-role = Affiliation role
 affiliation-role-helper = e.g. Secondment, Liaison, Advisor.
 none-label = None
+
+## Skills & Capabilities
+skills = Skills
+skill = Skill
+description = Description
+create-skill = Create Skill
+edit-skill = Edit Skill
+new-skill-button = New Skill
+people-with-skill = People with this skill
+add-capability = Add capability
+self-identified-level = Self-identified level
+retire-button = Retire

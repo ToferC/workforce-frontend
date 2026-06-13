@@ -537,6 +537,92 @@ fn person_page_affiliation_actions_operator_only() {
     assert!(!html.contains("/end"));
 }
 
+fn sample_skill() -> serde_json::Value {
+    json!({
+        "id": "dddddddd-0000-0000-0000-000000000001",
+        "nameEn": "Threat Analysis",
+        "nameFr": "Analyse des menaces",
+        "descriptionEn": "Assessing threats",
+        "descriptionFr": "Évaluer les menaces",
+        "domain": "CYBER_SECURITY",
+        "capabilities": [
+            {"id": "cccccccc-0000-0000-0000-000000000001", "selfIdentifiedLevel": "EXPERT", "validatedLevel": "EXPERIENCED",
+             "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee"}}
+        ],
+    })
+}
+
+#[test]
+fn skill_index_renders_with_operator_actions() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("skills", &json!([{"id": "dddddddd-0000-0000-0000-000000000001", "nameEn": "Threat Analysis", "domain": "CYBER_SECURITY", "retiredAt": null}]));
+    let html = tera.render("skill/skill_index.html", &ctx).unwrap();
+    assert!(html.contains("/en/skill/dddddddd-0000-0000-0000-000000000001"));
+    assert!(html.contains("/en/skill/new"));
+
+    let mut ctx = base_context("en", "user");
+    ctx.insert("skills", &json!([]));
+    let html = tera.render("skill/skill_index.html", &ctx).unwrap();
+    assert!(!html.contains("/skill/new"));
+}
+
+#[test]
+fn skill_detail_and_form_render() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("skill", &sample_skill());
+    let html = tera.render("skill/skill.html", &ctx).unwrap();
+    assert!(html.contains("Threat Analysis"));
+    assert!(html.contains("/skill/dddddddd-0000-0000-0000-000000000001/edit"));
+    assert!(html.contains("Sam Lee"));
+
+    for edit in [false, true] {
+        let mut ctx = base_context("en", "operator");
+        ctx.insert("edit", &edit);
+        ctx.insert("skill", &sample_skill());
+        ctx.insert("skill_domains", &domain_options());
+        let html = tera.render("skill/skill_form.html", &ctx).unwrap();
+        if edit {
+            assert!(html.contains("/skill/dddddddd-0000-0000-0000-000000000001/edit"));
+        } else {
+            assert!(html.contains("/skill/new"));
+        }
+    }
+}
+
+#[test]
+fn capability_form_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &sample_person());
+    ctx.insert("skill_options", &json!([{"value": "dddddddd-0000-0000-0000-000000000001", "label": "Threat Analysis"}]));
+    ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+    let html = tera.render("capability/capability_form.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/capability/new"));
+    assert!(html.contains("name=\"skill_id\""));
+    assert!(html.contains("name=\"self_identified_level\""));
+}
+
+#[test]
+fn person_page_capability_actions_operator_only() {
+    let tera = tera();
+    let mut person = sample_person();
+    person["capabilities"] = json!([
+        {"id": "cccccccc-0000-0000-0000-000000000001", "nameEn": "Threat Analysis", "domain": "CYBER_SECURITY", "selfIdentifiedLevel": "EXPERT", "validatedLevel": "EXPERIENCED"}
+    ]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/capability/new"));
+    assert!(html.contains("/capability/cccccccc-0000-0000-0000-000000000001/retire"));
+
+    let mut ctx = base_context("en", "user");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(!html.contains("/capability/new"));
+}
+
 #[test]
 fn index_shows_new_organization_button_for_operator_only() {
     let tera = tera();
