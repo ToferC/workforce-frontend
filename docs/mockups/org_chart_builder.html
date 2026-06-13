@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<!-- Static mockup: Org Chart Builder vision for workforce-frontend.
+     Self-contained — open directly in a browser. Shows the target state
+     including features not yet implemented (add team/role inline, owner
+     picker, drag-to-move). The live v1 is at /{lang}/organization/{id}/org_chart. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mockup — Org Chart Builder</title>
+<style>
+  :root { --bg:#1a1d21; --card:#23272d; --line:#3a4048; --text:#e8eaed; --muted:#9aa3ad;
+          --accent:#4f8ff7; --ok:#3fb27f; --warn:#e0a93d; --danger:#e06c5d; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.5 system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:14px 24px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:18px; margin:0; }
+  .crumb { color:var(--muted); font-size:12px; }
+  .layout { display:grid; grid-template-columns: 340px 1fr; gap:20px; padding:20px 24px; max-width:1280px; }
+  .panel, .card { background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  .panel { position:sticky; top:16px; align-self:start; }
+  .panel h2 { font-size:15px; margin:0; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .panel .body { padding:14px 16px; }
+  dl { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:0 0 12px; }
+  dt { color:var(--muted); } dd { margin:0; }
+  .stat { display:inline-block; background:#2c3138; border-radius:6px; padding:2px 8px; margin-right:6px; font-size:12px; }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; padding-top:10px; border-top:1px solid var(--line); }
+  .btn { border:1px solid var(--line); background:#2c3138; color:var(--text); border-radius:7px; padding:6px 11px; font-size:13px; cursor:pointer; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.ghost-danger { color:var(--danger); border-color:var(--danger); background:transparent; }
+  .tree { display:flex; flex-direction:column; gap:10px; }
+  .node { border:1px solid var(--line); border-radius:10px; background:var(--card); }
+  .node > .head { display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; }
+  .caret { color:var(--muted); width:14px; }
+  .node .title { font-weight:600; }
+  .lvl { font-size:11px; background:#2c3138; color:var(--muted); padding:1px 7px; border-radius:10px; }
+  .owner-chip { margin-left:auto; font-size:12px; color:var(--muted); }
+  .owner-chip b { color:var(--text); font-weight:500; }
+  .info-dot { border:none; background:none; color:var(--accent); cursor:pointer; font-size:15px; }
+  .drag { color:var(--muted); cursor:grab; font-size:15px; }
+  .node .children { padding:8px 14px 14px 30px; display:flex; flex-direction:column; gap:8px; border-top:1px dashed var(--line); }
+  .team { border:1px solid var(--line); border-left:3px solid var(--ok); border-radius:8px; }
+  .team .head { display:flex; gap:10px; padding:8px 12px; align-items:center; }
+  .pill { font-size:11px; border-radius:10px; padding:1px 8px; }
+  .pill.occ { background:rgba(63,178,127,.15); color:var(--ok); }
+  .pill.vac { background:rgba(224,108,93,.18); color:var(--danger); }
+  .roles { border-top:1px solid var(--line); padding:6px 12px 10px; display:flex; flex-direction:column; gap:6px; }
+  .role { display:flex; justify-content:space-between; font-size:13px; }
+  .role .who { color:var(--accent); }
+  .role.vacant .who { color:var(--danger); font-style:italic; }
+  .addline { display:flex; gap:8px; }
+  .addline .btn { font-size:12px; padding:4px 9px; border-style:dashed; color:var(--muted); }
+  .selected { outline:2px solid var(--accent); }
+  footer { color:var(--muted); font-size:12px; padding:0 24px 24px; max-width:1280px; }
+  .keybox { background:#2c3138; padding:2px 6px; border-radius:5px; font-size:11px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="crumb">Workforce Analytics → Canadian Armed Forces → Org Chart</div>
+    <h1>Org Chart Builder</h1>
+  </div>
+  <button class="btn">← Back to organization</button>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: info panel for the selected tier -->
+  <aside class="panel">
+    <h2>ℹ️ Strategic Joint Staff <span class="lvl">L2</span></h2>
+    <div class="body">
+      <dl>
+        <dt>Owner</dt><dd><b>MGen J. Tremblay</b> <button class="btn" style="font-size:11px;padding:1px 7px">change</button></dd>
+        <dt>Domain</dt><dd>Strategy</dd>
+        <dt>Parent</dt><dd>Chief of the Defence Staff</dd>
+      </dl>
+      <span class="stat">3 child tiers</span>
+      <span class="stat">4 teams</span>
+      <span class="stat">37 roles</span>
+      <span class="stat" style="color:var(--danger)">5 vacant</span>
+      <div class="actions">
+        <button class="btn primary">＋ Child tier</button>
+        <button class="btn">＋ Team</button>
+        <button class="btn">＋ Role</button>
+        <button class="btn">✎ Edit</button>
+        <button class="btn ghost-danger">Retire</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: expandable tree -->
+  <main class="tree">
+
+    <div class="node">
+      <div class="head"><span class="caret">▸</span><span class="drag">⠿</span>
+        <span class="title">Chief of the Defence Staff</span><span class="lvl">L1</span>
+        <span class="owner-chip">Owner: <b>Gen A. Roy</b></span>
+        <button class="info-dot">ℹ️</button>
+      </div>
+    </div>
+
+    <div class="node selected">
+      <div class="head"><span class="caret">▾</span><span class="drag">⠿</span>
+        <span class="title">Strategic Joint Staff</span><span class="lvl">L2</span>
+        <span class="owner-chip">Owner: <b>MGen J. Tremblay</b></span>
+        <button class="info-dot">ℹ️</button>
+      </div>
+      <div class="children">
+
+        <div class="node">
+          <div class="head"><span class="caret">▸</span><span class="drag">⠿</span>
+            <span class="title">Digital Services Directorate</span><span class="lvl">L3</span>
+            <span class="owner-chip">Owner: <b>Col S. Nguyen</b></span>
+            <button class="info-dot">ℹ️</button>
+          </div>
+        </div>
+
+        <div class="team">
+          <div class="head"><span class="caret">▾</span>
+            <span class="title">Cyber Operations Team</span>
+            <span class="pill occ">6 occupied</span><span class="pill vac">2 vacant</span>
+          </div>
+          <div class="roles">
+            <div class="role"><span>Team Lead — Cyber Ops</span><span class="who">Maj K. Singh</span></div>
+            <div class="role"><span>Senior Analyst</span><span class="who">Capt R. Dubois</span></div>
+            <div class="role vacant"><span>Threat Intelligence Analyst</span><span class="who">VACANT — find matches</span></div>
+            <div class="addline"><button class="btn">＋ add role</button></div>
+          </div>
+        </div>
+
+        <div class="addline">
+          <button class="btn">＋ add child tier</button>
+          <button class="btn">＋ add team</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="head"><span class="caret">▸</span><span class="drag">⠿</span>
+        <span class="title">Military Personnel Command</span><span class="lvl">L2</span>
+        <span class="owner-chip">Owner: <b>LGen M. Chen</b></span>
+        <button class="info-dot">ℹ️</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<footer>
+  <p><b>Interaction model:</b> click a row to expand/collapse (lazy-loads via HTMX);
+  click <span class="keybox">ℹ️</span> to load the tier into the left panel;
+  <span class="keybox">＋</span> buttons swap in inline forms and re-render the branch on save;
+  <span class="keybox">⠿</span> drag-to-move requires an API addition (see docs/ORG_CHART_BUILDER.md).</p>
+</footer>
+
+</body>
+</html>

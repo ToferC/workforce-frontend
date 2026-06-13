@@ -181,3 +181,112 @@ return-main-page = return to the main page
 ## Record not found
 record-not-found = Record not found
 record-not-found-explain = The Record you are searching for is not available.
+## Organization Forms
+create-organization = Create Organization
+edit-organization = Edit Organization
+retire-organization = Retire Organization
+retire-organization-confirm = Are you sure you want to retire this organization? It will be marked as retired and hidden from active listings, but its history is preserved.
+new-organization-button = New Organization
+name-english = Name (English)
+name-french = Name (French)
+acronym-english = Acronym (English)
+acronym-french = Acronym (French)
+organization-type = Organization Type
+organization-type-helper = e.g. department, agency, partner
+website-url = Website URL
+save-button = Save
+cancel-button = Cancel
+confirm-retire-button = Yes, retire
+retired = Retired
+
+## Org Tier Forms
+create-org-tier = Create Organization Tier
+edit-org-tier = Edit Organization Tier
+retire-org-tier = Retire Tier
+retire-org-tier-confirm = Are you sure you want to retire this organization tier? It will be marked as retired but its history is preserved. Child tiers and teams are not changed.
+tier-level = Tier Level
+tier-level-helper = 1 is the top of the organization; higher numbers are deeper in the hierarchy.
+primary-domain = Primary Domain
+parent-tier = Parent Tier
+none-top-tier = None (top-level tier)
+owner = Owner
+child-tiers = Child tiers
+teams = Teams
+
+## Org Chart Builder
+org-chart = Org Chart
+org-chart-help = Click a tier's info button to see its details here. Expand tiers on the right to explore child tiers, teams, roles, and the people in them.
+back-to-organization = Back to organization
+tier-info = Tier info
+tier-count = Tiers
+no-org-tiers = This organization has no tiers yet.
+add-top-tier = Add top-level tier
+add-child-tier = Add child tier
+empty-tier = No child tiers or teams under this tier.
+loading = Loading...
+occupied = occupied
+vacant = Vacant
+no-roles = No roles in this team.
+
+## Team Forms
+create-team = Create Team
+edit-team = Edit Team
+retire-team = Retire Team
+retire-team-confirm = Are you sure you want to retire this team? It will be marked as retired but its history and roles are preserved.
+description-english = Description (English)
+description-french = Description (French)
+org-tier = Organization Tier
+keep-current-domain = Keep current domain
+add-team = Add team
+
+## Person Forms
+create-person = Create Person
+edit-person = Edit Person
+retire-person = Retire Person
+retire-person-confirm = Are you sure you want to retire this person? Their record will be marked as retired but their history is preserved.
+new-person-button = New Person
+user-account-email = User account email
+user-account-email-helper = The email of the registered user account this person record will be linked to.
+given-name = Given name
+family-name = Family name
+work-email = Work email
+phone = Phone
+work-address = Work address
+city = City
+province = Province
+postal-code = Postal code
+country = Country
+peoplesoft-id = PeopleSoft ID
+orcid-id = ORCID iD
+
+## Role Forms
+create-role = Create Role
+add-role = Add role
+edit-role-status = Edit Role Status
+end-role = End Role
+end-role-confirm = Are you sure you want to end this role? It becomes inactive with an end date of today. To change titles or assignment, create a new role instead — history is preserved.
+confirm-end-role-button = Yes, end role
+role-ended = Ended
+role-active = Role is active
+role-edit-limited = Only the active flag and dates can be changed on an existing role. To change the title, rank, or person, end this role and create a new one — that preserves the history.
+title-english = Title (English)
+title-french = Title (French)
+rank = Rank
+military-occupation = Military Occupation
+effort = Effort
+effort-helper = Expected workload for this role; full time is around 10.
+start-date = Start date
+end-date = End date
+assign-person = Assign person (optional)
+assign-person-helper = Full given and family name of an existing person. Leave blank to create a vacant role.
+
+## Link Entities (ownership, affiliation)
+assign-owner = Assign owner
+owner-name = Owner's name
+owner-name-helper = Full given and family name of an existing person.
+add-affiliation = Add affiliation
+end-affiliation = End
+affiliated-organization = Affiliated organization
+affiliation-role = Affiliation role
+affiliation-role-helper = e.g. Secondment, Liaison, Advisor.
+none-label = None

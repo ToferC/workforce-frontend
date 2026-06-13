@@ -1,0 +1,85 @@
+{# Macros for org chart tree nodes.
+
+   tier_node renders a collapsed, expandable tier. Opening the <details>
+   makes the placeholder body visible, which fires its hx-trigger
+   "intersect once" and lazy-loads the node content (children + teams)
+   from /{lang}/org_tier/{id}/node.
+#}
+
+{% macro tier_node(tier, lang, role) %}
+<details class="card mb-2 org-node" id="node-{{ tier.id }}">
+    <summary class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;">
+        <span>
+            <i class="bi bi-diagram-3"></i>
+            <span class="fw-semibold">{% if lang == "fr" %}{{ tier.nameFr }}{% else %}{{ tier.nameEn }}{% endif %}</span>
+            <span class="badge bg-secondary ms-1">L{{ tier.tierLevel }}</span>
+            {% if tier.retiredAt %}<span class="badge bg-warning text-dark ms-1">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+        </span>
+        <button class="btn btn-sm btn-outline-secondary"
+                title="{{ fluent(key="tier-info", lang=lang) }}"
+                onclick="event.preventDefault()"
+                hx-get="/{{ lang }}/org_tier/{{ tier.id }}/panel"
+                hx-target="#info-panel"
+                hx-swap="innerHTML">
+            <i class="bi bi-info-circle"></i>
+        </button>
+    </summary>
+    <div class="card-body org-node-body" id="node-body-{{ tier.id }}"
+         hx-get="/{{ lang }}/org_tier/{{ tier.id }}/node"
+         hx-trigger="intersect once"
+         hx-swap="innerHTML">
+        <div class="text-muted small"><span class="spinner-border spinner-border-sm"></span> {{ fluent(key="loading", lang=lang) }}</div>
+    </div>
+</details>
+{% endmacro tier_node %}
+
+{% macro team_node(team, lang, role="", org_tier_id="", organization_id="") %}
+<details class="card mb-2 team-node">
+    <summary class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;">
+        <span>
+            <i class="bi bi-people"></i>
+            <a href="/{{ lang }}/team/{{ team.id }}">{% if lang == "fr" %}{{ team.nameFrench }}{% else %}{{ team.nameEnglish }}{% endif %}</a>
+        </span>
+        <span>
+            <span class="badge bg-primary">{{ team.occupiedRoles | length }} {{ fluent(key="occupied", lang=lang) }}</span>
+            {% if team.vacantRoles | length > 0 %}
+            <span class="badge bg-danger">{{ team.vacantRoles | length }} {{ fluent(key="vacant", lang=lang) }}</span>
+            {% endif %}
+        </span>
+    </summary>
+    <ul class="list-group list-group-flush">
+        {% for r in team.occupiedRoles %}
+        <li class="list-group-item d-flex justify-content-between">
+            <span>
+                <i class="bi bi-person-badge"></i>
+                <a href="/{{ lang }}/role/{{ r.id }}">{% if lang == "fr" %}{{ r.titleFrench }}{% else %}{{ r.titleEnglish }}{% endif %}</a>
+            </span>
+            <a href="/{{ lang }}/person/{{ r.person.id }}">{{ r.person.givenName }} {{ r.person.familyName }}</a>
+        </li>
+        {% endfor %}
+        {% for r in team.vacantRoles %}
+        <li class="list-group-item d-flex justify-content-between">
+            <span>
+                <i class="bi bi-person-badge"></i>
+                <a href="/{{ lang }}/role/{{ r.id }}">{% if lang == "fr" %}{{ r.titleFrench }}{% else %}{{ r.titleEnglish }}{% endif %}</a>
+            </span>
+            <span class="badge bg-danger">{{ fluent(key="vacant", lang=lang) }}</span>
+        </li>
+        {% endfor %}
+        {% if team.occupiedRoles | length == 0 and team.vacantRoles | length == 0 %}
+        <li class="list-group-item text-muted">{{ fluent(key="no-roles", lang=lang) }}</li>
+        {% endif %}
+        {% if org_tier_id and role and (role == "operator" or role == "admin") %}
+        <li class="list-group-item" id="role-slot-{{ team.id }}">
+            <a class="btn btn-sm btn-outline-info"
+               href="/{{ lang }}/role/new?team={{ team.id }}&org_tier={{ org_tier_id }}&organization={{ organization_id }}"
+               hx-get="/{{ lang }}/role/new?team={{ team.id }}&org_tier={{ org_tier_id }}&organization={{ organization_id }}"
+               hx-target="#role-slot-{{ team.id }}"
+               hx-swap="innerHTML">
+                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-role", lang=lang) }}
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</details>
+{% endmacro team_node %}

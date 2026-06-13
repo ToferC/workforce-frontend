@@ -1,0 +1,6 @@
+mutation CreateRole($data: NewRole!) {
+  createRole(roleData: $data) {
+    id
+    titleEnglish
+  }
+}

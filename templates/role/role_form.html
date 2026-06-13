@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    <title>{{ fluent(key="create-role", lang=lang) }}</title>
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+
+    <h1 class="mb-4"><i class="bi bi-briefcase"></i> {{ fluent(key="create-role", lang=lang) }}</h1>
+    {% if team %}
+    <p class="lead text-muted">
+        {{ fluent(key="team", lang=lang) }}:
+        {% if lang == "fr" %}{{ team.nameFrench }}{% else %}{{ team.nameEnglish }}{% endif %}
+    </p>
+    {% endif %}
+
+    {% set label_title_en = fluent(key="title-english", lang=lang) %}
+    {% set label_title_fr = fluent(key="title-french", lang=lang) %}
+    {% set label_rank = fluent(key="rank", lang=lang) %}
+    {% set label_occupation = fluent(key="military-occupation", lang=lang) %}
+    {% set label_effort = fluent(key="effort", lang=lang) %}
+    {% set help_effort = fluent(key="effort-helper", lang=lang) %}
+    {% set label_start = fluent(key="start-date", lang=lang) %}
+    {% set label_person = fluent(key="assign-person", lang=lang) %}
+    {% set help_person = fluent(key="assign-person-helper", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+    {% set cancel_url = "/" ~ lang ~ "/team/" ~ role_form.teamId %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="/{{ lang }}/role/new">
+                {{ forms::csrf(token=csrf_token) }}
+                <input type="hidden" name="team_id" value="{{ role_form.teamId }}">
+                <input type="hidden" name="org_tier_id" value="{{ role_form.orgTierId }}">
+                <input type="hidden" name="organization_id" value="{{ role_form.organizationId }}">
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="title_en", label=label_title_en, value=role_form.titleEnglish) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="title_fr", label=label_title_fr, value=role_form.titleFrench) }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::select(name="rank", label=label_rank, options=ranks, selected=role_form.rank) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::select(name="military_occupation", label=label_occupation, options=military_occupations, selected=role_form.militaryOccupation) }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="effort", label=label_effort, value=role_form.effort, type="number", help=help_effort) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::date_input(name="start_date", label=label_start, value=role_form.startDate, required=true) }}
+                    </div>
+                </div>
+
+                {{ forms::text_input(name="person_name", label=label_person, value=role_form.personName, required=false, help=help_person) }}
+
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

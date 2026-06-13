@@ -1,0 +1,7 @@
+mutation UpdateRole($data: RoleData!) {
+  updateRole(roleData: $data) {
+    id
+    active
+    endDate
+  }
+}

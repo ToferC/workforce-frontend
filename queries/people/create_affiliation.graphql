@@ -1,0 +1,6 @@
+mutation CreateAffiliation($data: NewAffiliation!) {
+  createAffiliation(data: $data) {
+    id
+    affiliationRole
+  }
+}

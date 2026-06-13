@@ -63,7 +63,9 @@ pub async fn login_form_input(
 
     let session = req.get_session();
 
-    session.insert("role", login_data.role.to_owned())
+    // The API stores roles in uppercase ("ADMIN"); normalize so template
+    // checks like role == "admin" and handler guards compare consistently
+    session.insert("role", login_data.role.to_lowercase())
         .expect("Unable to set role");
 
     session.insert("user_id", login_data.id.to_owned())

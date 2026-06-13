@@ -1,0 +1,7 @@
+mutation UpdateOrganization($data: OrganizationData!) {
+  updateOrganization(data: $data) {
+    id
+    nameEn
+    retiredAt
+  }
+}

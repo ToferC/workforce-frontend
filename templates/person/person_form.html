@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    {% if edit %}
+    <title>{{ fluent(key="edit-person", lang=lang) }}</title>
+    {% else %}
+    <title>{{ fluent(key="create-person", lang=lang) }}</title>
+    {% endif %}
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+
+    {% if edit %}
+    <h1 class="mb-4"><i class="bi bi-person-badge"></i> {{ fluent(key="edit-person", lang=lang) }}</h1>
+    {% else %}
+    <h1 class="mb-4"><i class="bi bi-person-badge"></i> {{ fluent(key="create-person", lang=lang) }}</h1>
+    {% endif %}
+
+    {% set label_user_email = fluent(key="user-account-email", lang=lang) %}
+    {% set help_user_email = fluent(key="user-account-email-helper", lang=lang) %}
+    {% set label_given = fluent(key="given-name", lang=lang) %}
+    {% set label_family = fluent(key="family-name", lang=lang) %}
+    {% set label_email = fluent(key="work-email", lang=lang) %}
+    {% set label_phone = fluent(key="phone", lang=lang) %}
+    {% set label_address = fluent(key="work-address", lang=lang) %}
+    {% set label_city = fluent(key="city", lang=lang) %}
+    {% set label_province = fluent(key="province", lang=lang) %}
+    {% set label_postal = fluent(key="postal-code", lang=lang) %}
+    {% set label_country = fluent(key="country", lang=lang) %}
+    {% set label_org = fluent(key="organization", lang=lang) %}
+    {% set label_peoplesoft = fluent(key="peoplesoft-id", lang=lang) %}
+    {% set label_orcid = fluent(key="orcid-id", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+
+    {% if edit %}
+    {% set form_action = "/" ~ lang ~ "/person/" ~ person.id ~ "/edit" %}
+    {% set cancel_url = "/" ~ lang ~ "/person/" ~ person.id %}
+    {% else %}
+    {% set form_action = "/" ~ lang ~ "/person/new" %}
+    {% set cancel_url = "/" ~ lang %}
+    {% endif %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="{{ form_action | safe }}">
+                {{ forms::csrf(token=csrf_token) }}
+
+                {% if not edit %}
+                {{ forms::text_input(name="user_email", label=label_user_email, value=person.userEmail, type="email", help=help_user_email) }}
+                <hr>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="given_name", label=label_given, value=person.givenName) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="family_name", label=label_family, value=person.familyName) }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="email", label=label_email, value=person.email, type="email") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="phone", label=label_phone, value=person.phone) }}
+                    </div>
+                </div>
+
+                {{ forms::text_input(name="work_address", label=label_address, value=person.workAddress) }}
+
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ forms::text_input(name="city", label=label_city, value=person.city) }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ forms::text_input(name="province", label=label_province, value=person.province) }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ forms::text_input(name="postal_code", label=label_postal, value=person.postalCode) }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ forms::text_input(name="country", label=label_country, value=person.country) }}
+                    </div>
+                </div>
+
+                {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=person.organization.id) }}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="peoplesoft_id", label=label_peoplesoft, value=person.peoplesoftId, required=false) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="orcid_id", label=label_orcid, value=person.orcidId, required=false) }}
+                    </div>
+                </div>
+
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

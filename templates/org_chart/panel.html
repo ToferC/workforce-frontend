@@ -1,0 +1,44 @@
+{# HTMX partial: tier details for the builder's left-hand info panel #}
+<div class="card shadow-lg">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">
+            <i class="bi bi-diagram-3"></i>
+            {% if lang == "fr" %}{{ org_tier.nameFr }}{% else %}{{ org_tier.nameEn }}{% endif %}
+        </h2>
+        {% if org_tier.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+    </div>
+    <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item"><span class="text-muted">{{ fluent(key="tier-level", lang=lang) }}:</span> {{ org_tier.tierLevel }}</li>
+            <li class="list-group-item"><span class="text-muted">{{ fluent(key="primary-domain", lang=lang) }}:</span> {{ org_tier.primaryDomain }}</li>
+            <li class="list-group-item">
+                <span class="text-muted">{{ fluent(key="parent-tier", lang=lang) }}:</span>
+                {% if org_tier.parentOrganizationTier %}
+                <a href="/{{ lang }}/org_tier/{{ org_tier.parentOrganizationTier.id }}">{{ org_tier.parentOrganizationTier.nameEn }}</a>
+                {% else %}
+                {{ fluent(key="none-top-tier", lang=lang) }}
+                {% endif %}
+            </li>
+            <li class="list-group-item">
+                <span class="text-muted">{{ fluent(key="owner", lang=lang) }}:</span>
+                <a href="/{{ lang }}/person/{{ org_tier.owner.id }}">{{ org_tier.owner.givenName }} {{ org_tier.owner.familyName }}</a>
+            </li>
+            <li class="list-group-item">
+                <span class="text-muted">{{ fluent(key="child-tiers", lang=lang) }}:</span> {{ org_tier.childOrganizationTier | length }}
+                &nbsp;<span class="text-muted">{{ fluent(key="teams", lang=lang) }}:</span> {{ org_tier.teams | length }}
+            </li>
+        </ul>
+    </div>
+    {% if role == "operator" or role == "admin" %}
+    <div class="card-footer d-flex gap-2">
+        <a class="btn btn-sm btn-primary" href="/{{ lang }}/org_tier/{{ org_tier.id }}/edit">
+            <i class="bi bi-pencil"></i> {{ fluent(key="edit-button", lang=lang) }}
+        </a>
+        {% if not org_tier.retiredAt %}
+        <a class="btn btn-sm btn-outline-danger" href="/{{ lang }}/org_tier/{{ org_tier.id }}/retire">
+            <i class="bi bi-x-circle"></i> {{ fluent(key="retire-org-tier", lang=lang) }}
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

@@ -2,7 +2,10 @@ query TeamById($id:UUID!) {
   teamByID(id: $id) {
     id
     nameEnglish
+    nameFrench
     descriptionEnglish
+    descriptionFrench
+    retiredAt
     organizationLevel {
       nameEn
       id

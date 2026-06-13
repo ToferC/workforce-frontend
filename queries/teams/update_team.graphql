@@ -1,0 +1,7 @@
+mutation UpdateTeam($data: TeamData!) {
+  updateTeam(data: $data) {
+    id
+    nameEnglish
+    retiredAt
+  }
+}

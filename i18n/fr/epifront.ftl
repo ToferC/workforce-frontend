@@ -181,3 +181,112 @@ return-main-page = return to the main page
 ## Record not found
 record-not-found = Record not found
 record-not-found-explain = The Record you are searching for is not available.
+## Organization Forms
+create-organization = Créer une organisation
+edit-organization = Modifier l'organisation
+retire-organization = Retirer l'organisation
+retire-organization-confirm = Êtes-vous sûr de vouloir retirer cette organisation? Elle sera marquée comme retirée et masquée des listes actives, mais son historique sera conservé.
+new-organization-button = Nouvelle organisation
+name-english = Nom (anglais)
+name-french = Nom (français)
+acronym-english = Acronyme (anglais)
+acronym-french = Acronyme (français)
+organization-type = Type d'organisation
+organization-type-helper = p. ex. ministère, agence, partenaire
+website-url = Adresse du site Web
+save-button = Enregistrer
+cancel-button = Annuler
+confirm-retire-button = Oui, retirer
+retired = Retirée
+
+## Org Tier Forms
+create-org-tier = Créer un niveau organisationnel
+edit-org-tier = Modifier le niveau organisationnel
+retire-org-tier = Retirer le niveau
+retire-org-tier-confirm = Êtes-vous sûr de vouloir retirer ce niveau organisationnel? Il sera marqué comme retiré, mais son historique sera conservé. Les niveaux enfants et les équipes ne sont pas modifiés.
+tier-level = Niveau hiérarchique
+tier-level-helper = 1 est le sommet de l'organisation; les nombres plus élevés sont plus profonds dans la hiérarchie.
+primary-domain = Domaine principal
+parent-tier = Niveau parent
+none-top-tier = Aucun (niveau supérieur)
+owner = Responsable
+child-tiers = Niveaux enfants
+teams = Équipes
+
+## Org Chart Builder
+org-chart = Organigramme
+org-chart-help = Cliquez sur le bouton d'information d'un niveau pour voir ses détails ici. Développez les niveaux à droite pour explorer les niveaux enfants, les équipes, les rôles et les personnes.
+back-to-organization = Retour à l'organisation
+tier-info = Détails du niveau
+tier-count = Niveaux
+no-org-tiers = Cette organisation n'a pas encore de niveaux.
+add-top-tier = Ajouter un niveau supérieur
+add-child-tier = Ajouter un niveau enfant
+empty-tier = Aucun niveau enfant ni équipe sous ce niveau.
+loading = Chargement...
+occupied = occupés
+vacant = Vacant
+no-roles = Aucun rôle dans cette équipe.
+
+## Team Forms
+create-team = Créer une équipe
+edit-team = Modifier l'équipe
+retire-team = Retirer l'équipe
+retire-team-confirm = Êtes-vous sûr de vouloir retirer cette équipe? Elle sera marquée comme retirée, mais son historique et ses rôles seront conservés.
+description-english = Description (anglais)
+description-french = Description (français)
+org-tier = Niveau organisationnel
+keep-current-domain = Conserver le domaine actuel
+add-team = Ajouter une équipe
+
+## Person Forms
+create-person = Créer une personne
+edit-person = Modifier la personne
+retire-person = Retirer la personne
+retire-person-confirm = Êtes-vous sûr de vouloir retirer cette personne? Son dossier sera marqué comme retiré, mais son historique sera conservé.
+new-person-button = Nouvelle personne
+user-account-email = Courriel du compte utilisateur
+user-account-email-helper = Le courriel du compte utilisateur enregistré auquel ce dossier de personne sera lié.
+given-name = Prénom
+family-name = Nom de famille
+work-email = Courriel professionnel
+phone = Téléphone
+work-address = Adresse professionnelle
+city = Ville
+province = Province
+postal-code = Code postal
+country = Pays
+peoplesoft-id = ID PeopleSoft
+orcid-id = iD ORCID
+
+## Role Forms
+create-role = Créer un rôle
+add-role = Ajouter un rôle
+edit-role-status = Modifier le statut du rôle
+end-role = Terminer le rôle
+end-role-confirm = Êtes-vous sûr de vouloir terminer ce rôle? Il deviendra inactif avec une date de fin d'aujourd'hui. Pour changer le titre ou l'affectation, créez plutôt un nouveau rôle — l'historique est conservé.
+confirm-end-role-button = Oui, terminer le rôle
+role-ended = Terminé
+role-active = Le rôle est actif
+role-edit-limited = Seuls l'indicateur actif et les dates peuvent être modifiés sur un rôle existant. Pour changer le titre, le grade ou la personne, terminez ce rôle et créez-en un nouveau — cela conserve l'historique.
+title-english = Titre (anglais)
+title-french = Titre (français)
+rank = Grade
+military-occupation = Groupe professionnel militaire
+effort = Effort
+effort-helper = Charge de travail prévue pour ce rôle; temps plein correspond environ à 10.
+start-date = Date de début
+end-date = Date de fin
+assign-person = Affecter une personne (facultatif)
+assign-person-helper = Prénom et nom complets d'une personne existante. Laissez vide pour créer un rôle vacant.
+
+## Link Entities (ownership, affiliation)
+assign-owner = Assigner un responsable
+owner-name = Nom du responsable
+owner-name-helper = Prénom et nom complets d'une personne existante.
+add-affiliation = Ajouter une affiliation
+end-affiliation = Terminer
+affiliated-organization = Organisation affiliée
+affiliation-role = Rôle d'affiliation
+affiliation-role-helper = p. ex. Détachement, Liaison, Conseiller.
+none-label = Aucune

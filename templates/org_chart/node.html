@@ -1,0 +1,35 @@
+{# HTMX partial: expanded body of a tier node. Swapped into
+   #node-body-{id} when the tier is opened, and re-rendered after a
+   child tier is added. #}
+{% import "org_chart/chart_macros.html" as chart %}
+
+{% for child in node.childOrganizationTier %}
+    {{ chart::tier_node(tier=child, lang=lang, role=role) }}
+{% endfor %}
+
+{% for team in node.teams %}
+    {{ chart::team_node(team=team, lang=lang, role=role, org_tier_id=node.id, organization_id=node.organization.id) }}
+{% endfor %}
+
+{% if node.childOrganizationTier | length == 0 and node.teams | length == 0 %}
+<div class="text-muted small mb-2">{{ fluent(key="empty-tier", lang=lang) }}</div>
+{% endif %}
+
+{% if role == "operator" or role == "admin" %}
+<div id="add-slot-{{ node.id }}" class="d-flex gap-2">
+    <a class="btn btn-sm btn-outline-primary"
+       href="/{{ lang }}/org_tier/new?organization={{ node.organization.id }}&parent={{ node.id }}"
+       hx-get="/{{ lang }}/org_tier/new?organization={{ node.organization.id }}&parent={{ node.id }}"
+       hx-target="#add-slot-{{ node.id }}"
+       hx-swap="innerHTML">
+        <i class="bi bi-plus-lg"></i> {{ fluent(key="add-child-tier", lang=lang) }}
+    </a>
+    <a class="btn btn-sm btn-outline-success"
+       href="/{{ lang }}/team/new?organization={{ node.organization.id }}&org_tier={{ node.id }}"
+       hx-get="/{{ lang }}/team/new?organization={{ node.organization.id }}&org_tier={{ node.id }}"
+       hx-target="#add-slot-{{ node.id }}"
+       hx-swap="innerHTML">
+        <i class="bi bi-plus-lg"></i> {{ fluent(key="add-team", lang=lang) }}
+    </a>
+</div>
+{% endif %}

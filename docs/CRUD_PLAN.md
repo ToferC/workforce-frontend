@@ -94,7 +94,20 @@ Why HTMX fits:
 5. ✅ **Vendor HTMX** — htmx 2.0.4 at `static/htmx/htmx.min.js`, loaded in
    `base.html`.
 
-### Phase 1 — Pilot entity: Organization (establish the full pattern)
+### Phase 1 — Pilot entity: Organization (establish the full pattern) ✅ DONE
+
+Implemented as planned (mutation queries, handlers, shared form template,
+retire-confirm page, EN/FR strings, operator/admin-only buttons). Notes:
+
+- Verified end-to-end against a locally running API: create → edit →
+  CSRF rejection → retire round trip as admin; unauthenticated requests
+  redirect to log-in.
+- Template render tests added in `tests/templates_render.rs` (run with
+  `cargo test`) — they catch Tera runtime errors the startup parse doesn't.
+- Two cross-cutting fixes landed here: session roles are normalized to
+  lowercase at login (the API returns "ADMIN", templates compare "admin"),
+  and URL strings built with Tera `~` concatenation need `| safe` to avoid
+  HTML-escaping of slashes.
 
 Organization is the simplest entity (no foreign keys in its create input).
 Build the complete vertical slice once, then copy it:
@@ -123,17 +136,17 @@ Exit criteria: create → edit → retire round-trip works against a locally
 running workforce_analytics API as an operator, and is correctly refused
 (403 page / hidden buttons) as a plain user.
 
-### Phase 2 — Core org-structure entities
+### Phase 2 — Core org-structure entities (IN PROGRESS)
 
 Same slice, in dependency order, reusing the macros and helper:
 
 | Entity | Notes specific to its forms |
 |---|---|
-| **OrgTier** | `organizationId` + optional `parentTier` selects. HTMX: choosing the organization repopulates the parent-tier select via existing `orgTiersByOrgId` query. Retire via `retiredAt`. |
-| **Team** | Needs organization + org_tier selects (same dependent-select partial). |
-| **Person** | Largest form (address, IDs). Tied to a `userId` — creating a person needs a user account; document that flow. Retire via `retiredAt`. |
-| **Role** | Finish the stub handlers (`src/handlers/role.rs:51-90`) — note the existing `AddRoleForm` fields (`hr_roup`, `hr_level`, `requirements`) don't match the API's `NewRole` (team, titles, effort, occupation, rank, dates) and must be rewritten. `updateRole` only accepts `active`/dates **by design** (history preservation): the edit UI is therefore "end this role" + "create new role", not a free edit form. Person select with HTMX typeahead on `personByName`; vacant roles = omit `personId`. |
-| **TeamOwnership / OrgOwnership / Affiliation** | Small link-entity forms, surfaced as sections on the Team/OrgTier/Person detail pages rather than standalone pages. "Delete" = `endDate` (affiliation, team_ownership) or `retiredAt` (org_ownership). |
+| **OrgTier** ✅ | Done, including the **org chart builder** (`/{lang}/organization/{id}/org_chart`): two-pane view with HTMX lazy-loaded tier tree (tiers → teams → roles → people), info panel, and inline add-child-tier. See `docs/ORG_CHART_BUILDER.md` and the mockup in `docs/mockups/`. Two backend bugs found and fixed: `OrgTier.owner` panic for ownerless tiers, and `SkillDomain` schema drift (16 live values vs 13 stale). |
+| **Team** ✅ | Done, including inline "+ add team" in the org chart builder (same HX-Retarget pattern as tiers). The API can't move a team to another tier after creation, and `Team` doesn't expose its current domain — the edit form offers "keep current domain". Two more backend bugs fixed: `Team.owner` unwrap panic for ownerless teams (now inherits the tier's owner) and a slice panic on malformed Authorization headers. |
+| **Person** ✅ | Done. Create resolves the linked user account by email via `userByEmail` (one person per user — duplicates rejected cleanly). Backend bug fixed: `updatePerson` mutated the struct but never saved it (and skipped `country`) — every person edit was silently discarded. |
+| **Role** ✅ | Done. Stub handlers rewritten to match the API's `NewRole` (team, titles, effort, occupation, rank, start date). `updateRole` only accepts `active`/dates **by design** (history preservation), so the edit UI is a status form (active flag + dates) plus an "End role" action — not a free edit; titles/assignment change by creating a new role. Vacant roles omit `personId`; assignment is by typed full name resolved against `personByName`. "+ add role" wired into the builder's team nodes and the team page. Note: `personByName` does `ilike` on family **or** given name separately and can't match a "Given Family" string, so the handler searches the last name token and filters for an exact full-name match. |
+| **OrgOwnership / TeamOwnership / Affiliation** ✅ | Done. "Assign owner" actions on the tier and team pages create an ownership record (resolving the person by typed full name via the shared `resolve_person_by_name` helper) — this is what lets a tier/team have a real owner instead of the API's parent-chain inheritance fallback. "Add affiliation" on the person page (org select + role; `homeOrgId` defaults to the person's own org) plus per-affiliation "End" (sets `endDate`). Also fixed a latent template typo (`person.affilations`) that had been hiding the affiliations list entirely. **Known gap:** `updateOrgOwnership`/`updateTeamOwnership` need the ownership record's id, which no query exposes, so *changing* an existing owner isn't possible yet — only assigning one (see backend gaps §5). |
 
 ### Phase 3 — Skills & capabilities
 

@@ -1,0 +1,6 @@
+mutation CreateTeamOwnership($data: NewTeamOwnership!) {
+  createTeamOwnership(data: $data) {
+    id
+    teamId
+  }
+}

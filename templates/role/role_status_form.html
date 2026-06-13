@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    <title>{{ fluent(key="edit-role-status", lang=lang) }}</title>
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+
+    <h1 class="mb-4"><i class="bi bi-briefcase"></i> {{ fluent(key="edit-role-status", lang=lang) }}</h1>
+    <p class="lead text-muted">
+        {% if lang == "fr" %}{{ role_record.titleFrench }}{% else %}{{ role_record.titleEnglish }}{% endif %}
+    </p>
+
+    <div class="alert alert-info">
+        {{ fluent(key="role-edit-limited", lang=lang) }}
+    </div>
+
+    {% set label_active = fluent(key="role-active", lang=lang) %}
+    {% set label_start = fluent(key="start-date", lang=lang) %}
+    {% set label_end = fluent(key="end-date", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+    {% set cancel_url = "/" ~ lang ~ "/role/" ~ role_record.id %}
+    {% set is_active = role_record.active == "true" %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/edit">
+                {{ forms::csrf(token=csrf_token) }}
+
+                {{ forms::checkbox(name="active", label=label_active, checked=is_active) }}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::date_input(name="start_date", label=label_start, value=role_record.startDate, required=true) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::date_input(name="end_date", label=label_end, value=role_record.endDate) }}
+                    </div>
+                </div>
+
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

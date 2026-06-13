@@ -66,6 +66,12 @@ pub fn generate_basic_context(
     ctx
 }
 
+/// Pick a string by request language. Used for server-generated text like
+/// flash messages, which can't go through the Tera Fluent filter.
+pub fn by_lang<'a>(lang: &str, en: &'a str, fr: &'a str) -> &'a str {
+    if lang == "fr" { fr } else { en }
+}
+
 pub fn extract_session_data(session: &Session) -> (String, String, String) {
 
     let role_data = session.get::<String>("role");

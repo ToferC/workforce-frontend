@@ -6,7 +6,13 @@ query PersonById($id:UUID!) {
     phone
     email
     workAddress
+    city
+    province
     postalCode
+    country
+    peoplesoftId
+    orcidId
+    retiredAt
     organization {
       id
       nameEn
