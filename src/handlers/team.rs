@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_team_by_id, all_teams, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership};
+use crate::graphql::{get_team_by_id, all_teams, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership, restore_team};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{parent_tier_options, skill_domain_options, OwnerForm};
 use super::person::resolve_person_by_name;
@@ -523,4 +523,33 @@ pub async fn team_index(
     let template = if is_htmx(&req) { "team/team_list.html" } else { "team/team_index.html" };
     let rendered = data.tmpl.render(template, &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/team/{team_id}/restore")]
+pub async fn restore_team_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<RetireForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, team_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/team/{}", &lang, &team_id));
+    }
+
+    match restore_team(team_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Team restored.", "Équipe restaurée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/team/{}", &lang, &team_id))
 }

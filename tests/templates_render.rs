@@ -124,6 +124,30 @@ fn organization_detail_hides_retire_when_already_retired() {
     let html = tera.render("organization/organization.html", &ctx).unwrap();
     assert!(html.contains("/edit"));
     assert!(!html.contains("/retire"));
+    // a retired org offers Restore instead of Retire
+    assert!(html.contains("/organization/11111111-1111-1111-1111-111111111111/restore"));
+}
+
+#[test]
+fn team_detail_uses_still_active_sentinel_for_restore() {
+    let tera = tera();
+    // active team (sentinel) -> Retire shown, no badge, no Restore
+    let mut ctx = base_context("en", "operator");
+    let mut team = sample_team();
+    team["retiredAt"] = json!("Still Active");
+    ctx.insert("team", &team);
+    let html = tera.render("team/team.html", &ctx).unwrap();
+    assert!(html.contains("/team/66666666-6666-6666-6666-666666666666/retire"));
+    assert!(!html.contains("/restore"));
+
+    // retired team (a date) -> Restore shown, no Retire
+    let mut ctx = base_context("en", "operator");
+    let mut team = sample_team();
+    team["retiredAt"] = json!("2026-01-01");
+    ctx.insert("team", &team);
+    let html = tera.render("team/team.html", &ctx).unwrap();
+    assert!(html.contains("/team/66666666-6666-6666-6666-666666666666/restore"));
+    assert!(!html.contains("/team/66666666-6666-6666-6666-666666666666/retire"));
 }
 
 fn sample_org_tier() -> serde_json::Value {

@@ -356,3 +356,5 @@ search-placeholder = Search by name…
 no-results = No matches.
 showing-first = Showing first
 refine-search = refine your search to narrow results.
+
+restore-button = Restore

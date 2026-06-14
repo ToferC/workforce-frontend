@@ -116,3 +116,11 @@ pub struct AllPeople;
 pub async fn all_people(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_people::ResponseData, ApiError> {
     post_graphql::<AllPeople>(&client, api_url, &bearer, all_people::Variables {}).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/people/restore_person.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct RestorePerson;
+
+pub async fn restore_person(id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<restore_person::ResponseData, ApiError> {
+    post_graphql::<RestorePerson>(&client, api_url, &bearer, restore_person::Variables { id }).await
+}

@@ -1,0 +1,3 @@
+mutation RestoreOrganization($id: UUID!) {
+  restoreOrganization(id: $id) { id retiredAt }
+}

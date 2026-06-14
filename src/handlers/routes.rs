@@ -30,6 +30,7 @@ use crate::handlers::{
     edit_person_post,
     retire_person_form,
     retire_person_post,
+    restore_person_post,
     create_affiliation_form,
     create_affiliation_post,
     end_affiliation_post,
@@ -73,6 +74,7 @@ use crate::handlers::{
     edit_organization_post,
     retire_organization_form,
     retire_organization_post,
+    restore_organization_post,
 
     // org_tier
     org_tier_by_id,
@@ -82,6 +84,7 @@ use crate::handlers::{
     edit_org_tier_post,
     retire_org_tier_form,
     retire_org_tier_post,
+    restore_org_tier_post,
     assign_org_owner_form,
     assign_org_owner_post,
 
@@ -99,6 +102,7 @@ use crate::handlers::{
     edit_team_post,
     retire_team_form,
     retire_team_post,
+    restore_team_post,
     assign_team_owner_form,
     assign_team_owner_post,
     
@@ -143,6 +147,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_person_post);
     config.service(retire_person_form);
     config.service(retire_person_post);
+    config.service(restore_person_post);
     config.service(create_affiliation_form);
     config.service(create_affiliation_post);
     config.service(end_affiliation_post);
@@ -191,6 +196,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_organization_post);
     config.service(retire_organization_form);
     config.service(retire_organization_post);
+    config.service(restore_organization_post);
     config.service(organization_by_id);
 
     // org_tier
@@ -201,6 +207,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_org_tier_post);
     config.service(retire_org_tier_form);
     config.service(retire_org_tier_post);
+    config.service(restore_org_tier_post);
     config.service(assign_org_owner_form);
     config.service(assign_org_owner_post);
     config.service(org_tier_by_id);
@@ -218,6 +225,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_team_post);
     config.service(retire_team_form);
     config.service(retire_team_post);
+    config.service(restore_team_post);
     config.service(assign_team_owner_form);
     config.service(assign_team_owner_post);
     config.service(team_index);

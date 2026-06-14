@@ -127,3 +127,11 @@ pub async fn update_org_ownership(data: update_org_ownership::OrgOwnershipData, 
         data,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/org_tiers/restore_org_tier.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct RestoreOrgTier;
+
+pub async fn restore_org_tier(id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<restore_org_tier::ResponseData, ApiError> {
+    post_graphql::<RestoreOrgTier>(&client, api_url, &bearer, restore_org_tier::Variables { id }).await
+}

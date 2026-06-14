@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_organization_by_id, create_organization, update_organization};
+use crate::graphql::{get_organization_by_id, create_organization, update_organization, restore_organization};
 use crate::security::{self, MinimumRole};
 
 #[derive(Deserialize, Debug)]
@@ -325,6 +325,35 @@ pub async fn retire_organization_post(
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
         },
+    };
+
+    redirect_to(format!("/{}/organization/{}", &lang, &organization_id))
+}
+
+#[post("/{lang}/organization/{organization_id}/restore")]
+pub async fn restore_organization_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<RetireForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, organization_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/organization/{}", &lang, &organization_id));
+    }
+
+    match restore_organization(organization_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Organization restored.", "Organisation restaurée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
     redirect_to(format!("/{}/organization/{}", &lang, &organization_id))

@@ -196,12 +196,16 @@ end-to-end against the local API.
 - ⏳ Not yet done: org-tier index (tiers are reachable via the org chart
   builder); true offset/cursor pagination (the cap + search covers the
   immediate need).
-- ❌ **Restore is not possible** through the current API. The update
-  resolvers use `if let Some(field) = data.field { ... }`, so a `null` means
-  "unchanged" — they can set `retiredAt` but never clear it. A restore needs
-  either dedicated `restore*` mutations or update inputs that distinguish
-  absent from explicit-null (same class of gap as ownership reassignment,
-  which was fixed with dedicated id-exposing queries). Logged in §5.
+- ✅ **Restore** (un-retire) implemented. Dedicated `restoreOrganization`/
+  `restoreOrgTier`/`restoreTeam`/`restorePerson` mutations on the API clear
+  `retired_at`; the frontend shows a "Restore" button (POST + CSRF) on the
+  detail page when an entity is retired, in place of "Retire". Two Diesel-level
+  subtleties were the real blockers, both fixed: the `update()` AsChangeset
+  skips `None` fields (so clearing a column needs an explicit
+  `set(retired_at.eq(None))` — done via new model `restore()` methods), and
+  `Team.retiredAt` is the `"Still Active"` sentinel string (the team detail
+  page now compares against it correctly — previously the badge always showed
+  and Retire never did).
 
 ## 4. Cross-cutting conventions
 

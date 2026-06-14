@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data};
+use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data, restore_person};
 use crate::security::{self, MinimumRole};
 
 #[derive(Deserialize, Debug)]
@@ -774,4 +774,33 @@ pub async fn person_index(
     let template = if is_htmx(&req) { "person/person_list.html" } else { "person/person_index.html" };
     let rendered = data.tmpl.render(template, &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/person/{person_id}/restore")]
+pub async fn restore_person_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<RetireForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/person/{}", &lang, &person_id));
+    }
+
+    match restore_person(person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Person restored.", "Personne restaurée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/person/{}", &lang, &person_id))
 }

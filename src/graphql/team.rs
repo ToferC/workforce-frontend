@@ -108,3 +108,11 @@ pub async fn update_team_ownership(data: update_team_ownership::TeamOwnershipDat
         data,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/teams/restore_team.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct RestoreTeam;
+
+pub async fn restore_team(id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<restore_team::ResponseData, ApiError> {
+    post_graphql::<RestoreTeam>(&client, api_url, &bearer, restore_team::Variables { id }).await
+}

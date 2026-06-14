@@ -1,0 +1,3 @@
+mutation RestorePerson($id: UUID!) {
+  restorePerson(id: $id) { id retiredAt }
+}
