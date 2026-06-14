@@ -186,9 +186,16 @@ end-to-end against the local API.
   already active-only on the API side, so the Roles index needs no toggle.
   Note `Team.retiredAt` is a non-null `String` using the sentinel
   `"Still Active"`, unlike other types' nullable timestamp.)
-- ⏳ Not yet done: HTMX search/filter on index pages; org-tier index (tiers
-  are reachable via the org chart builder); pagination (the People index
-  renders all ~4.4k rows in one list).
+- ✅ **HTMX live search** on the People, Teams, and Roles indexes. Each index
+  has a search box (`hx-get` with `keyup changed delay:300ms`) that swaps a
+  server-rendered list partial; the handler filters the list and returns just
+  the partial on `HX-Request`. This also solves the **list-size problem**: the
+  default view is capped (`INDEX_PAGE_CAP = 100`) with a "showing first N of
+  total — refine your search" note, so the People index renders 100 rows
+  instead of ~4.4k and you search to narrow.
+- ⏳ Not yet done: org-tier index (tiers are reachable via the org chart
+  builder); true offset/cursor pagination (the cap + search covers the
+  immediate need).
 - ❌ **Restore is not possible** through the current API. The update
   resolvers use `if let Some(field) = data.field { ... }`, so a `null` means
   "unchanged" — they can set `retiredAt` but never clear it. A restore needs

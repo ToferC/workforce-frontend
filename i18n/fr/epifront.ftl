@@ -350,3 +350,9 @@ published-date = Date de publication
 roles = Rôles
 show-retired = Afficher les retirés
 hide-retired = Masquer les retirés
+
+## Index search
+search-placeholder = Rechercher par nom…
+no-results = Aucun résultat.
+showing-first = Affichage des premiers
+refine-search = affinez votre recherche pour réduire les résultats.

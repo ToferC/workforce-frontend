@@ -13,22 +13,13 @@
             <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/teams?retired=1">{{ fluent(key="show-retired", lang=lang) }}</a>
             {% endif %}
         </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for team in teams %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <a href="/{{ lang }}/team/{{ team.id }}">
-                        {% if lang == "fr" %}{{ team.nameFrench }}{% else %}{{ team.nameEnglish }}{% endif %}
-                    </a>
-                    <span>
-                        <span class="text-muted small">{{ team.organizationLevel.nameEn }}</span>
-                        {% if team.retiredAt != "Still Active" %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
-                    </span>
-                </li>
-                {% else %}
-                <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
-                {% endfor %}
-            </ul>
+        <div class="card-body">
+            <input type="search" class="form-control mb-3" name="q" value="{{ q }}"
+                placeholder="{{ fluent(key="search-placeholder", lang=lang) }}"
+                hx-get="/{{ lang }}/teams{% if show_retired %}?retired=1{% endif %}"
+                hx-trigger="keyup changed delay:300ms, search"
+                hx-target="#team-list" hx-swap="outerHTML">
+            {% include "team/team_list.html" %}
         </div>
     </div>
 </div>

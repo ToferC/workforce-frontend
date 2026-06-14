@@ -627,11 +627,18 @@ pub async fn retire_requirement_post(
     redirect_to(format!("/{}/role/{}", &lang, &role_id))
 }
 
+#[derive(Deserialize, Debug)]
+pub struct RoleIndexParams {
+    #[serde(default)]
+    pub q: String,
+}
+
 #[get("/{lang}/roles")]
 pub async fn role_index(
     data: web::Data<AppData>,
     id: Option<Identity>,
     path: web::Path<String>,
+    params: web::Query<RoleIndexParams>,
 
     req: HttpRequest) -> impl Responder {
     let lang = path.into_inner();
@@ -643,10 +650,27 @@ pub async fn role_index(
         None => "".to_string(),
     };
 
+    let query = params.q.trim().to_lowercase();
     // allRoles is already active-only on the API side
-    let r = all_roles(bearer, &data.api_url, Arc::clone(&data.client)).await.expect("Unable to get roles");
-    ctx.insert("roles", &r.all_roles);
+    let roles = all_roles(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_roles)
+        .unwrap_or_default();
 
-    let rendered = data.tmpl.render("role/role_index.html", &ctx).unwrap();
+    let matched: Vec<_> = roles.iter()
+        .filter(|r| query.is_empty()
+            || r.title_english.to_lowercase().contains(&query)
+            || r.title_french.to_lowercase().contains(&query)
+            || r.person.as_ref().map_or(false, |p| format!("{} {}", p.given_name, p.family_name).to_lowercase().contains(&query)))
+        .collect();
+    let total = matched.len();
+    let visible: Vec<_> = matched.into_iter().take(super::person::INDEX_PAGE_CAP).collect();
+
+    ctx.insert("roles", &visible);
+    ctx.insert("total", &total);
+    ctx.insert("truncated", &(total > super::person::INDEX_PAGE_CAP));
+    ctx.insert("q", &params.q);
+
+    let template = if is_htmx(&req) { "role/role_list.html" } else { "role/role_index.html" };
+    let rendered = data.tmpl.render(template, &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }

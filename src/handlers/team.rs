@@ -476,6 +476,8 @@ pub async fn assign_team_owner_post(
 pub struct IndexParams {
     #[serde(default)]
     pub retired: String,
+    #[serde(default)]
+    pub q: String,
 }
 
 #[get("/{lang}/teams")]
@@ -496,17 +498,29 @@ pub async fn team_index(
     };
 
     let show_retired = params.retired == "1";
+    let query = params.q.trim().to_lowercase();
     let teams = all_teams(bearer, &data.api_url, Arc::clone(&data.client)).await
         .map(|r| r.all_teams)
         .unwrap_or_default();
 
     // Team.retiredAt is a non-null String using "Still Active" as the
     // not-retired sentinel; hide retired teams unless ?retired=1
-    let visible: Vec<_> = teams.iter().filter(|t| show_retired || t.retired_at == "Still Active").collect();
+    let matched: Vec<_> = teams.iter()
+        .filter(|t| show_retired || t.retired_at == "Still Active")
+        .filter(|t| query.is_empty()
+            || t.name_english.to_lowercase().contains(&query)
+            || t.name_french.to_lowercase().contains(&query))
+        .collect();
+    let total = matched.len();
+    let visible: Vec<_> = matched.into_iter().take(super::person::INDEX_PAGE_CAP).collect();
 
     ctx.insert("teams", &visible);
+    ctx.insert("total", &total);
+    ctx.insert("truncated", &(total > super::person::INDEX_PAGE_CAP));
+    ctx.insert("q", &params.q);
     ctx.insert("show_retired", &show_retired);
 
-    let rendered = data.tmpl.render("team/team_index.html", &ctx).unwrap();
+    let template = if is_htmx(&req) { "team/team_list.html" } else { "team/team_index.html" };
+    let rendered = data.tmpl.render(template, &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }

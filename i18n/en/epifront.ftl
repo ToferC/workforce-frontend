@@ -350,3 +350,9 @@ published-date = Published date
 roles = Roles
 show-retired = Show retired
 hide-retired = Hide retired
+
+## Index search
+search-placeholder = Search by name…
+no-results = No matches.
+showing-first = Showing first
+refine-search = refine your search to narrow results.

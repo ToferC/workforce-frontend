@@ -720,6 +720,16 @@ pub async fn create_language_post(
 pub struct PeopleIndexParams {
     #[serde(default)]
     pub retired: String,
+    #[serde(default)]
+    pub q: String,
+}
+
+/// How many rows an index renders before truncating with a "refine search"
+/// hint. Used across the People/Teams/Roles indexes.
+pub const INDEX_PAGE_CAP: usize = 100;
+
+fn is_htmx(req: &HttpRequest) -> bool {
+    req.headers().get("HX-Request").is_some()
 }
 
 #[get("/{lang}/people")]
@@ -740,16 +750,28 @@ pub async fn person_index(
     };
 
     let show_retired = params.retired == "1";
+    let query = params.q.trim().to_lowercase();
     let people = all_people(bearer, &data.api_url, Arc::clone(&data.client)).await
         .map(|r| r.all_people)
         .unwrap_or_default();
 
-    // allPeople includes retired records; hide them unless ?retired=1
-    let visible: Vec<_> = people.iter().filter(|p| show_retired || p.retired_at.is_none()).collect();
+    // allPeople includes retired records (hidden unless ?retired=1) and is
+    // large, so filter by the search term and cap the rendered rows.
+    let matched: Vec<_> = people.iter()
+        .filter(|p| show_retired || p.retired_at.is_none())
+        .filter(|p| query.is_empty() || format!("{} {}", p.given_name, p.family_name).to_lowercase().contains(&query))
+        .collect();
+    let total = matched.len();
+    let visible: Vec<_> = matched.into_iter().take(INDEX_PAGE_CAP).collect();
 
     ctx.insert("people", &visible);
+    ctx.insert("total", &total);
+    ctx.insert("truncated", &(total > INDEX_PAGE_CAP));
+    ctx.insert("q", &params.q);
     ctx.insert("show_retired", &show_retired);
 
-    let rendered = data.tmpl.render("person/person_index.html", &ctx).unwrap();
+    // HTMX search requests get just the list partial to swap in place
+    let template = if is_htmx(&req) { "person/person_list.html" } else { "person/person_index.html" };
+    let rendered = data.tmpl.render(template, &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }

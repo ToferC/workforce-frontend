@@ -797,6 +797,9 @@ fn team_index_renders_with_retired_toggle() {
         {"id": "66666666-6666-6666-6666-666666666667", "nameEnglish": "Old Team", "nameFrench": "y", "retiredAt": "2026-01-01", "organization": {"id": "1", "nameEn": "Org"}, "organizationLevel": {"id": "2", "nameEn": "Tier"}}
     ]));
     ctx.insert("show_retired", &false);
+    ctx.insert("q", "");
+    ctx.insert("total", &2);
+    ctx.insert("truncated", &false);
     let html = tera.render("team/team_index.html", &ctx).unwrap();
     assert!(html.contains("/teams?retired=1"));      // "show retired" link when hidden
     assert!(html.contains("Active Team"));
@@ -818,6 +821,9 @@ fn role_index_renders_vacant_and_occupied() {
         {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "titleFrench": "x", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "person": {"id": "8", "givenName": "Sam", "familyName": "Lee"}, "team": {"id": "6", "nameEnglish": "Team"}},
         {"id": "77777777-7777-7777-7777-777777777778", "titleEnglish": "Advisor", "titleFrench": "y", "militaryOccupation": null, "rank": null, "person": null, "team": {"id": "6", "nameEnglish": "Team"}}
     ]));
+    ctx.insert("q", "");
+    ctx.insert("total", &2);
+    ctx.insert("truncated", &false);
     let html = tera.render("role/role_index.html", &ctx).unwrap();
     assert!(html.contains("Sam Lee"));
     assert!(html.contains("/role/77777777-7777-7777-7777-777777777778"));
@@ -832,10 +838,26 @@ fn person_index_renders_with_retired_toggle() {
         {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "retiredAt": null, "organization": {"id": "1", "nameEn": "Org"}}
     ]));
     ctx.insert("show_retired", &false);
+    ctx.insert("q", "");
+    ctx.insert("total", &1);
+    ctx.insert("truncated", &false);
     let html = tera.render("person/person_index.html", &ctx).unwrap();
     assert!(html.contains("/people?retired=1"));
     assert!(html.contains("Sam Lee"));
     assert!(html.contains("/person/new"));  // operator sees New Person
+}
+
+#[test]
+fn person_list_partial_shows_truncation_note() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("people", &json!([{"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "retiredAt": null, "organization": {"id": "1", "nameEn": "Org"}}]));
+    ctx.insert("total", &250);
+    ctx.insert("truncated", &true);
+    // partial renders standalone (the HTMX swap target) with the cap note
+    let html = tera.render("person/person_list.html", &ctx).unwrap();
+    assert!(html.contains("id=\"person-list\""));
+    assert!(html.contains("250"));  // total shown in the truncation note
 }
 
 #[test]
