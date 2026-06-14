@@ -1,0 +1,3 @@
+mutation CreateWork($data: NewWork!) {
+  createWork(data: $data) { id }
+}

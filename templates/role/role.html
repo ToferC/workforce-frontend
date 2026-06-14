@@ -18,6 +18,12 @@
             <a class="btn btn-primary" href="/{{ lang }}/role/{{ role_record.id }}/edit">
                 <i class="bi bi-pencil"></i> {{ fluent(key="edit-role-status", lang=lang) }}
             </a>
+            <a class="btn btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/task/new">
+                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-task", lang=lang) }}
+            </a>
+            <a class="btn btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/work/new">
+                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-work", lang=lang) }}
+            </a>
             {% if role_record.active == "true" %}
             <a class="btn btn-outline-danger" href="/{{ lang }}/role/{{ role_record.id }}/end">
                 <i class="bi bi-stop-circle"></i> {{ fluent(key="end-role", lang=lang) }}

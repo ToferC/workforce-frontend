@@ -160,11 +160,18 @@ Same slice, in dependency order, reusing the macros and helper:
 
 **Schema-drift fix during this slice:** the merged `main` made `Role.militaryOccupation`/`rank` nullable (civilian personnel) in the Rust models but never regenerated the checked-in SDL, so the running API returned null for fields the frontend's `schema.graphql` still marked `!`, panicking the role/person/team pages for civilian roles. Relaxed both fields to nullable in both schema files (introspection is the source of truth; the SDL files lag).
 
-### Phase 4 — Work-tracking & publications
+### Phase 4 — Work-tracking & publications ✅ (PublicationContributors deferred)
 
-Tasks, Work, Publications, PublicationContributors — same pattern, enum-heavy
-forms (`TaskStatus`, `WorkStatus`, `PublicationStatus`, `CapabilityLevel`).
-Lower priority; schedule after Phases 1–3 are proven.
+| Entity | Status |
+|---|---|
+| **Task** ✅ | Index (`/{lang}/tasks`, linked from home), create from a role's page (the role is the creator), and edit (status, intended/final outcome, dates). `taskStatus` reuses the `WorkStatus` enum. |
+| **Work** ✅ | Create from a role's page (role fixed; pick a task from a select), and edit (description, domain, capability level, effort, status). Task/role can't be reassigned after creation (API limitation). |
+| **Publication** ✅ | Index (`/{lang}/publications`, linked from home) + create (publishing org select, lead author by typed name, title, subject, status, url/id/date) and edit (org & lead author are immutable in the API after creation, so the edit form omits them). |
+| **PublicationContributor** | Deferred — adds co-authors to a publication; not yet built. |
+
+Enum selects (`WorkStatus`, `PublicationStatus`, `CapabilityLevel`, `SkillDomain`)
+are populated from constants kept in sync with the API schema. All verified
+end-to-end against the local API.
 
 ### Phase 5 — List/index pages & polish
 

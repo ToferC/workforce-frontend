@@ -101,12 +101,26 @@ use crate::handlers::{
     
     // publication
     publication_by_id,
+    publication_index,
+    create_publication_form,
+    create_publication_post,
+    edit_publication_form,
+    edit_publication_post,
 
     // work
     work_by_id,
+    create_work_form,
+    create_work_post,
+    edit_work_form,
+    edit_work_post,
 
     // task
     task_by_id,
+    task_index,
+    create_task_form,
+    create_task_post,
+    edit_task_form,
+    edit_task_post,
 
 };
 
@@ -204,12 +218,27 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(team_by_id);
 
     // publication
+    // "new" before {publication_id} catch-all
+    config.service(publication_index);
+    config.service(create_publication_form);
+    config.service(create_publication_post);
+    config.service(edit_publication_form);
+    config.service(edit_publication_post);
     config.service(publication_by_id);
 
     // work
+    config.service(create_work_form);
+    config.service(create_work_post);
+    config.service(edit_work_form);
+    config.service(edit_work_post);
     config.service(work_by_id);
 
     // task
+    config.service(task_index);
+    config.service(create_task_form);
+    config.service(create_task_post);
+    config.service(edit_task_form);
+    config.service(edit_task_post);
     config.service(task_by_id);
     
     //config.service(about);

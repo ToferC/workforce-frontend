@@ -7,7 +7,16 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-journal-richtext"></i> {{ publication.title }}</h1>
+        <h1 class="display-4 mb-2"><i class="bi bi-journal-richtext"></i> {{ publication.title }}
+            <span class="badge bg-info text-dark align-middle">{{ publication.publicationStatus }}</span>
+        </h1>
+        {% if role == "operator" or role == "admin" %}
+        <div class="mb-2">
+            <a class="btn btn-primary" href="/{{ lang }}/publication/{{ publication.id }}/edit">
+                <i class="bi bi-pencil"></i> {{ fluent(key="edit-publication", lang=lang) }}
+            </a>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Details -->

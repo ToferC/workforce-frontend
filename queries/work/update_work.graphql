@@ -1,0 +1,3 @@
+mutation UpdateWork($data: WorkData!) {
+  updateWork(data: $data) { id }
+}

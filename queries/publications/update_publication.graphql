@@ -1,0 +1,3 @@
+mutation UpdatePublication($data: PublicationData!) {
+  updatePublication(data: $data) { id title }
+}

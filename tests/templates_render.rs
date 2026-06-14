@@ -700,6 +700,94 @@ fn person_page_shows_languages_and_validate_for_admin() {
     assert!(html.contains("/capability/cccccccc-0000-0000-0000-000000000001/retire"));
 }
 
+fn status_options() -> serde_json::Value {
+    json!([{"value": "PLANNING", "label": "Planning"}, {"value": "IN_PROGRESS", "label": "In Progress"}])
+}
+
+#[test]
+fn task_index_and_form_render() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("tasks", &json!([{"id": "a0000000-0000-0000-0000-000000000001", "title": "Stand up cyber cell", "domain": "CYBER_SECURITY", "taskStatus": "PLANNING"}]));
+    let html = tera.render("task/task_index.html", &ctx).unwrap();
+    assert!(html.contains("/en/task/a0000000-0000-0000-0000-000000000001"));
+
+    let task = json!({"id": "a0000000-0000-0000-0000-000000000001", "title": "Stand up cyber cell", "domain": "CYBER_SECURITY",
+        "intendedOutcome": "Cell operational", "finalOutcome": "", "approvalTier": 2, "url": "",
+        "startDatestamp": "2026-01-01", "targetCompletionDate": "2026-06-01", "taskStatus": "PLANNING", "completedDate": ""});
+    for (edit, action) in [(false, "/role/77777777-7777-7777-7777-777777777777/task/new"), (true, "/task/a0000000-0000-0000-0000-000000000001/edit")] {
+        let mut ctx = base_context("en", "operator");
+        ctx.insert("edit", &edit);
+        ctx.insert("role_id", "77777777-7777-7777-7777-777777777777");
+        ctx.insert("task", &task);
+        ctx.insert("skill_domains", &domain_options());
+        ctx.insert("work_statuses", &status_options());
+        let html = tera.render("task/task_form.html", &ctx).unwrap();
+        assert!(html.contains(action));
+        assert!(html.contains("name=\"task_status\""));
+    }
+}
+
+#[test]
+fn work_form_renders() {
+    let tera = tera();
+    let work = json!({"id": "b0000000-0000-0000-0000-000000000001", "workDescription": "Draft plan", "url": "",
+        "domain": "CYBER_SECURITY", "capabilityLevel": "EXPERT", "effort": 3, "workStatus": "PLANNING"});
+    // create: task select present
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("edit", &false);
+    ctx.insert("role_id", "77777777-7777-7777-7777-777777777777");
+    ctx.insert("work", &work);
+    ctx.insert("task_options", &json!([{"value": "a0000000-0000-0000-0000-000000000001", "label": "A task"}]));
+    ctx.insert("skill_domains", &domain_options());
+    ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+    ctx.insert("work_statuses", &status_options());
+    let html = tera.render("work/work_form.html", &ctx).unwrap();
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/work/new"));
+    assert!(html.contains("name=\"task_id\""));
+    // edit: no task select
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("edit", &true);
+    ctx.insert("work", &work);
+    ctx.insert("skill_domains", &domain_options());
+    ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+    ctx.insert("work_statuses", &status_options());
+    let html = tera.render("work/work_form.html", &ctx).unwrap();
+    assert!(html.contains("/work/b0000000-0000-0000-0000-000000000001/edit"));
+    assert!(!html.contains("name=\"task_id\""));
+}
+
+#[test]
+fn publication_index_and_form_render() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("publications", &json!([{"id": "c0000000-0000-0000-0000-000000000001", "title": "Threat report", "publicationStatus": "DRAFT"}]));
+    let html = tera.render("publication/publication_index.html", &ctx).unwrap();
+    assert!(html.contains("/en/publication/c0000000-0000-0000-0000-000000000001"));
+    assert!(html.contains("/en/publication/new"));
+
+    let pubn = json!({"id": "c0000000-0000-0000-0000-000000000001", "title": "Threat report", "subjectText": "Threats",
+        "publicationStatus": "DRAFT", "urlString": "", "publishingId": "", "publishedDatestamp": "",
+        "publishingOrganization": {"id": "11111111-1111-1111-1111-111111111111"}});
+    // create: org select + lead author present
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("edit", &false);
+    ctx.insert("publication", &pubn);
+    ctx.insert("organization_options", &json!([{"value": "11111111-1111-1111-1111-111111111111", "label": "Test Org"}]));
+    ctx.insert("publication_statuses", &status_options());
+    let html = tera.render("publication/publication_form.html", &ctx).unwrap();
+    assert!(html.contains("/publication/new"));
+    assert!(html.contains("name=\"lead_author_name\""));
+    // edit: no org/author
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("edit", &true);
+    ctx.insert("publication", &pubn);
+    ctx.insert("publication_statuses", &status_options());
+    let html = tera.render("publication/publication_form.html", &ctx).unwrap();
+    assert!(html.contains("/publication/c0000000-0000-0000-0000-000000000001/edit"));
+    assert!(!html.contains("name=\"lead_author_name\""));
+}
+
 #[test]
 fn index_shows_new_organization_button_for_operator_only() {
     let tera = tera();

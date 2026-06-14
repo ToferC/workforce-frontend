@@ -21,3 +21,19 @@ pub async fn get_work_by_id(id: UUID, bearer: String, api_url: &str, client: Arc
         id,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/work/create_work.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct CreateWork;
+
+pub async fn create_work(data: create_work::NewWork, bearer: String, api_url: &str, client: Arc<Client>) -> Result<create_work::ResponseData, ApiError> {
+    post_graphql::<CreateWork>(&client, api_url, &bearer, create_work::Variables { data }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/work/update_work.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct UpdateWork;
+
+pub async fn update_work(data: update_work::WorkData, bearer: String, api_url: &str, client: Arc<Client>) -> Result<update_work::ResponseData, ApiError> {
+    post_graphql::<UpdateWork>(&client, api_url, &bearer, update_work::Variables { data }).await
+}

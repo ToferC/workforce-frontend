@@ -1,0 +1,3 @@
+mutation CreatePublication($data: NewPublication!) {
+  createPublication(data: $data) { id title }
+}

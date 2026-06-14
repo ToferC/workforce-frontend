@@ -1,0 +1,3 @@
+mutation CreateTask($data: NewTask!) {
+  createTask(data: $data) { id title }
+}

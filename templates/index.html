@@ -16,6 +16,12 @@
                         <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/skills">
                             <i class="bi bi-mortarboard"></i> {{ fluent(key="skills", lang=lang) }}
                         </a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/tasks">
+                            <i class="bi bi-list-task"></i> {{ fluent(key="tasks", lang=lang) }}
+                        </a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/publications">
+                            <i class="bi bi-journal-richtext"></i> {{ fluent(key="publications", lang=lang) }}
+                        </a>
                         {% if role == "operator" or role == "admin" %}
                         <a class="btn btn-primary btn-sm" href="/{{ lang }}/organization/new">
                             <i class="bi bi-plus-lg"></i> {{ fluent(key="new-organization-button", lang=lang) }}
