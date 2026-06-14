@@ -345,3 +345,8 @@ lead-author = Auteur principal
 subject = Sujet
 publishing-id = Identifiant de publication
 published-date = Date de publication
+
+## Index pages
+roles = Rôles
+show-retired = Afficher les retirés
+hide-retired = Masquer les retirés

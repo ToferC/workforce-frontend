@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_team_by_id, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership};
+use crate::graphql::{get_team_by_id, all_teams, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{parent_tier_options, skill_domain_options, OwnerForm};
 use super::person::resolve_person_by_name;
@@ -470,4 +470,43 @@ pub async fn assign_team_owner_post(
     };
 
     redirect_to(format!("/{}/team/{}", &lang, &team_id))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct IndexParams {
+    #[serde(default)]
+    pub retired: String,
+}
+
+#[get("/{lang}/teams")]
+pub async fn team_index(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    params: web::Query<IndexParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    let show_retired = params.retired == "1";
+    let teams = all_teams(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_teams)
+        .unwrap_or_default();
+
+    // Team.retiredAt is a non-null String using "Still Active" as the
+    // not-retired sentinel; hide retired teams unless ?retired=1
+    let visible: Vec<_> = teams.iter().filter(|t| show_retired || t.retired_at == "Still Active").collect();
+
+    ctx.insert("teams", &visible);
+    ctx.insert("show_retired", &show_retired);
+
+    let rendered = data.tmpl.render("team/team_index.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
 }

@@ -1,0 +1,11 @@
+query AllRoles {
+  allRoles {
+    id
+    titleEnglish
+    titleFrench
+    militaryOccupation
+    rank
+    person { id givenName familyName }
+    team { id nameEnglish }
+  }
+}

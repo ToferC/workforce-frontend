@@ -23,6 +23,7 @@ use crate::handlers::{
     // person
     person_by_id,
     person_by_name,
+    person_index,
     create_person_form,
     create_person_post,
     edit_person_form,
@@ -37,6 +38,7 @@ use crate::handlers::{
 
     // role
     role_by_id,
+    role_index,
     create_role_form,
     create_role_post,
     edit_role_form,
@@ -90,6 +92,7 @@ use crate::handlers::{
 
     // team
     team_by_id,
+    team_index,
     create_team_form,
     create_team_post,
     edit_team_form,
@@ -145,6 +148,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(end_affiliation_post);
     config.service(create_language_form);
     config.service(create_language_post);
+    config.service(person_index);
     config.service(person_by_id);
     config.service(person_by_name);
 
@@ -156,6 +160,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_role_post);
     config.service(end_role_form);
     config.service(end_role_post);
+    config.service(role_index);
     config.service(create_requirement_form);
     config.service(create_requirement_post);
     config.service(retire_requirement_post);
@@ -215,6 +220,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(retire_team_post);
     config.service(assign_team_owner_form);
     config.service(assign_team_owner_post);
+    config.service(team_index);
     config.service(team_by_id);
 
     // publication

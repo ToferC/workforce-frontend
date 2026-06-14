@@ -789,6 +789,56 @@ fn publication_index_and_form_render() {
 }
 
 #[test]
+fn team_index_renders_with_retired_toggle() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("teams", &json!([
+        {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Active Team", "nameFrench": "x", "retiredAt": "Still Active", "organization": {"id": "1", "nameEn": "Org"}, "organizationLevel": {"id": "2", "nameEn": "Tier"}},
+        {"id": "66666666-6666-6666-6666-666666666667", "nameEnglish": "Old Team", "nameFrench": "y", "retiredAt": "2026-01-01", "organization": {"id": "1", "nameEn": "Org"}, "organizationLevel": {"id": "2", "nameEn": "Tier"}}
+    ]));
+    ctx.insert("show_retired", &false);
+    let html = tera.render("team/team_index.html", &ctx).unwrap();
+    assert!(html.contains("/teams?retired=1"));      // "show retired" link when hidden
+    assert!(html.contains("Active Team"));
+    // the retired one carries the badge
+    assert!(html.contains("/team/66666666-6666-6666-6666-666666666667"));
+    let badges = html.matches("badge bg-warning").count();
+    assert_eq!(badges, 1, "only the retired team should be badged");
+
+    ctx.insert("show_retired", &true);
+    let html = tera.render("team/team_index.html", &ctx).unwrap();
+    assert!(html.contains("/teams\""));               // "hide retired" link back to plain
+}
+
+#[test]
+fn role_index_renders_vacant_and_occupied() {
+    let tera = tera();
+    let mut ctx = base_context("en", "user");
+    ctx.insert("roles", &json!([
+        {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "titleFrench": "x", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "person": {"id": "8", "givenName": "Sam", "familyName": "Lee"}, "team": {"id": "6", "nameEnglish": "Team"}},
+        {"id": "77777777-7777-7777-7777-777777777778", "titleEnglish": "Advisor", "titleFrench": "y", "militaryOccupation": null, "rank": null, "person": null, "team": {"id": "6", "nameEnglish": "Team"}}
+    ]));
+    let html = tera.render("role/role_index.html", &ctx).unwrap();
+    assert!(html.contains("Sam Lee"));
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777778"));
+    assert!(html.contains("badge bg-danger"));  // vacant badge for the unassigned role
+}
+
+#[test]
+fn person_index_renders_with_retired_toggle() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("people", &json!([
+        {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "retiredAt": null, "organization": {"id": "1", "nameEn": "Org"}}
+    ]));
+    ctx.insert("show_retired", &false);
+    let html = tera.render("person/person_index.html", &ctx).unwrap();
+    assert!(html.contains("/people?retired=1"));
+    assert!(html.contains("Sam Lee"));
+    assert!(html.contains("/person/new"));  // operator sees New Person
+}
+
+#[test]
 fn index_shows_new_organization_button_for_operator_only() {
     let tera = tera();
     let mut ctx = base_context("en", "operator");

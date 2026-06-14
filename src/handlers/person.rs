@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, create_affiliation, update_affiliation, create_language_data};
+use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data};
 use crate::security::{self, MinimumRole};
 
 #[derive(Deserialize, Debug)]
@@ -713,4 +713,43 @@ pub async fn create_language_post(
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
+}
+
+
+#[derive(Deserialize, Debug)]
+pub struct PeopleIndexParams {
+    #[serde(default)]
+    pub retired: String,
+}
+
+#[get("/{lang}/people")]
+pub async fn person_index(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    params: web::Query<PeopleIndexParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    let show_retired = params.retired == "1";
+    let people = all_people(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_people)
+        .unwrap_or_default();
+
+    // allPeople includes retired records; hide them unless ?retired=1
+    let visible: Vec<_> = people.iter().filter(|p| show_retired || p.retired_at.is_none()).collect();
+
+    ctx.insert("people", &visible);
+    ctx.insert("show_retired", &show_retired);
+
+    let rendered = data.tmpl.render("person/person_index.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
 }

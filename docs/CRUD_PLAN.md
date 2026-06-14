@@ -173,15 +173,28 @@ Enum selects (`WorkStatus`, `PublicationStatus`, `CapabilityLevel`, `SkillDomain
 are populated from constants kept in sync with the API schema. All verified
 end-to-end against the local API.
 
-### Phase 5 — List/index pages & polish
+### Phase 5 — List/index pages & polish (IN PROGRESS)
 
-- Today most entities have only detail pages reachable by ID. Add index pages
-  (the queries exist: `allOrganizations`, `allTeams`, `allRoles`, `skills`,
-  `allPeople`, `allTasks`, …) with New/Edit/Retire actions — otherwise the
-  CRUD UI has no entry point.
-- HTMX-powered search/filter on index pages (server-rendered table partials).
-- Hide retired records by default with a "show retired" toggle; offer
-  "restore" (update with `retiredAt: null`) where the API allows it.
+- ✅ Index pages added for the entities that previously had only detail-by-ID
+  pages: **People** (`/{lang}/people`), **Teams** (`/{lang}/teams`),
+  **Roles** (`/{lang}/roles`) — joining the existing Organizations (home),
+  Skills, Tasks, and Publications indexes. All are linked from the home page,
+  giving the CRUD UI real entry points.
+- ✅ **Show-retired toggle** on the People and Teams indexes (`?retired=1`).
+  `allPeople`/`allTeams` return retired records, so the handler hides them by
+  default and the toggle reveals them; verified end-to-end. (`allRoles` is
+  already active-only on the API side, so the Roles index needs no toggle.
+  Note `Team.retiredAt` is a non-null `String` using the sentinel
+  `"Still Active"`, unlike other types' nullable timestamp.)
+- ⏳ Not yet done: HTMX search/filter on index pages; org-tier index (tiers
+  are reachable via the org chart builder); pagination (the People index
+  renders all ~4.4k rows in one list).
+- ❌ **Restore is not possible** through the current API. The update
+  resolvers use `if let Some(field) = data.field { ... }`, so a `null` means
+  "unchanged" — they can set `retiredAt` but never clear it. A restore needs
+  either dedicated `restore*` mutations or update inputs that distinguish
+  absent from explicit-null (same class of gap as ownership reassignment,
+  which was fixed with dedicated id-exposing queries). Logged in §5.
 
 ## 4. Cross-cutting conventions
 

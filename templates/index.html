@@ -13,6 +13,15 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="h4 mb-0"><i class="bi bi-building"></i> Organizations</h2>
                     <span>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/people">
+                            <i class="bi bi-person-lines-fill"></i> {{ fluent(key="person-index", lang=lang) }}
+                        </a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/teams">
+                            <i class="bi bi-people"></i> {{ fluent(key="teams", lang=lang) }}
+                        </a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/roles">
+                            <i class="bi bi-briefcase"></i> {{ fluent(key="roles", lang=lang) }}
+                        </a>
                         <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/skills">
                             <i class="bi bi-mortarboard"></i> {{ fluent(key="skills", lang=lang) }}
                         </a>

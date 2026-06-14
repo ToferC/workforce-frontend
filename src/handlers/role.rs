@@ -7,7 +7,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_role_by_id, get_team_by_id, get_people_by_name, create_role, update_role, all_skills, get_skill_by_id, create_requirement, update_requirement};
+use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, all_skills, get_skill_by_id, create_requirement, update_requirement};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
@@ -625,4 +625,28 @@ pub async fn retire_requirement_post(
     };
 
     redirect_to(format!("/{}/role/{}", &lang, &role_id))
+}
+
+#[get("/{lang}/roles")]
+pub async fn role_index(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    // allRoles is already active-only on the API side
+    let r = all_roles(bearer, &data.api_url, Arc::clone(&data.client)).await.expect("Unable to get roles");
+    ctx.insert("roles", &r.all_roles);
+
+    let rendered = data.tmpl.render("role/role_index.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
 }

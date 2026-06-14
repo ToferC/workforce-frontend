@@ -345,3 +345,8 @@ lead-author = Lead author
 subject = Subject
 publishing-id = Publishing ID
 published-date = Published date
+
+## Index pages
+roles = Roles
+show-retired = Show retired
+hide-retired = Hide retired

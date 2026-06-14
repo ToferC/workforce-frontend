@@ -108,3 +108,11 @@ pub async fn update_affiliation(data: update_affiliation::AffiliationData, beare
         data,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/people/all_people.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct AllPeople;
+
+pub async fn all_people(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_people::ResponseData, ApiError> {
+    post_graphql::<AllPeople>(&client, api_url, &bearer, all_people::Variables {}).await
+}
