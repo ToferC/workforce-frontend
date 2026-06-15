@@ -119,6 +119,19 @@ pub fn status_color(status: &str) -> &'static str {
     }
 }
 
+/// Serialize a chart option to a JSON string safe to embed inside an inline
+/// `<script type="application/json">` block. Replaces every `<` with its JSON
+/// unicode escape so that a literal `</script>` inside user-controlled strings
+/// (names, work descriptions, requirement titles) cannot terminate the script
+/// element early — which would both break the chart and allow stored
+/// HTML/script injection. `JSON.parse` decodes the escape back to `<`, so chart
+/// labels still render correctly.
+pub fn chart_json(value: &serde_json::Value) -> String {
+    serde_json::to_string(value)
+        .unwrap_or_else(|_| "{}".to_string())
+        .replace('<', "\\u003c")
+}
+
 /// CSS group name for a SkillDomain key (maps to .domain-{group} CSS class).
 pub fn domain_group(key: &str) -> &'static str {
     match key {

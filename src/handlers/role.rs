@@ -7,7 +7,7 @@ use serde_json::json;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use crate::{AppData, generate_basic_context, by_lang, level_weight};
+use crate::{AppData, generate_basic_context, by_lang, level_weight, chart_json};
 use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, all_skills, get_skill_by_id, create_requirement, update_requirement};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
@@ -228,7 +228,7 @@ pub async fn role_by_id(
                     {"name": "Held", "type": "bar", "data": held}
                 ]
             });
-            ctx.insert("requirement_match", &req_match);
+            ctx.insert("requirement_match", &chart_json(&req_match));
         }
     }
 

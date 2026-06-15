@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use crate::{AppData, generate_basic_context, by_lang, level_weight, domain_short_label};
+use crate::{AppData, generate_basic_context, by_lang, level_weight, domain_short_label, chart_json};
 use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data, restore_person};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
@@ -221,7 +221,7 @@ pub async fn person_by_id(
                 ]
             }]
         });
-        ctx.insert("capability_radar", &radar);
+        ctx.insert("capability_radar", &chart_json(&radar));
     }
 
     ctx.insert("person", &r.person_by_id);

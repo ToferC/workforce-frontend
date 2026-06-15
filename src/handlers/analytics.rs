@@ -5,7 +5,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::{AppData, generate_basic_context, status_color};
+use crate::{AppData, generate_basic_context, status_color, chart_json};
 use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap, analytics_mobility};
 use crate::security::{self, MinimumRole};
 
@@ -387,7 +387,7 @@ pub async fn analytics_coverage(
 
     let chart_height = format!("{}px", std::cmp::max(400, team_names.len() as i64 * 52 + 260));
 
-    ctx.insert("chart_option", &chart_option);
+    ctx.insert("chart_option", &chart_json(&chart_option));
     ctx.insert("chart_height", &chart_height);
     ctx.insert("table_rows", &table_rows);
     ctx.insert("domain_labels", &domain_labels);
@@ -538,7 +538,7 @@ pub async fn analytics_delivery(
         }))
         .collect();
 
-    ctx.insert("chart_option", &chart_option);
+    ctx.insert("chart_option", &chart_json(&chart_option));
     ctx.insert("product_rows", &product_rows);
     ctx.insert("status_legend", &status_legend);
     ctx.insert("summary", &json!({
@@ -646,7 +646,7 @@ pub async fn analytics_mobility_view(
         b["count"].as_i64().unwrap_or(0).cmp(&a["count"].as_i64().unwrap_or(0))
     });
 
-    ctx.insert("chart_option", &chart_option);
+    ctx.insert("chart_option", &chart_json(&chart_option));
     ctx.insert("table_rows", &table_rows);
     ctx.insert("has_moves", &(!links.is_empty()));
     ctx.insert("summary", &json!({
