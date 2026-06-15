@@ -29,17 +29,7 @@ const SKILL_DOMAINS: &[(&str, &str)] = &[
     ("CORPORATE_SERVICES",                    "Corporate Svcs"),
 ];
 
-/// Numeric weight for each CapabilityLevel; used to compute depth scores.
-fn level_weight(level: &str) -> i64 {
-    match level {
-        "DESIRED"     => 1,
-        "NOVICE"      => 2,
-        "EXPERIENCED" => 3,
-        "EXPERT"      => 4,
-        "SPECIALIST"  => 5,
-        _             => 0,
-    }
-}
+use crate::level_weight;
 
 #[get("/{lang}/analytics")]
 pub async fn analytics_dashboard(

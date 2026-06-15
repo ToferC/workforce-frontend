@@ -8,7 +8,7 @@
 {% endfor %}
 
 {% for team in node.teams %}
-    {{ chart::team_node(team=team, lang=lang, role=role, org_tier_id=node.id, organization_id=node.organization.id) }}
+    {{ chart::team_node(team=team, lang=lang, role=role, org_tier_id=node.id, organization_id=node.organization.id, stats=team_stats[team.id]) }}
 {% endfor %}
 
 {% if node.childOrganizationTier | length == 0 and node.teams | length == 0 %}

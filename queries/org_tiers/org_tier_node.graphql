@@ -1,5 +1,7 @@
 # One expandable node of the org chart: a tier's child tiers plus its
 # teams with their roles and the people occupying them.
+# Phase D: person now includes activeEffort and capabilities for the
+# capability/capacity overlay rendered in the team node summary.
 query OrgTierNode($id: UUID!) {
   orgTierById(id: $id) {
     id
@@ -22,14 +24,20 @@ query OrgTierNode($id: UUID!) {
       nameEnglish
       nameFrench
       occupiedRoles {
-      id
-      titleEnglish
-      titleFrench
-      person {
         id
-        givenName
-        familyName
-      }
+        titleEnglish
+        titleFrench
+        person {
+          id
+          givenName
+          familyName
+          activeEffort
+          capabilities {
+            domain
+            validatedLevel
+            selfIdentifiedLevel
+          }
+        }
       }
       vacantRoles {
         id

@@ -8,8 +8,9 @@ use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use actix_identity::{Identity};
 use serde_json::json;
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
-use crate::{AppData, generate_basic_context};
+use crate::{AppData, generate_basic_context, domain_group, domain_short_label, level_weight};
 use crate::graphql::{get_organization_by_id, get_org_tiers_by_org_id, get_org_tier_by_id, get_org_tier_node};
 use crate::security::{self, MinimumRole};
 
@@ -147,8 +148,64 @@ async fn render_node(
         },
     };
 
+    // Build per-team capability/capacity stats for the org chart overlay.
+    let mut team_stats_map = serde_json::Map::new();
+    {
+        let n = &node;
+        for team in &n.teams {
+            let headcount = team.occupied_roles.len() as i64;
+            let vacant = team.vacant_roles.len() as i64;
+
+            let mut total_effort: i64 = 0;
+            let mut domain_depth: BTreeMap<String, i64> = BTreeMap::new();
+
+            for role in &team.occupied_roles {
+                if let Some(person) = &role.person {
+                    total_effort += person.active_effort;
+                    for cap in &person.capabilities {
+                        let domain = serde_json::to_value(&cap.domain)
+                            .ok()
+                            .and_then(|v| v.as_str().map(String::from))
+                            .unwrap_or_else(|| "UNKNOWN".to_string());
+                        let level_val = cap.validated_level.as_ref().or(Some(&cap.self_identified_level));
+                        if let Some(lvl) = level_val {
+                            let level_str = serde_json::to_value(lvl)
+                                .ok()
+                                .and_then(|v| v.as_str().map(String::from))
+                                .unwrap_or_else(|| "UNKNOWN".to_string());
+                            *domain_depth.entry(domain).or_insert(0) += level_weight(&level_str);
+                        }
+                    }
+                }
+            }
+
+            let mut sorted: Vec<(String, i64)> = domain_depth.into_iter().collect();
+            sorted.sort_by(|a, b| b.1.cmp(&a.1));
+
+            let top_domains: Vec<serde_json::Value> = sorted.into_iter().take(3)
+                .map(|(d, _)| json!({
+                    "label": domain_short_label(&d),
+                    "group": domain_group(&d),
+                }))
+                .collect();
+
+            let capacity_class = if total_effort > 50 { "danger" }
+                else if total_effort > 20 { "warning" }
+                else { "success" };
+
+            team_stats_map.insert(team.id.to_string(), json!({
+                "headcount": headcount,
+                "vacant": vacant,
+                "effort": total_effort,
+                "top_domains": top_domains,
+                "capacity_class": capacity_class,
+            }));
+        }
+    }
+
     let mut ctx = generate_basic_context(id, lang, req.uri().path(), session);
     ctx.insert("node", &node);
+    ctx.insert("team_stats", &serde_json::Value::Object(team_stats_map));
 
     let rendered = data.tmpl.render("org_chart/node.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
