@@ -28,6 +28,10 @@ query WorkById($id:UUID!) {
         }
       }
     }
+    skill {
+      id
+      nameEn
+    }
     role {
       id
       titleEnglish
@@ -43,6 +47,24 @@ query WorkById($id:UUID!) {
         organization {
             id
             nameEn
+        }
+      }
+    }
+    capabilityMatches(count: 10) {
+      id
+      nameEn
+      validatedLevel
+      selfIdentifiedLevel
+      person {
+        id
+        givenName
+        familyName
+        activeEffort
+        activeRoles {
+          id
+          titleEnglish
+          militaryOccupation
+          rank
         }
       }
     }

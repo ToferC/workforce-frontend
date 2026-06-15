@@ -1,0 +1,23 @@
+query AllWork {
+  allWork {
+    id
+    workDescription
+    domain
+    capabilityLevel
+    effort
+    workStatus
+    task {
+      id
+      title
+    }
+    role {
+      id
+      titleEnglish
+      person {
+        id
+        givenName
+        familyName
+      }
+    }
+  }
+}

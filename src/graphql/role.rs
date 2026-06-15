@@ -60,3 +60,19 @@ pub struct AllRoles;
 pub async fn all_roles(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_roles::ResponseData, ApiError> {
     post_graphql::<AllRoles>(&client, api_url, &bearer, all_roles::Variables {}).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/roles/vacant_roles.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct VacantRoles;
+
+pub async fn vacant_roles(count: i64, bearer: String, api_url: &str, client: Arc<Client>) -> Result<vacant_roles::ResponseData, ApiError> {
+    post_graphql::<VacantRoles>(&client, api_url, &bearer, vacant_roles::Variables { count }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/analytics/analytics_roles.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct AnalyticsRoles;
+
+pub async fn analytics_roles(bearer: String, api_url: &str, client: Arc<Client>) -> Result<analytics_roles::ResponseData, ApiError> {
+    post_graphql::<AnalyticsRoles>(&client, api_url, &bearer, analytics_roles::Variables {}).await
+}

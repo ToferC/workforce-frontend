@@ -31,6 +31,14 @@ pub async fn all_products(bearer: String, api_url: &str, client: Arc<Client>) ->
 }
 
 #[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/analytics/delivery_treemap.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct DeliveryTreemap;
+
+pub async fn delivery_treemap(bearer: String, api_url: &str, client: Arc<Client>) -> Result<delivery_treemap::ResponseData, ApiError> {
+    post_graphql::<DeliveryTreemap>(&client, api_url, &bearer, delivery_treemap::Variables {}).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
 #[graphql(schema_path = "schema.graphql", query_path = "queries/products/create_product.graphql", response_derives = "Debug, Serialize, PartialEq")]
 pub struct CreateProduct;
 

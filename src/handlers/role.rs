@@ -5,8 +5,9 @@ use chrono::{NaiveDate, NaiveDateTime};
 use serde::Deserialize;
 use serde_json::json;
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
-use crate::{AppData, generate_basic_context, by_lang};
+use crate::{AppData, generate_basic_context, by_lang, level_weight, chart_json};
 use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, all_skills, get_skill_by_id, create_requirement, update_requirement};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
@@ -162,6 +163,74 @@ pub async fn role_by_id(
     let r = get_role_by_id(role_id, bearer, &data.api_url, Arc::clone(&data.client))
         .await
         .expect("Unable to get role");
+
+    // Requirement-match bars: compare each role requirement against the level
+    // the incumbent actually holds in that domain (validated preferred, self
+    // as fallback). Only built for an occupied role that has requirements.
+    let role_rec = &r.role_by_id;
+    if !role_rec.requirements.is_empty() {
+        if let Some(person) = &role_rec.person {
+            let mut held_by_domain: BTreeMap<String, i64> = BTreeMap::new();
+            for cap in &person.capabilities {
+                let domain = serde_json::to_value(&cap.domain)
+                    .ok()
+                    .and_then(|v| v.as_str().map(String::from))
+                    .unwrap_or_default();
+                let self_w = serde_json::to_value(&cap.self_identified_level)
+                    .ok()
+                    .and_then(|v| v.as_str().map(String::from))
+                    .map(|s| level_weight(&s))
+                    .unwrap_or(0);
+                let val_w = cap.validated_level.as_ref()
+                    .and_then(|l| serde_json::to_value(l).ok())
+                    .and_then(|v| v.as_str().map(String::from))
+                    .map(|s| level_weight(&s))
+                    .unwrap_or(0);
+                let held = if val_w > 0 { val_w } else { self_w };
+                let e = held_by_domain.entry(domain).or_insert(0);
+                if held > *e { *e = held; }
+            }
+
+            let labels: Vec<String> = role_rec.requirements.iter()
+                .map(|req| req.name_en.clone())
+                .collect();
+            let required: Vec<i64> = role_rec.requirements.iter()
+                .map(|req| serde_json::to_value(&req.required_level)
+                    .ok()
+                    .and_then(|v| v.as_str().map(String::from))
+                    .map(|s| level_weight(&s))
+                    .unwrap_or(0))
+                .collect();
+            let held: Vec<serde_json::Value> = role_rec.requirements.iter()
+                .enumerate()
+                .map(|(i, req)| {
+                    let domain = serde_json::to_value(&req.domain)
+                        .ok()
+                        .and_then(|v| v.as_str().map(String::from))
+                        .unwrap_or_default();
+                    let held_w = *held_by_domain.get(&domain).unwrap_or(&0);
+                    let meets = held_w >= required[i];
+                    json!({
+                        "value": held_w,
+                        "itemStyle": {"color": if meets { "#198754" } else { "#dc3545" }},
+                    })
+                })
+                .collect();
+
+            let req_match = json!({
+                "tooltip": {"trigger": "axis"},
+                "legend": {"data": ["Required", "Held"], "bottom": 0},
+                "grid": {"left": "3%", "right": "4%", "bottom": "14%", "containLabel": true},
+                "xAxis": {"type": "category", "data": labels, "axisLabel": {"rotate": 20, "interval": 0}},
+                "yAxis": {"type": "value", "max": 5, "name": "Level"},
+                "series": [
+                    {"name": "Required", "type": "bar", "data": required, "itemStyle": {"color": "#6c757d"}},
+                    {"name": "Held", "type": "bar", "data": held}
+                ]
+            });
+            ctx.insert("requirement_match", &chart_json(&req_match));
+        }
+    }
 
     ctx.insert("role_record", &r.role_by_id);
 
@@ -543,6 +612,12 @@ pub struct RequirementRetireForm {
     pub csrf_token: String,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct RequirementEditForm {
+    pub csrf_token: String,
+    pub required_level: String,
+}
+
 fn level_options() -> serde_json::Value {
     json!(CAPABILITY_LEVELS.iter().map(|l| json!({"value": l, "label": humanize(l)})).collect::<Vec<serde_json::Value>>())
 }
@@ -654,6 +729,88 @@ pub async fn retire_requirement_post(
 
     match update_requirement(requirement_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Requirement retired.", "Exigence retirée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/role/{}", &lang, &role_id))
+}
+
+#[get("/{lang}/role/{role_id}/requirement/{requirement_id}/edit")]
+pub async fn edit_requirement_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id, requirement_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let role = match get_role_by_id(role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.role_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+        },
+    };
+
+    let requirement = match role.requirements.iter().find(|r| r.id == requirement_id) {
+        Some(r) => r,
+        None => {
+            security::add_flash(&session, "danger", by_lang(&lang, "Requirement not found.", "Exigence introuvable."));
+            return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+        },
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("edit", &true);
+    ctx.insert("role_id", &role_id);
+    ctx.insert("requirement", requirement);
+    ctx.insert("capability_levels", &level_options());
+
+    let rendered = data.tmpl.render("role/requirement_form.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/role/{role_id}/requirement/{requirement_id}/edit")]
+pub async fn edit_requirement_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+    form: web::Form<RequirementEditForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id, requirement_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/role/{}/requirement/{}/edit", &lang, &role_id, &requirement_id));
+    }
+
+    let requirement_data = update_requirement::RequirementData {
+        id: requirement_id.clone(),
+        name_en: None,
+        name_fr: None,
+        domain: None,
+        required_level: Some(
+            serde_json::from_value(json!(form.required_level))
+                .expect("CapabilityLevel deserialization is infallible"),
+        ),
+        retired_at: None,
+    };
+
+    match update_requirement(requirement_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Requirement updated.", "Exigence mise à jour.")),
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 

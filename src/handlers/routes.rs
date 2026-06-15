@@ -49,6 +49,8 @@ use crate::handlers::{
     create_requirement_form,
     create_requirement_post,
     retire_requirement_post,
+    edit_requirement_form,
+    edit_requirement_post,
 
     // capability
     capability_search,
@@ -116,10 +118,16 @@ use crate::handlers::{
 
     // work
     work_by_id,
+    work_index,
+    vacancies,
     create_work_form,
     create_work_post,
+    create_vacant_work_form,
+    create_vacant_work_post,
     edit_work_form,
     edit_work_post,
+    assign_work_form,
+    assign_work_post,
 
     // task
     task_by_id,
@@ -136,6 +144,12 @@ use crate::handlers::{
     create_product_post,
     edit_product_form,
     edit_product_post,
+
+    // analytics
+    analytics_dashboard,
+    analytics_coverage,
+    analytics_delivery,
+    analytics_mobility_view,
 
 };
 
@@ -176,6 +190,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(role_index);
     config.service(create_requirement_form);
     config.service(create_requirement_post);
+    config.service(edit_requirement_form);
+    config.service(edit_requirement_post);
     config.service(retire_requirement_post);
     config.service(role_by_id);
 
@@ -248,9 +264,15 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_publication_post);
     config.service(publication_by_id);
 
-    // work
+    // work — specific sub-paths before {work_id} catch-all
+    config.service(work_index);
+    config.service(vacancies);
     config.service(create_work_form);
     config.service(create_work_post);
+    config.service(create_vacant_work_form);
+    config.service(create_vacant_work_post);
+    config.service(assign_work_form);
+    config.service(assign_work_post);
     config.service(edit_work_form);
     config.service(edit_work_post);
     config.service(work_by_id);
@@ -270,6 +292,12 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_product_form);
     config.service(edit_product_post);
     config.service(product_by_id);
+
+    // analytics — specific sub-paths before the dashboard catch-all
+    config.service(analytics_coverage);
+    config.service(analytics_delivery);
+    config.service(analytics_mobility_view);
+    config.service(analytics_dashboard);
 
     //config.service(about);
     config.service(toggle_language);

@@ -1,0 +1,43 @@
+{#
+  ECharts integration macros.
+  Import with: {% import "macros/charts.html" as charts %}
+
+  chart(id, height)
+    Renders a sized container div + an init script that reads its JSON payload
+    from a paired <script type="application/json" id="{{ id }}-data"> element.
+
+  Usage pattern in a template:
+    1. Handler inserts pre-aggregated JSON into context: ctx.insert("my_data", &json_value)
+    2. In the template:
+         {{ charts::chart(id="my-chart", height="300px") }}
+         <script type="application/json" id="my-chart-data">{{ my_data }}</script>
+
+  The init script calls echarts.init() with the data parsed from the JSON element.
+  It also re-renders on window resize and toggles dark/light backgrounds by reading
+  data-theme from <html>.
+
+  ECharts is loaded from CDN in base.html. The chartInit helper is defined once
+  in base.html to avoid repetition.
+#}
+
+{% macro chart(id, height="300px") %}
+<div id="{{ id }}" style="height:{{ height }};width:100%"></div>
+<script>
+  (function() {
+    var el = document.getElementById("{{ id }}");
+    var dataEl = document.getElementById("{{ id }}-data");
+    if (!el || !dataEl || typeof echarts === "undefined") return;
+    var option = JSON.parse(dataEl.textContent || "{}");
+    var isDark = document.documentElement.getAttribute("data-theme") !== "light";
+    var chart = echarts.init(el, isDark ? "dark" : null, { renderer: "canvas" });
+    chart.setOption(option);
+    window.addEventListener("resize", function() { chart.resize(); });
+    document.addEventListener("themechange", function(e) {
+      var newDark = e.detail !== "light";
+      chart.dispose();
+      chart = echarts.init(el, newDark ? "dark" : null, { renderer: "canvas" });
+      chart.setOption(option);
+    });
+  })();
+</script>
+{% endmacro chart %}

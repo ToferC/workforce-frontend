@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
+{% import "macros/charts.html" as charts %}
 
 {% block title %}
     <title>{{ fluent(key="role", lang=lang )}}</title>
@@ -44,7 +46,7 @@
                 <li class="list-group-item">
                     <a href="/{{ lang }}/person/{{ role_record.person.id }}" class="fw-semibold">{{ role_record.person.givenName }} {{ role_record.person.familyName }}</a>
                 </li>
-                <li class="list-group-item"><span class="text-muted">Current Effort:</span> {{ role_record.effort }}</li>
+                <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Current Effort:</span> {{ viz::effort_meter(value=role_record.effort) }}</li>
                 <li class="list-group-item"><span class="text-muted">Email:</span> {{ role_record.person.email }}</li>
                 <li class="list-group-item"><span class="text-muted">Phone:</span> {{ role_record.person.phone }}</li>
             </ul>
@@ -86,12 +88,21 @@
             <ul class="list-group list-group-flush">
                 {% for req in role_record.requirements %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>{{ req.nameEn }} <span class="text-muted">({{ req.domain }})</span> &mdash; {{ req.requiredLevel }}</span>
+                    <span class="d-flex align-items-center gap-2 flex-wrap">
+                        {{ req.nameEn }}
+                        {{ viz::domain_chip(domain=req.domain) }}
+                        {{ viz::level_chip(level=req.requiredLevel, source="validated") }}
+                    </span>
                     {% if role == "operator" or role == "admin" %}
-                    <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/retire" class="m-0">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="retire-button", lang=lang) }}</button>
-                    </form>
+                    <div class="d-flex gap-1">
+                        <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/edit">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/retire" class="m-0">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="retire-button", lang=lang) }}</button>
+                        </form>
+                    </div>
                     {% endif %}
                 </li>
                 {% endfor %}
@@ -100,6 +111,17 @@
             <div class="p-4 text-muted">{{ fluent(key="none-label", lang=lang) }}</div>
             {% endif %}
         </div>
+        {% if requirement_match %}
+        <div class="card-body border-top">
+            <h3 class="h6 text-muted mb-2"><i class="bi bi-bar-chart-steps"></i> Incumbent fit — required vs held</h3>
+            {{ charts::chart(id="requirement-match", height="320px") }}
+            <script type="application/json" id="requirement-match-data">{{ requirement_match | safe }}</script>
+            <p class="small text-muted mb-0 mt-2">
+                Green bars meet or exceed the required level; red bars fall short.
+                Levels: Desired (1) → Specialist (5).
+            </p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Work -->
@@ -113,8 +135,11 @@
                 {% for work in role_record.work %}
                 <li class="list-group-item">
                     <a href="/{{lang}}/work/{{work.id}}" class="fw-semibold">{{ work.workDescription }}</a>
-                    <div class="small text-muted mt-1">
-                        {{ work.domain }} &rarr; {{ work.capabilityLevel }} &mdash; {{ work.workStatus }} &mdash; Effort: {{ work.effort }}
+                    <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
+                        {{ viz::domain_chip(domain=work.domain) }}
+                        {{ viz::level_chip(level=work.capabilityLevel) }}
+                        {{ viz::status_chip(status=work.workStatus) }}
+                        {{ viz::effort_meter(value=work.effort) }}
                     </div>
                 </li>
                 {% endfor %}
@@ -137,8 +162,10 @@
                 {% if role_record.requirements %}
                 <ul class="list-group list-group-flush">
                     {% for req in role_record.requirements %}
-                    <li class="list-group-item px-0">
-                        {{ req.nameEn }} <span class="text-muted">({{ req.domain }})</span> &mdash; {{ req.requiredLevel }}
+                    <li class="list-group-item px-0 d-flex align-items-center gap-2 flex-wrap">
+                        {{ req.nameEn }}
+                        {{ viz::domain_chip(domain=req.domain) }}
+                        {{ viz::level_chip(level=req.requiredLevel, source="validated") }}
                     </li>
                     {% endfor %}
                 </ul>
@@ -171,8 +198,10 @@
                 <h4 class="h6 text-muted mt-2 mb-1">Capabilities</h4>
                 <ul class="list-group list-group-flush">
                     {% for cap in person.capabilities %}
-                    <li class="list-group-item px-0 small">
-                        {{ cap.nameEn }} <span class="text-muted">({{ cap.domain }})</span> &mdash; {{ cap.validatedLevel }}
+                    <li class="list-group-item px-0 small d-flex align-items-center gap-2 flex-wrap">
+                        {{ cap.nameEn }}
+                        {{ viz::domain_chip(domain=cap.domain) }}
+                        {{ viz::level_chip(level=cap.validatedLevel, source="validated") }}
                     </li>
                     {% endfor %}
                 </ul>

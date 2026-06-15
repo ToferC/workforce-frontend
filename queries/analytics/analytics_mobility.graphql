@@ -1,0 +1,28 @@
+# Talent mobility: each person's current (active) and prior (inactive)
+# roles with their teams, used to build a previous-team → current-team
+# sankey of movement across the organization.
+query AnalyticsMobility {
+  allPeople {
+    id
+    givenName
+    familyName
+    retiredAt
+    activeRoles {
+      id
+      startDate
+      team {
+        id
+        nameEnglish
+      }
+    }
+    inactiveRoles {
+      id
+      startDate
+      endDate
+      team {
+        id
+        nameEnglish
+      }
+    }
+  }
+}

@@ -25,7 +25,7 @@ fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
 /// Build a JSON array of {value, label} from all active roles for use in a
 /// product-owner select. Label format: "Given Family — Title (Team)" for
 /// filled roles, "Vacant — Title (Team)" for unfilled.
-async fn role_options(bearer: &str, data: &AppData) -> serde_json::Value {
+pub async fn role_options(bearer: &str, data: &AppData) -> serde_json::Value {
     match all_roles(bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => json!(r.all_roles
             .iter()

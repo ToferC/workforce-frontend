@@ -23,6 +23,14 @@ pub async fn get_work_by_id(id: UUID, bearer: String, api_url: &str, client: Arc
 }
 
 #[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/work/all_work.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct AllWork;
+
+pub async fn all_work(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_work::ResponseData, ApiError> {
+    post_graphql::<AllWork>(&client, api_url, &bearer, all_work::Variables {}).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
 #[graphql(schema_path = "schema.graphql", query_path = "queries/work/create_work.graphql", response_derives = "Debug, Serialize, PartialEq")]
 pub struct CreateWork;
 

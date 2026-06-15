@@ -374,3 +374,7 @@ create-product = Create Product
 edit-product = Edit Product
 product-owner = Product owner
 vacant-work = Vacant Work (unassigned)
+explore = Explore
+people = People
+vacancies = Vacancies
+analytics = Analytics

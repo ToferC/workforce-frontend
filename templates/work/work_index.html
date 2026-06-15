@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
+
+{% block title %}<title>Work</title>{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="card shadow-lg mb-4">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h1 class="h3 mb-0"><i class="bi bi-list-task"></i> Work</h1>
+            <a class="btn btn-sm btn-outline-warning" href="/{{ lang }}/vacancies">
+                <i class="bi bi-exclamation-circle"></i> Vacancies
+            </a>
+        </div>
+
+        <!-- Filters -->
+        <div class="card-body border-bottom">
+            <form method="get" action="/{{ lang }}/work" class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small mb-1" for="status">Status</label>
+                    <select class="form-select form-select-sm" id="status" name="status">
+                        <option value="">All</option>
+                        {% for opt in work_statuses %}
+                        <option value="{{ opt.value }}"{% if opt.value == filter_status %} selected{% endif %}>{{ opt.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="unassigned" name="unassigned" value="1"{% if filter_unassigned %} checked{% endif %}>
+                        <label class="form-check-label small" for="unassigned">Unassigned only</label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+                    <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/work">Clear</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Task</th>
+                            <th>Domain &rarr; Level</th>
+                            <th class="text-center">Effort</th>
+                            <th>Status</th>
+                            <th>Assignee</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set_global shown = 0 %}
+                        {% for work in work_items %}
+                        {% if (filter_status == "" or work.workStatus == filter_status) and (not filter_unassigned or not work.role) %}
+                        {% set_global shown = shown + 1 %}
+                        <tr>
+                            <td><a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a></td>
+                            <td><a href="/{{ lang }}/task/{{ work.task.id }}" class="text-muted small">{{ work.task.title }}</a></td>
+                            <td class="small">{{ viz::domain_chip(domain=work.domain) }} {{ viz::level_chip(level=work.capabilityLevel) }}</td>
+                            <td class="text-center">{{ viz::effort_meter(value=work.effort) }}</td>
+                            <td>{{ viz::status_chip(status=work.workStatus) }}</td>
+                            <td>
+                                {% if work.role and work.role.person %}
+                                <a href="/{{ lang }}/person/{{ work.role.person.id }}">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
+                                {% elif work.role %}
+                                <span class="text-muted small">{{ work.role.titleEnglish }} (vacant role)</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Vacant</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        {% if shown == 0 %}
+                        <tr><td colspan="6" class="text-muted text-center p-4">{{ fluent(key="none-label", lang=lang) }}</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

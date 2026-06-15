@@ -110,6 +110,18 @@ Required `.env` variables:
   (`{% import "macros/forms.html" as forms %}`).
 - HTMX is vendored at `static/htmx/htmx.min.js` and loaded in `base.html` for
   progressive enhancement; forms must still work as plain POST + redirect.
+- Visual vocabulary macros are in `templates/macros/viz.html`
+  (`{% import "macros/viz.html" as viz %}`). Use `viz::effort_meter`,
+  `viz::status_chip`, `viz::domain_chip`, `viz::capability_scale`, and
+  `viz::level_chip` instead of hand-rolled Bootstrap badges for these values.
+- **ECharts** is loaded from CDN in `base.html` (vendor to
+  `static/echarts/echarts.min.js` for offline use). Chart macros are in
+  `templates/macros/charts.html` (`{% import "macros/charts.html" as charts %}`).
+  Handlers aggregate JSON and inject it into the context; templates render it via
+  `{{ charts::chart(id="...", height="300px") }}` paired with a
+  `<script type="application/json" id="...-data">{{ my_json }}</script>` payload.
+  Charts do NOT call GraphQL client-side. The `themechange` custom DOM event is
+  dispatched on theme toggle so charts re-render correctly.
 
 ## Development Notes
 

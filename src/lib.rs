@@ -72,6 +72,79 @@ pub fn by_lang<'a>(lang: &str, en: &'a str, fr: &'a str) -> &'a str {
     if lang == "fr" { fr } else { en }
 }
 
+/// Numeric weight for each CapabilityLevel; shared by analytics and org chart.
+pub fn level_weight(level: &str) -> i64 {
+    match level {
+        "DESIRED"     => 1,
+        "NOVICE"      => 2,
+        "EXPERIENCED" => 3,
+        "EXPERT"      => 4,
+        "SPECIALIST"  => 5,
+        _             => 0,
+    }
+}
+
+/// Short display label for a SkillDomain key.
+pub fn domain_short_label(key: &str) -> &'static str {
+    match key {
+        "COMBAT"                                => "Combat",
+        "INTELLIGENCE"                          => "Intelligence",
+        "STRATEGY"                              => "Strategy",
+        "ENGINEERING"                           => "Engineering",
+        "MEDICAL"                               => "Medical",
+        "JOINT_OPERATIONS"                      => "Joint Ops",
+        "SOFTWARE_ENGINEERING"                  => "Software Eng",
+        "CLOUD_PLATFORM_DEV_OPS"               => "Cloud/DevOps",
+        "DATA_ANALYTICS_AND_AI"                => "Data & AI",
+        "CYBER_SECURITY"                        => "Cyber",
+        "PRODUCT_AGILE_AND_DELIVERY"           => "Product/Agile",
+        "USER_EXPERIENCE"                       => "UX",
+        "PROCUREMENT_AND_VENDOR_MANAGEMENT"    => "Procurement",
+        "PEOPLE_AND_ORGANISATIONAL_LEADERSHIP" => "People & Org",
+        "GOVERNANCE"                            => "Governance",
+        "CORPORATE_SERVICES"                    => "Corporate",
+        _                                       => "—",
+    }
+}
+
+/// Hex colour for a WorkStatus, used for chart fills.
+pub fn status_color(status: &str) -> &'static str {
+    match status {
+        "PLANNING"    => "#6c757d",
+        "IN_PROGRESS" => "#0d6efd",
+        "COMPLETED"   => "#198754",
+        "BLOCKED"     => "#dc3545",
+        "CANCELLED"   => "#adb5bd",
+        _             => "#6c757d",
+    }
+}
+
+/// Serialize a chart option to a JSON string safe to embed inside an inline
+/// `<script type="application/json">` block. Replaces every `<` with its JSON
+/// unicode escape so that a literal `</script>` inside user-controlled strings
+/// (names, work descriptions, requirement titles) cannot terminate the script
+/// element early — which would both break the chart and allow stored
+/// HTML/script injection. `JSON.parse` decodes the escape back to `<`, so chart
+/// labels still render correctly.
+pub fn chart_json(value: &serde_json::Value) -> String {
+    serde_json::to_string(value)
+        .unwrap_or_else(|_| "{}".to_string())
+        .replace('<', "\\u003c")
+}
+
+/// CSS group name for a SkillDomain key (maps to .domain-{group} CSS class).
+pub fn domain_group(key: &str) -> &'static str {
+    match key {
+        "COMBAT" | "INTELLIGENCE" | "STRATEGY" | "JOINT_OPERATIONS" => "ops",
+        "ENGINEERING" | "MEDICAL" => "science",
+        "SOFTWARE_ENGINEERING" | "CLOUD_PLATFORM_DEV_OPS"
+        | "DATA_ANALYTICS_AND_AI" | "CYBER_SECURITY" | "USER_EXPERIENCE" => "digital",
+        "PRODUCT_AGILE_AND_DELIVERY" | "PROCUREMENT_AND_VENDOR_MANAGEMENT" => "delivery",
+        "PEOPLE_AND_ORGANISATIONAL_LEADERSHIP" | "GOVERNANCE" | "CORPORATE_SERVICES" => "corp",
+        _ => "secondary",
+    }
+}
+
 pub fn extract_session_data(session: &Session) -> (String, String, String) {
 
     let role_data = session.get::<String>("role");

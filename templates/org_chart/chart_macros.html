@@ -33,14 +33,24 @@
 </details>
 {% endmacro tier_node %}
 
-{% macro team_node(team, lang, role="", org_tier_id="", organization_id="") %}
+{% macro team_node(team, lang, role="", org_tier_id="", organization_id="", stats=false) %}
 <details class="card mb-2 team-node">
-    <summary class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;">
-        <span>
+    <summary class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap" style="cursor: pointer;">
+        <span class="d-flex align-items-center gap-2 flex-wrap">
             <i class="bi bi-people"></i>
             <a href="/{{ lang }}/team/{{ team.id }}">{% if lang == "fr" %}{{ team.nameFrench }}{% else %}{{ team.nameEnglish }}{% endif %}</a>
+            {% if stats and stats.top_domains %}
+            <span class="d-flex gap-1 flex-wrap">
+                {% for d in stats.top_domains %}
+                <span class="badge domain-chip domain-{{ d.group }}" style="font-size:0.65rem">{{ d.label }}</span>
+                {% endfor %}
+            </span>
+            {% endif %}
         </span>
-        <span>
+        <span class="d-flex gap-1 align-items-center flex-shrink-0">
+            {% if stats %}
+            <span class="badge bg-{{ stats.capacity_class }}" title="Active effort">{{ stats.effort }}</span>
+            {% endif %}
             <span class="badge bg-primary">{{ team.occupiedRoles | length }} {{ fluent(key="occupied", lang=lang) }}</span>
             {% if team.vacantRoles | length > 0 %}
             <span class="badge bg-danger">{{ team.vacantRoles | length }} {{ fluent(key="vacant", lang=lang) }}</span>

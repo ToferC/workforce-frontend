@@ -1,0 +1,114 @@
+{#
+  Workforce visual vocabulary macros.
+  Import with: {% import "macros/viz.html" as viz %}
+
+  effort_meter(value, ceiling=10)   — Bootstrap progress bar, green→amber→red
+  capability_scale(self_level, validated_level)  — 5-pip DESIRED→SPECIALIST scale
+  status_chip(status)               — color-coded WorkStatus/TaskStatus badge
+  domain_chip(domain)               — color-coded SkillDomain badge
+  level_chip(level, source)         — capability level badge (validated vs self)
+#}
+
+{# ── effort_meter ────────────────────────────────────────────────────────────
+   value   : numeric effort (0–ceiling)
+   ceiling : max sustainable effort, default 10
+   Renders a labeled Bootstrap progress bar. Color = green/amber/red by load.
+#}
+{% macro effort_meter(value, ceiling=10) %}
+{%- set pct = (value * 100 / ceiling) | int -%}
+{%- if value >= 9 -%}{%- set bar_class = "bg-danger" -%}
+{%- elif value >= 7 -%}{%- set bar_class = "bg-warning" -%}
+{%- elif value >= 4 -%}{%- set bar_class = "bg-info" -%}
+{%- else -%}{%- set bar_class = "bg-success" -%}
+{%- endif -%}
+<div class="d-flex align-items-center gap-2" style="min-width:120px">
+  <div class="progress flex-grow-1" style="height:8px" title="Effort {{ value }} / {{ ceiling }}">
+    <div class="progress-bar {{ bar_class }}" role="progressbar"
+         style="width:{{ pct }}%" aria-valuenow="{{ value }}"
+         aria-valuemin="0" aria-valuemax="{{ ceiling }}"></div>
+  </div>
+  <small class="text-muted text-nowrap">{{ value }}/{{ ceiling }}</small>
+</div>
+{% endmacro effort_meter %}
+
+
+{# ── capability_scale ────────────────────────────────────────────────────────
+   self_level      : CapabilityLevel string (DESIRED | NOVICE | EXPERIENCED | EXPERT | SPECIALIST)
+   validated_level : optional CapabilityLevel string; if truthy, overrides self display
+   Renders 5 small pips: validated (green-filled) > self-identified (blue-filled) > empty (outline)
+#}
+{% macro capability_scale(self_level, validated_level="") %}
+<span class="cap-scale d-inline-flex align-items-center gap-1"
+      title="{% if validated_level %}Validated: {{ validated_level }}{% else %}Self-identified: {{ self_level }}{% endif %}">
+  {#— pip 1: filled at DESIRED or above —#}
+  <span class="cap-pip{% if validated_level and (validated_level == "DESIRED" or validated_level == "NOVICE" or validated_level == "EXPERIENCED" or validated_level == "EXPERT" or validated_level == "SPECIALIST") %} cap-pip--validated{% elif self_level == "DESIRED" or self_level == "NOVICE" or self_level == "EXPERIENCED" or self_level == "EXPERT" or self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
+  {#— pip 2: filled at NOVICE or above —#}
+  <span class="cap-pip{% if validated_level and (validated_level == "NOVICE" or validated_level == "EXPERIENCED" or validated_level == "EXPERT" or validated_level == "SPECIALIST") %} cap-pip--validated{% elif self_level == "NOVICE" or self_level == "EXPERIENCED" or self_level == "EXPERT" or self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
+  {#— pip 3: filled at EXPERIENCED or above —#}
+  <span class="cap-pip{% if validated_level and (validated_level == "EXPERIENCED" or validated_level == "EXPERT" or validated_level == "SPECIALIST") %} cap-pip--validated{% elif self_level == "EXPERIENCED" or self_level == "EXPERT" or self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
+  {#— pip 4: filled at EXPERT or above —#}
+  <span class="cap-pip{% if validated_level and (validated_level == "EXPERT" or validated_level == "SPECIALIST") %} cap-pip--validated{% elif self_level == "EXPERT" or self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
+  {#— pip 5: filled at SPECIALIST only —#}
+  <span class="cap-pip{% if validated_level and validated_level == "SPECIALIST" %} cap-pip--validated{% elif self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
+  <small class="ms-1 text-muted">{{ validated_level if validated_level else self_level }}</small>
+</span>
+{% endmacro capability_scale %}
+
+
+{# ── status_chip ─────────────────────────────────────────────────────────────
+   status : WorkStatus / TaskStatus / ProductStatus / PublicationStatus string
+   Renders a color-coded Bootstrap badge.
+#}
+{% macro status_chip(status) %}
+{%- if status == "IN_PROGRESS" -%}
+<span class="badge bg-success">{{ status | replace(from="_", to=" ") }}</span>
+{%- elif status == "PLANNING" -%}
+<span class="badge bg-info text-dark">{{ status }}</span>
+{%- elif status == "BLOCKED" -%}
+<span class="badge bg-danger">{{ status }}</span>
+{%- elif status == "COMPLETED" or status == "PUBLISHED" -%}
+<span class="badge bg-secondary">{{ status }}</span>
+{%- elif status == "CANCELLED" or status == "REJECTED" -%}
+<span class="badge bg-dark">{{ status }}</span>
+{%- elif status == "SUBMITTED" -%}
+<span class="badge bg-primary">{{ status }}</span>
+{%- elif status == "DRAFT" -%}
+<span class="badge bg-light text-dark border">{{ status }}</span>
+{%- else -%}
+<span class="badge bg-light text-dark border">{{ status }}</span>
+{%- endif -%}
+{% endmacro status_chip %}
+
+
+{# ── domain_chip ─────────────────────────────────────────────────────────────
+   domain : SkillDomain string (16 values)
+   Renders a color-coded Bootstrap badge grouped by domain family.
+#}
+{% macro domain_chip(domain) %}
+{%- if domain == "COMBAT" or domain == "INTELLIGENCE" or domain == "STRATEGY" or domain == "JOINT_OPERATIONS" -%}
+<span class="badge domain-chip domain-ops" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
+{%- elif domain == "ENGINEERING" or domain == "MEDICAL" -%}
+<span class="badge domain-chip domain-science" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
+{%- elif domain == "SOFTWARE_ENGINEERING" or domain == "CLOUD_PLATFORM_DEV_OPS" or domain == "DATA_ANALYTICS_AND_AI" or domain == "CYBER_SECURITY" or domain == "USER_EXPERIENCE" -%}
+<span class="badge domain-chip domain-digital" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
+{%- elif domain == "PRODUCT_AGILE_AND_DELIVERY" or domain == "PROCUREMENT_AND_VENDOR_MANAGEMENT" -%}
+<span class="badge domain-chip domain-delivery" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
+{%- elif domain == "PEOPLE_AND_ORGANISATIONAL_LEADERSHIP" or domain == "GOVERNANCE" or domain == "CORPORATE_SERVICES" -%}
+<span class="badge domain-chip domain-corp" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
+{%- else -%}
+<span class="badge bg-secondary" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
+{%- endif -%}
+{% endmacro domain_chip %}
+
+
+{# ── level_chip ───────────────────────────────────────────────────────────────
+   level  : CapabilityLevel string
+   source : "validated" | "self" (controls badge color)
+#}
+{% macro level_chip(level, source="self") %}
+{%- if source == "validated" -%}
+<span class="badge bg-success" title="Validated level">{{ level }}</span>
+{%- else -%}
+<span class="badge bg-info text-dark" title="Self-identified level">{{ level }}</span>
+{%- endif -%}
+{% endmacro level_chip %}
