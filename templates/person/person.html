@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
 
 {% block title %}
     <title>{{ fluent(key="person", lang=lang )}}</title>
@@ -15,7 +16,10 @@
             {% if person.personnelType %}<span class="badge bg-secondary align-middle">{{ person.personnelType }}</span>{% endif %}
         </p>
         {% if person.activeEffort is defined %}
-        <p class="text-muted mb-0"><i class="bi bi-speedometer2"></i> {{ fluent(key="active-effort", lang=lang) }}: {{ person.activeEffort }} / 10</p>
+        <div class="d-flex align-items-center gap-2 mt-1">
+            <span class="text-muted small"><i class="bi bi-speedometer2"></i> {{ fluent(key="active-effort", lang=lang) }}</span>
+            {{ viz::effort_meter(value=person.activeEffort) }}
+        </div>
         {% endif %}
 
         {% if role == "operator" or role == "admin" %}
@@ -63,7 +67,7 @@
         </div>
         <div class="card-body p-0">
             <ul class="list-group list-group-flush">
-                <li class="list-group-item"><span class="text-muted">Current Effort:</span> {{ role.effort }}</li>
+                <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Current Effort:</span> {{ viz::effort_meter(value=role.effort) }}</li>
                 <li class="list-group-item">
                     <span class="text-muted">Team:</span>
                     <a href="/{{lang}}/team/{{role.team.id}}">{{ role.team.nameEnglish }}</a>
@@ -82,8 +86,11 @@
                     {% for work in role.work %}
                     <li class="list-group-item px-0">
                         <a href="/{{lang}}/work/{{work.id}}" class="fw-semibold">{{ work.workDescription | title }}</a>
-                        <div class="small text-muted mt-1">
-                            {{ work.domain }} &rarr; {{ work.capabilityLevel }} &mdash; {{ work.workStatus }} &mdash; Effort: {{ work.effort }}
+                        <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
+                            {{ viz::domain_chip(domain=work.domain) }}
+                            {{ viz::level_chip(level=work.capabilityLevel) }}
+                            {{ viz::status_chip(status=work.workStatus) }}
+                            {{ viz::effort_meter(value=work.effort) }}
                         </div>
                     </li>
                     {% endfor %}
@@ -127,10 +134,9 @@
             <ul class="list-group list-group-flush">
                 {% for cap in person.capabilities %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>
-                        {{ cap.nameEn }} <span class="text-muted">({{ cap.domain }})</span>
-                        &mdash; <span class="badge bg-info text-dark">{{ cap.selfIdentifiedLevel }}</span>
-                        {% if cap.validatedLevel %}<span class="badge bg-success">{{ cap.validatedLevel }}</span>{% endif %}
+                    <span class="d-flex align-items-center gap-2 flex-wrap">
+                        <span>{{ cap.nameEn }} {{ viz::domain_chip(domain=cap.domain) }}</span>
+                        {{ viz::capability_scale(self_level=cap.selfIdentifiedLevel, validated_level=cap.validatedLevel) }}
                     </span>
                     {% if role == "operator" or role == "admin" %}
                     <span class="d-flex gap-1">

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
 
 {% block title %}<title>Analytics</title>{% endblock title %}
 
@@ -77,19 +78,7 @@
                             {% for item in work_status_counts %}
                             {% set pct = (item.count * 100 / summary.total_work) | int %}
                             <tr>
-                                <td>
-                                    {% if item.status == "IN_PROGRESS" %}
-                                        <span class="badge bg-success">{{ item.status }}</span>
-                                    {% elif item.status == "PLANNING" %}
-                                        <span class="badge bg-info text-dark">{{ item.status }}</span>
-                                    {% elif item.status == "BLOCKED" %}
-                                        <span class="badge bg-danger">{{ item.status }}</span>
-                                    {% elif item.status == "COMPLETED" %}
-                                        <span class="badge bg-secondary">{{ item.status }}</span>
-                                    {% else %}
-                                        <span class="badge bg-light text-dark border">{{ item.status }}</span>
-                                    {% endif %}
-                                </td>
+                                <td>{{ viz::status_chip(status=item.status) }}</td>
                                 <td class="text-end fw-bold">{{ item.count }}</td>
                                 <td style="min-width:100px">
                                     <div class="progress" style="height:8px">
@@ -120,7 +109,7 @@
                             {% if work_by_domain %}
                             {% for item in work_by_domain %}
                             <tr>
-                                <td class="small">{{ item.domain | replace(from="_", to=" ") | title }}</td>
+                                <td>{{ viz::domain_chip(domain=item.domain) }}</td>
                                 <td class="text-end fw-bold">{{ item.effort }}</td>
                             </tr>
                             {% endfor %}
@@ -229,7 +218,7 @@
                             {% if domain_gaps %}
                             {% for d in domain_gaps %}
                             <tr>
-                                <td class="small">{{ d.domain | replace(from="_", to=" ") | title }}</td>
+                                <td>{{ viz::domain_chip(domain=d.domain) }}</td>
                                 <td class="text-center">{{ d.total_required }}</td>
                                 <td class="text-center">{{ d.total_available }}</td>
                                 <td class="text-center">

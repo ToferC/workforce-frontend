@@ -31,6 +31,8 @@
         <script type="text/javascript" src="/static/bootstrap/js/bootstrap.min.js"></script>
         <!-- HTMX for progressive enhancement of forms and partial page updates -->
         <script type="text/javascript" src="/static/htmx/htmx.min.js"></script>
+        <!-- ECharts for data visualization (vendor to /static/echarts/ for offline use) -->
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
     {% endblock preload %}
         
     {% block style %}
@@ -207,6 +209,7 @@
             html.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             updateTheme();
+            document.dispatchEvent(new CustomEvent('themechange', { detail: newTheme }));
         });
     </script>
 
