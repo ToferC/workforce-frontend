@@ -5,8 +5,8 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::{AppData, generate_basic_context};
-use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles};
+use crate::{AppData, generate_basic_context, status_color};
+use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap};
 use crate::security::{self, MinimumRole};
 
 /// All 16 SkillDomain variants in canonical display order: (key, short label).
@@ -399,5 +399,156 @@ pub async fn analytics_coverage(
     }));
 
     let rendered = data.tmpl.render("analytics/coverage.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[get("/{lang}/analytics/delivery")]
+pub async fn analytics_delivery(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let products = delivery_treemap(auth.bearer, &data.api_url, Arc::clone(&data.client))
+        .await
+        .map(|r| r.all_products)
+        .unwrap_or_default();
+
+    // Build the nested treemap data (Product → Task → Work), pre-computing
+    // every node's value so ECharts sizes rectangles correctly.
+    let mut tree: Vec<serde_json::Value> = Vec::new();
+    let mut total_tasks: i64 = 0;
+    let mut total_work: i64 = 0;
+    let mut total_effort: i64 = 0;
+    let mut status_effort: BTreeMap<String, i64> = BTreeMap::new();
+    let mut product_rows: Vec<serde_json::Value> = Vec::new();
+
+    for product in &products {
+        let mut task_nodes: Vec<serde_json::Value> = Vec::new();
+        let mut product_value: i64 = 0;
+        let mut product_work_count: i64 = 0;
+
+        for task in &product.tasks {
+            total_tasks += 1;
+            let mut work_nodes: Vec<serde_json::Value> = Vec::new();
+            let mut task_value: i64 = 0;
+
+            for work in &task.work {
+                total_work += 1;
+                product_work_count += 1;
+                let effort = std::cmp::max(work.effort, 1);
+                task_value += effort;
+                total_effort += work.effort;
+
+                let status = serde_json::to_value(&work.work_status)
+                    .ok()
+                    .and_then(|v| v.as_str().map(String::from))
+                    .unwrap_or_else(|| "PLANNING".to_string());
+                *status_effort.entry(status.clone()).or_insert(0) += work.effort;
+
+                work_nodes.push(json!({
+                    "name": work.work_description,
+                    "value": effort,
+                    "itemStyle": { "color": status_color(&status) },
+                }));
+            }
+
+            // Tasks with no work still get a slot sized by their own effort
+            if task_value == 0 {
+                task_value = std::cmp::max(task.effort, 1);
+            }
+            product_value += task_value;
+
+            task_nodes.push(json!({
+                "name": task.title,
+                "value": task_value,
+                "children": work_nodes,
+            }));
+        }
+
+        if product_value == 0 {
+            product_value = std::cmp::max(product.effort, 1);
+        }
+
+        let domain = serde_json::to_value(&product.primary_domain)
+            .ok()
+            .and_then(|v| v.as_str().map(String::from))
+            .unwrap_or_default();
+
+        product_rows.push(json!({
+            "id": product.id,
+            "name": product.name_en,
+            "domain": domain,
+            "effort": product.effort,
+            "task_count": product.tasks.len() as i64,
+            "work_count": product_work_count,
+        }));
+
+        // Skip empty products in the treemap to keep it legible
+        if !task_nodes.is_empty() {
+            tree.push(json!({
+                "name": product.name_en,
+                "value": product_value,
+                "children": task_nodes,
+            }));
+        }
+    }
+
+    product_rows.sort_by(|a, b| {
+        b["effort"].as_i64().unwrap_or(0).cmp(&a["effort"].as_i64().unwrap_or(0))
+    });
+
+    let chart_option = json!({
+        "tooltip": { "formatter": "{b}: {c}" },
+        "series": [{
+            "type": "treemap",
+            "roam": false,
+            "nodeClick": "zoomToNode",
+            "breadcrumb": { "show": true, "top": "5%" },
+            "upperLabel": { "show": true, "height": 24, "color": "#fff" },
+            "label": { "show": true, "formatter": "{b}" },
+            "levels": [
+                { "itemStyle": { "borderColor": "#333", "borderWidth": 4, "gapWidth": 4 } },
+                { "itemStyle": { "borderColor": "#555", "borderWidth": 2, "gapWidth": 2 },
+                  "upperLabel": { "show": true } },
+                { "itemStyle": { "gapWidth": 1, "borderColorSaturation": 0.4 } }
+            ],
+            "data": tree,
+        }]
+    });
+
+    // Status legend in canonical order
+    let status_order = ["PLANNING", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"];
+    let status_legend: Vec<serde_json::Value> = status_order.iter()
+        .filter(|s| status_effort.contains_key(**s))
+        .map(|s| json!({
+            "status": s,
+            "color": status_color(s),
+            "effort": status_effort.get(*s).copied().unwrap_or(0),
+        }))
+        .collect();
+
+    ctx.insert("chart_option", &chart_option);
+    ctx.insert("product_rows", &product_rows);
+    ctx.insert("status_legend", &status_legend);
+    ctx.insert("summary", &json!({
+        "total_products": products.len() as i64,
+        "rendered_products": tree.len() as i64,
+        "total_tasks": total_tasks,
+        "total_work": total_work,
+        "total_effort": total_effort,
+    }));
+
+    let rendered = data.tmpl.render("analytics/delivery.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }

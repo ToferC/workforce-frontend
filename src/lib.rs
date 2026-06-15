@@ -107,6 +107,18 @@ pub fn domain_short_label(key: &str) -> &'static str {
     }
 }
 
+/// Hex colour for a WorkStatus, used for chart fills.
+pub fn status_color(status: &str) -> &'static str {
+    match status {
+        "PLANNING"    => "#6c757d",
+        "IN_PROGRESS" => "#0d6efd",
+        "COMPLETED"   => "#198754",
+        "BLOCKED"     => "#dc3545",
+        "CANCELLED"   => "#adb5bd",
+        _             => "#6c757d",
+    }
+}
+
 /// CSS group name for a SkillDomain key (maps to .domain-{group} CSS class).
 pub fn domain_group(key: &str) -> &'static str {
     match key {

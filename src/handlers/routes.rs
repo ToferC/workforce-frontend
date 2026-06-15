@@ -148,6 +148,7 @@ use crate::handlers::{
     // analytics
     analytics_dashboard,
     analytics_coverage,
+    analytics_delivery,
 
 };
 
@@ -291,8 +292,9 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_product_post);
     config.service(product_by_id);
 
-    // analytics — coverage before dashboard so /analytics/coverage isn't shadowed
+    // analytics — specific sub-paths before the dashboard catch-all
     config.service(analytics_coverage);
+    config.service(analytics_delivery);
     config.service(analytics_dashboard);
 
     //config.service(about);

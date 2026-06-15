@@ -1,0 +1,26 @@
+# Delivery treemap: the full Product → Task → Work hierarchy with effort
+# at each level, used to render a server-aggregated ECharts treemap.
+query DeliveryTreemap {
+  allProducts {
+    id
+    nameEn
+    nameFr
+    effort
+    primaryDomain
+    productStatus
+    tasks {
+      id
+      title
+      effort
+      domain
+      taskStatus
+      work {
+        id
+        workDescription
+        effort
+        workStatus
+        domain
+      }
+    }
+  }
+}
