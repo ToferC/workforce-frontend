@@ -58,6 +58,25 @@
                 <li class="nav-item active">
                     <a class="nav-link" href="/{{ lang }}/about">{{ fluent(key="about", lang=lang )}}<span class="sr-only">(current)</span></a>
                 </li>
+                {% if session_user != "" %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle active" href="#" id="exploreNavbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {{ fluent(key="explore", lang=lang) }}
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="exploreNavbarDropdown">
+                        <a class="dropdown-item" href="/{{ lang }}/people">{{ fluent(key="people", lang=lang) }}</a>
+                        <a class="dropdown-item" href="/{{ lang }}/roles">{{ fluent(key="roles", lang=lang) }}</a>
+                        <a class="dropdown-item" href="/{{ lang }}/teams">{{ fluent(key="teams", lang=lang) }}</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/{{ lang }}/tasks">{{ fluent(key="tasks", lang=lang) }}</a>
+                        <a class="dropdown-item" href="/{{ lang }}/work">{{ fluent(key="work", lang=lang) }}</a>
+                        <a class="dropdown-item" href="/{{ lang }}/products">{{ fluent(key="products", lang=lang) }}</a>
+                        <a class="dropdown-item" href="/{{ lang }}/skills">{{ fluent(key="skills", lang=lang) }}</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/{{ lang }}/vacancies">{{ fluent(key="vacancies", lang=lang) }}</a>
+                    </div>
+                </li>
+                {% endif %}
                 <div class="d-flex align-items-center ml-auto">
                     <a class="btn btn-dark" href="/toggle_language{{ path }}">{{ fluent(key="language-toggle", lang=lang ) }}</a>
                     <button id="theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">

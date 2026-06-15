@@ -374,3 +374,6 @@ create-product = Créer un produit
 edit-product = Modifier le produit
 product-owner = Responsable du produit
 vacant-work = Travaux vacants (non assignés)
+explore = Explorer
+people = Personnes
+vacancies = Postes vacants

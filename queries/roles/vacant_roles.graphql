@@ -1,0 +1,18 @@
+query VacantRoles($count: Int!) {
+  vacantRoles(count: $count) {
+    id
+    titleEnglish
+    team {
+      id
+      nameEnglish
+    }
+    requirements {
+      id
+      nameEn
+      requiredLevel
+    }
+    findMatches {
+      id
+    }
+  }
+}

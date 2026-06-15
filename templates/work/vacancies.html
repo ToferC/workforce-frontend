@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}<title>Vacancies</title>{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-5 mb-2"><i class="bi bi-exclamation-circle"></i> Vacancies</h1>
+        <p class="text-muted">Roles needing a person, and work not yet assigned to a role.</p>
+    </div>
+
+    <!-- Vacant Roles -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="h4 mb-0"><i class="bi bi-person-badge"></i> Vacant Roles</h2>
+            <span class="badge bg-secondary">{{ vacant_roles | length }}</span>
+        </div>
+        <div class="card-body p-0">
+            {% if vacant_roles | length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Role</th>
+                            <th>Team</th>
+                            <th>Requirements</th>
+                            <th class="text-center">Candidates</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for role_record in vacant_roles %}
+                        <tr>
+                            <td><a href="/{{ lang }}/role/{{ role_record.id }}">{{ role_record.titleEnglish }}</a></td>
+                            <td class="small"><a href="/{{ lang }}/team/{{ role_record.team.id }}" class="text-muted">{{ role_record.team.nameEnglish }}</a></td>
+                            <td class="small">
+                                {% for req in role_record.requirements %}
+                                <span class="badge bg-light text-dark border">{{ req.nameEn }} &middot; {{ req.requiredLevel }}</span>
+                                {% else %}
+                                <span class="text-muted">None specified</span>
+                                {% endfor %}
+                            </td>
+                            <td class="text-center">
+                                {% set candidates = role_record.findMatches | length %}
+                                <span class="badge {% if candidates > 0 %}bg-success{% else %}bg-secondary{% endif %}">{{ candidates }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-muted">No vacant roles.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Vacant Work -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="h4 mb-0"><i class="bi bi-list-task"></i> Vacant Work</h2>
+            <span class="badge bg-secondary">{{ vacant_work | length }}</span>
+        </div>
+        <div class="card-body p-0">
+            {% if vacant_work | length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Task</th>
+                            <th>Domain &rarr; Level</th>
+                            <th class="text-center">Effort</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for work in vacant_work %}
+                        <tr>
+                            <td><a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a></td>
+                            <td class="small"><a href="/{{ lang }}/task/{{ work.task.id }}" class="text-muted">{{ work.task.title }}</a></td>
+                            <td class="small">{{ work.domain }} &rarr; {{ work.capabilityLevel }}</td>
+                            <td class="text-center">{{ work.effort }}</td>
+                            <td class="text-end">
+                                {% if role == "operator" or role == "admin" %}
+                                <a class="btn btn-sm btn-outline-success" href="/{{ lang }}/work/{{ work.id }}/assign">
+                                    <i class="bi bi-person-plus"></i> Assign
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-muted">No vacant work.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock content %}

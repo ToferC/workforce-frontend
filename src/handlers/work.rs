@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_work_by_id, all_tasks, all_skills, create_work, update_work};
+use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::task::work_status_options;
@@ -468,4 +468,78 @@ pub async fn assign_work_post(
             redirect_to(format!("/{}/work/{}/assign", &lang, &work_id))
         },
     }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct WorkIndexParams {
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub unassigned: String,
+}
+
+/// Index of all work items, with optional filtering by status and by
+/// "unassigned only". Filtering is applied template-side from the full list.
+#[get("/{lang}/work")]
+pub async fn work_index(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    query: web::Query<WorkIndexParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    let work = all_work(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_work)
+        .unwrap_or_default();
+
+    ctx.insert("work_items", &work);
+    ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("filter_status", &query.status);
+    ctx.insert("filter_unassigned", &(query.unassigned == "1"));
+
+    let rendered = data.tmpl.render("work/work_index.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+/// Vacancy dashboard: vacant roles (needing a person) and vacant work
+/// (work items not yet assigned to a role).
+#[get("/{lang}/vacancies")]
+pub async fn vacancies(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    let roles = vacant_roles(100, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.vacant_roles)
+        .unwrap_or_default();
+
+    // Vacant work is derived from all work with no assigned role.
+    let vacant_work: Vec<_> = all_work(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_work.into_iter().filter(|w| w.role.is_none()).collect())
+        .unwrap_or_default();
+
+    ctx.insert("vacant_roles", &roles);
+    ctx.insert("vacant_work", &vacant_work);
+
+    let rendered = data.tmpl.render("work/vacancies.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
 }
