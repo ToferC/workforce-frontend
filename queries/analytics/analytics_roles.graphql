@@ -1,0 +1,23 @@
+query AnalyticsRoles {
+  allRoles {
+    id
+    titleEnglish
+    effort
+    active
+    team {
+      id
+      nameEnglish
+    }
+    person {
+      id
+      givenName
+      familyName
+    }
+    requirements {
+      id
+      nameEn
+      domain
+      requiredLevel
+    }
+  }
+}

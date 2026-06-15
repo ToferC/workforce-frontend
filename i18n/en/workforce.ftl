@@ -377,3 +377,4 @@ vacant-work = Vacant Work (unassigned)
 explore = Explore
 people = People
 vacancies = Vacancies
+analytics = Analytics

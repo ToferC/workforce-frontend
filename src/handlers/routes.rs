@@ -145,6 +145,9 @@ use crate::handlers::{
     edit_product_form,
     edit_product_post,
 
+    // analytics
+    analytics_dashboard,
+
 };
 
 pub fn configure_services(config: &mut web::ServiceConfig) {
@@ -286,6 +289,9 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_product_form);
     config.service(edit_product_post);
     config.service(product_by_id);
+
+    // analytics
+    config.service(analytics_dashboard);
 
     //config.service(about);
     config.service(toggle_language);

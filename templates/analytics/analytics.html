@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}<title>Analytics</title>{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="bi bi-bar-chart-line"></i> Workforce Analytics</h1>
+        <span class="text-muted small">Live data from all work, roles, and people</span>
+    </div>
+
+    <!-- ── KPI Summary Cards ─────────────────────────────────────────── -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-primary">{{ summary.total_work }}</div>
+                    <div class="small text-muted">Total Work Items</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold {% if summary.vacant_work > 0 %}text-warning{% else %}text-success{% endif %}">
+                        {{ summary.vacant_work }}
+                    </div>
+                    <div class="small text-muted">Unassigned Work</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold {% if summary.vacant_roles > 0 %}text-warning{% else %}text-success{% endif %}">
+                        {{ summary.vacant_roles }}
+                    </div>
+                    <div class="small text-muted">Vacant Roles</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold {% if summary.over_allocated_count > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ summary.over_allocated_count }}
+                    </div>
+                    <div class="small text-muted">Over-Allocated People</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- ── Left Column ─────────────────────────────────────────────── -->
+        <div class="col-12 col-lg-6">
+
+            <!-- Work Status Breakdown -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list-check"></i> Work by Status</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th class="text-end">Count</th>
+                                <th>Bar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if work_status_counts %}
+                            {% for item in work_status_counts %}
+                            {% set pct = (item.count * 100 / summary.total_work) | int %}
+                            <tr>
+                                <td>
+                                    {% if item.status == "IN_PROGRESS" %}
+                                        <span class="badge bg-success">{{ item.status }}</span>
+                                    {% elif item.status == "PLANNING" %}
+                                        <span class="badge bg-info text-dark">{{ item.status }}</span>
+                                    {% elif item.status == "BLOCKED" %}
+                                        <span class="badge bg-danger">{{ item.status }}</span>
+                                    {% elif item.status == "COMPLETED" %}
+                                        <span class="badge bg-secondary">{{ item.status }}</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark border">{{ item.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end fw-bold">{{ item.count }}</td>
+                                <td style="min-width:100px">
+                                    <div class="progress" style="height:8px">
+                                        <div class="progress-bar" role="progressbar" style="width:{{ pct }}%"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr><td colspan="3" class="text-muted text-center p-3">No work data available.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Work Effort by Domain -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-layers"></i> Work Effort by Domain</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead>
+                            <tr><th>Domain</th><th class="text-end">Total Effort</th></tr>
+                        </thead>
+                        <tbody>
+                            {% if work_by_domain %}
+                            {% for item in work_by_domain %}
+                            <tr>
+                                <td class="small">{{ item.domain | replace(from="_", to=" ") | title }}</td>
+                                <td class="text-end fw-bold">{{ item.effort }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr><td colspan="2" class="text-muted text-center p-3">No data.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Over-Allocated People -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle text-danger"></i> Over-Allocated People
+                        <small class="text-muted">(effort &ge; 8)</small>
+                    </h5>
+                    <span class="badge bg-secondary">{{ summary.available_count }} available</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead>
+                            <tr><th>Person</th><th>Team</th><th class="text-center">Effort</th></tr>
+                        </thead>
+                        <tbody>
+                            {% if over_allocated %}
+                            {% for p in over_allocated %}
+                            <tr>
+                                <td><a href="/{{ lang }}/person/{{ p.id }}">{{ p.name }}</a></td>
+                                <td class="small text-muted">{{ p.team }}</td>
+                                <td class="text-center">
+                                    <span class="badge {% if p.effort >= 10 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                        {{ p.effort }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr><td colspan="3" class="text-success text-center p-3">
+                                <i class="bi bi-check-circle"></i> No one is over-allocated.
+                            </td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div><!-- /left column -->
+
+        <!-- ── Right Column ────────────────────────────────────────────── -->
+        <div class="col-12 col-lg-6">
+
+            <!-- Team Capacity -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Team Capacity
+                        <small class="text-muted ms-1">(total active effort)</small>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead>
+                            <tr><th>Team</th><th class="text-end">Effort</th><th>Load</th></tr>
+                        </thead>
+                        <tbody>
+                            {% if team_capacity %}
+                            {% for t in team_capacity %}
+                            <tr>
+                                <td class="small">{{ t.team }}</td>
+                                <td class="text-end fw-bold">{{ t.effort }}</td>
+                                <td>
+                                    {% if t.effort > 50 %}
+                                        <span class="badge bg-danger">High</span>
+                                    {% elif t.effort > 20 %}
+                                        <span class="badge bg-warning text-dark">Medium</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Low</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr><td colspan="3" class="text-muted text-center p-3">No team data available.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Capability Gap Analysis -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Capability Gap by Domain</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Domain</th>
+                                <th class="text-center">Required</th>
+                                <th class="text-center">Available</th>
+                                <th class="text-center">Gap</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if domain_gaps %}
+                            {% for d in domain_gaps %}
+                            <tr>
+                                <td class="small">{{ d.domain | replace(from="_", to=" ") | title }}</td>
+                                <td class="text-center">{{ d.total_required }}</td>
+                                <td class="text-center">{{ d.total_available }}</td>
+                                <td class="text-center">
+                                    {% if d.net_gap > 0 %}
+                                        <span class="badge bg-danger">-{{ d.net_gap }}</span>
+                                    {% elif d.net_gap < 0 %}
+                                        <span class="badge bg-success">+{{ d.net_gap | abs }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">0</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <!-- Level detail rows (collapsed by default) -->
+                            {% if d.levels %}
+                            {% for lvl in d.levels %}
+                            <tr class="table-light">
+                                <td class="ps-4 small text-muted">↳ {{ lvl.level | replace(from="_", to=" ") | title }}</td>
+                                <td class="text-center small text-muted">{{ lvl.required }}</td>
+                                <td class="text-center small text-muted">{{ lvl.available }}</td>
+                                <td class="text-center small">
+                                    {% if lvl.gap > 0 %}
+                                        <span class="text-danger small">-{{ lvl.gap }}</span>
+                                    {% elif lvl.gap < 0 %}
+                                        <span class="text-success small">+{{ lvl.gap | abs }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <tr><td colspan="4" class="text-muted text-center p-3">No capability or requirement data available.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer small text-muted">
+                    Required = role requirements. Available = validated capabilities (or self-identified where unvalidated).
+                    A negative gap (red) means fewer qualified people than required positions.
+                </div>
+            </div>
+
+        </div><!-- /right column -->
+    </div><!-- /row -->
+</div>
+{% endblock content %}

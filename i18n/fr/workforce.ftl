@@ -377,3 +377,4 @@ vacant-work = Travaux vacants (non assignés)
 explore = Explorer
 people = Personnes
 vacancies = Postes vacants
+analytics = Analytique

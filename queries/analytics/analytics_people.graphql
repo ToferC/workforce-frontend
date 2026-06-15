@@ -1,0 +1,23 @@
+query AnalyticsPeople {
+  allPeople {
+    id
+    givenName
+    familyName
+    activeEffort
+    retiredAt
+    activeRoles {
+      id
+      titleEnglish
+      team {
+        id
+        nameEnglish
+      }
+    }
+    capabilities {
+      domain
+      validatedLevel
+      selfIdentifiedLevel
+      nameEn
+    }
+  }
+}
