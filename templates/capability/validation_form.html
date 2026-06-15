@@ -8,8 +8,6 @@
     <h1 class="mb-4"><i class="bi bi-patch-check"></i> {{ fluent(key="validate-capability", lang=lang) }}</h1>
     <p class="text-muted">{{ fluent(key="validate-capability-help", lang=lang) }}</p>
 
-    {% set label_validator = fluent(key="validator-name", lang=lang) %}
-    {% set help_validator = fluent(key="owner-name-helper", lang=lang) %}
     {% set label_level = fluent(key="validated-level", lang=lang) %}
     {% set label_save = fluent(key="save-button", lang=lang) %}
     {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
@@ -17,9 +15,13 @@
 
     <div class="card shadow-lg">
         <div class="card-body">
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-person-check"></i>
+                {% if lang == "fr" %}Vous serez enregistré(e) comme validateur :{% else %}You will be recorded as the validator:{% endif %}
+                <strong>{{ validator_display }}</strong>
+            </div>
             <form method="post" action="/{{ lang }}/person/{{ person_id }}/capability/{{ capability_id }}/validate">
                 {{ forms::csrf(token=csrf_token) }}
-                {{ forms::text_input(name="validator_name", label=label_validator, help=help_validator) }}
                 {{ forms::select(name="validated_level", label=label_level, options=capability_levels) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>

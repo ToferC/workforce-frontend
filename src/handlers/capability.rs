@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_capability_by_name_and_level, all_skills, get_skill_by_id, get_person_by_id, create_capability, update_capability, create_validation};
+use crate::graphql::{get_capability_by_name_and_level, all_skills, get_skill_by_id, get_person_by_id, create_capability, update_capability, create_validation, get_user_by_email};
 use crate::security::{self, MinimumRole};
 use super::person::resolve_person_by_name;
 
@@ -206,13 +206,12 @@ pub async fn retire_capability_post(
 #[derive(Deserialize, Debug)]
 pub struct ValidationForm {
     pub csrf_token: String,
-    pub validator_name: String,
     pub validated_level: String,
 }
 
-/// Admin-only: validate someone's capability. The validator is resolved
-/// by typed full name. The API recalculates the capability's validated
-/// level from the average of its validations.
+/// Admin-only: validate someone's capability. The currently signed-in user
+/// is automatically recorded as the validator. The API recalculates the
+/// capability's validated level from the average of its validations.
 #[get("/{lang}/person/{person_id}/capability/{capability_id}/validate")]
 pub async fn validate_capability_form(
     data: web::Data<AppData>,
@@ -223,14 +222,24 @@ pub async fn validate_capability_form(
     let (lang, person_id, capability_id) = path_params.into_inner();
     let session = req.get_session();
 
-    if let Err(response) = security::require_role(&session, &lang, MinimumRole::Admin) {
-        return response;
-    }
+    let auth = match security::require_role(&session, &lang, MinimumRole::Admin) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let validator_display = match session.get::<String>("session_user").ok().flatten() {
+        Some(email) => match get_user_by_email(email, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+            Ok(r) => r.user_by_email.name,
+            Err(_) => by_lang(&lang, "(unknown)", "(inconnu)").to_string(),
+        },
+        None => by_lang(&lang, "(unknown)", "(inconnu)").to_string(),
+    };
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("person_id", &person_id);
     ctx.insert("capability_id", &capability_id);
     ctx.insert("capability_levels", &level_options());
+    ctx.insert("validator_display", &validator_display);
 
     let rendered = data.tmpl.render("capability/validation_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -257,7 +266,23 @@ pub async fn validate_capability_post(
         return redirect_to(format!("/{}/person/{}/capability/{}/validate", &lang, &person_id, &capability_id));
     }
 
-    match resolve_person_by_name(&form.validator_name, &auth.bearer, &lang, &data).await {
+    let session_email = match session.get::<String>("session_user").ok().flatten() {
+        Some(e) => e,
+        None => {
+            security::add_flash(&session, "danger", by_lang(&lang, "Could not identify the signed-in user.", "Impossible d'identifier l'utilisateur connecté."));
+            return redirect_to(format!("/{}/person/{}", &lang, &person_id));
+        },
+    };
+
+    let user_name = match get_user_by_email(session_email, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.user_by_email.name,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/person/{}", &lang, &person_id));
+        },
+    };
+
+    match resolve_person_by_name(&user_name, &auth.bearer, &lang, &data).await {
         Ok(Some(validator_id)) => {
             let new_validation = create_validation::NewValidation {
                 validator_id,
@@ -269,7 +294,7 @@ pub async fn validate_capability_post(
                 Err(e) => security::add_flash(&session, "danger", &e.to_string()),
             };
         },
-        Ok(None) => security::add_flash(&session, "danger", by_lang(&lang, "Enter the validator's name.", "Entrez le nom du validateur.")),
+        Ok(None) => security::add_flash(&session, "danger", by_lang(&lang, "Your account is not linked to a person record.", "Votre compte n'est pas lié à une fiche de personne.")),
         Err(message) => security::add_flash(&session, "danger", &message),
     };
 

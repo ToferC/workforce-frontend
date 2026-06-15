@@ -7,7 +7,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_task_by_id, all_tasks, create_task, update_task};
+use crate::graphql::{get_task_by_id, all_tasks, create_task, update_task, get_product_by_id};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::product::product_options;
@@ -290,4 +290,51 @@ pub async fn edit_task_post(
             HttpResponse::Ok().body(rendered)
         },
     }
+}
+
+/// Show the task creation form pre-filled for a specific product. The form
+/// POSTs to the existing role-scoped task creation handler using the product
+/// owner's role as the creator.
+#[get("/{lang}/product/{product_id}/task/new")]
+pub async fn create_product_task_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, product_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let product = match get_product_by_id(product_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.product_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/products", &lang));
+        },
+    };
+
+    let role_id = product.product_owner.id.clone();
+    let today = chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string();
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("edit", &false);
+    ctx.insert("role_id", &role_id);
+    ctx.insert("form_action", &format!("/{}/role/{}/task/new", &lang, &role_id));
+    ctx.insert("cancel_url", &format!("/{}/product/{}", &lang, &product_id));
+    ctx.insert("task", &json!({
+        "title": "", "domain": "", "intendedOutcome": "", "finalOutcome": "", "approvalTier": 1,
+        "url": "", "startDatestamp": today, "targetCompletionDate": today, "taskStatus": "PLANNING",
+        "completedDate": "", "productId": product_id,
+    }));
+    ctx.insert("skill_domains", &skill_domain_options());
+    ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
+
+    let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
 }

@@ -32,6 +32,8 @@
     {% if edit %}
     {% set form_action = "/" ~ lang ~ "/task/" ~ task.id ~ "/edit" %}
     {% set cancel_url = "/" ~ lang ~ "/task/" ~ task.id %}
+    {% elif form_action is defined %}
+    {# form_action and cancel_url injected by handler (e.g. product-scoped task creation) #}
     {% else %}
     {% set form_action = "/" ~ lang ~ "/role/" ~ role_id ~ "/task/new" %}
     {% set cancel_url = "/" ~ lang ~ "/role/" ~ role_id %}

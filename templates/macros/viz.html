@@ -50,7 +50,7 @@
   <span class="cap-pip{% if validated_level and (validated_level == "EXPERT" or validated_level == "SPECIALIST") %} cap-pip--validated{% elif self_level == "EXPERT" or self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
   {#— pip 5: filled at SPECIALIST only —#}
   <span class="cap-pip{% if validated_level and validated_level == "SPECIALIST" %} cap-pip--validated{% elif self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
-  <small class="ms-1 text-muted">{{ validated_level if validated_level else self_level }}</small>
+  <small class="ms-1 text-muted">{% if validated_level %}{{ validated_level }}{% else %}{{ self_level }}{% endif %}</small>
 </span>
 {% endmacro capability_scale %}
 
