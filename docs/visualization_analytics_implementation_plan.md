@@ -16,6 +16,25 @@ This plan is frontend-focused. Items that require backend work are flagged
 **[API]** and specified in detail in `docs/api_changes_for_analytics.md` for a
 separate session/agent working on the `workforce_analytics` repo.
 
+## Status (2026-06-15)
+
+| Phase | Title | Status |
+|-------|-------|--------|
+| A | Visual vocabulary macros | ✅ Done |
+| B | Vendor ECharts + scaffold | ✅ Done (CDN; vendor file pending offline) |
+| C | Capability heatmap (Teams × Domains) | ✅ Done — `/{lang}/analytics/coverage` |
+| D | Org-chart capability/capacity overlay | ✅ Done — team-node overlay |
+| E | Delivery treemap (Product → Task → Work) | ✅ Done — `/{lang}/analytics/delivery` |
+| F | Per-entity radar + requirement-match bars | ✅ Done — person & role pages |
+| G | Talent mobility sankey | ✅ Done — `/{lang}/analytics/mobility` |
+| H | Capability growth curve | ⛔ Blocked on **[API]** `capabilityGrowth` |
+| I | Supply vs demand gap trend | ⛔ Blocked on **[API]** `capabilitySupplyDemand` |
+
+Phases A–G ship against the **current** API with no backend changes. H and I
+are gated on the aggregates in `docs/api_changes_for_analytics.md` (separate
+`workforce_analytics` session). Notes per phase below record what was actually
+built where it diverged from the original plan.
+
 ## Current state (baseline)
 
 - Only visualization is the org-chart builder (`templates/org_chart/`): an
@@ -109,6 +128,13 @@ avoid fanning out across all people; until then, derive from
 **Acceptance:** heatmap shows every team × domain with intensity; clicking a
 cell links to the team; empty cells visibly flag coverage gaps.
 
+**As built:** `/{lang}/analytics/coverage`. Depth = sum of capability level
+weights (Desired 1 … Specialist 5, validated preferred) per team × domain,
+derived frontend-side from `analytics_people` (the **[API]**
+`teamCapabilityMatrix` aggregate was *not* required). ECharts heatmap plus a
+server-rendered CSS-opacity fallback table and a domain-strength ranking.
+Domains with zero coverage are dropped from the axes.
+
 ## Phase D — Org-chart capability & capacity overlay
 
 **Objective:** Make the existing structural tree answer "where is the org
@@ -128,6 +154,14 @@ frontend-side from existing nested fields.
 **Acceptance:** every tree node shows vacancy %, load, and domain mix without
 expanding; overloaded/hollow pockets are visible at the structural level.
 
+**As built:** the overlay lives in the lazy-loaded team node (not the tier node
+or panel). Each team card shows its top-3 capability domains as coloured
+`domain-chip` badges plus a total-effort badge (green/amber/red by load). The
+existing `org_tier_node.graphql` query was extended with `person.activeEffort`
+and `person.capabilities`, so the overlay arrives with the existing HTMX
+fetch — no new endpoint, no **[API]** rollups. Tier-level rollups and the panel
+summary remain a possible follow-on.
+
 ## Phase E — Delivery / priorities flow (Product → Task → Work)
 
 **Objective:** Show where the org's effort actually goes and what's blocked.
@@ -145,6 +179,14 @@ rollup in the handler. **[API]:** none required; an aggregate
 **Acceptance:** treemap renders the full delivery tree; blocked/at-risk work is
 color-visible; effort concentration is obvious; drill-down links to entities.
 
+**As built:** org-wide `/{lang}/analytics/delivery` ECharts treemap (rectangle
+area = work effort, leaf colour = work status) with zoom-to-node + breadcrumb.
+A single nested `delivery_treemap.graphql` query (`allProducts → tasks → work`)
+feeds it; the handler pre-computes every node's value so parents size correctly
+even when a task has no work. KPI cards + a Products-by-Effort table round it
+out. The per-product treemap on `product.html` was deferred (the org-wide view
+covers the headline need).
+
 ## Phase F — Per-entity enrichments
 
 **Objective:** Richer single-entity comprehension.
@@ -158,6 +200,14 @@ color-visible; effort concentration is obvious; drill-down links to entities.
 
 **Acceptance:** person/role pages show a domain radar; role shows per-requirement
 fill vs the assignee/candidate; team shows a coverage summary.
+
+**As built:** person page shows a capability radar (validated filled +
+self-identified dashed), rendered only when the person has ≥3 distinct domains
+(a radar needs ≥3 axes). Role page shows requirement-match bars (Required vs
+Held, green when the incumbent meets/exceeds, red when short); `role_by_id`
+now returns the incumbent's capabilities so no extra round trip is needed. The
+team-page coverage summary card was deferred (Phase C already gives the
+team × domain picture org-wide).
 
 ---
 
@@ -182,6 +232,16 @@ between consecutive roles to derive transitions. **Caveat:** parse String-typed
 
 **Acceptance:** sankey shows movements for the chosen period; node = team or
 level; flows quantify promotions/laterals/inflow/outflow.
+
+**As built:** `/{lang}/analytics/mobility` ECharts sankey. To stay within
+ECharts' no-cycle constraint (team A→B and B→A would error), the graph is
+bipartite: each person's most-recent prior team **(was)** flows to their
+current team **(now)**, weighted by headcount. Query `analytics_mobility.graphql`
+pulls active + inactive roles with teams and dates; the handler picks the
+latest-start active role and latest-end inactive role per person. A sorted
+transition table backs it up. **Caveat noted:** `Role` dates are String-typed
+and compared lexically — correct for ISO-8601 but not validated as such. The
+richer level→level promotion flow and a time-window selector are follow-ons.
 
 ## Phase H — Organizational capability growth ("learning curve") — **[API]**
 
@@ -243,7 +303,10 @@ Phase G using the same `analytics_role_history` query.
 
 - New analytics sections live under the existing `/{lang}/analytics` dashboard,
   Analyst-gated via `security::require_role(.., MinimumRole::Analyst)`.
-- Handlers aggregate; templates render injected JSON (Phase 5 pattern).
+- Handlers aggregate; templates render injected JSON (Phase 5 pattern). Inject
+  chart option JSON through `crate::chart_json()`, which escapes `<` so a
+  `</script>` inside user-controlled labels can't break out of the inline
+  `<script type="application/json">` block (stored-XSS / chart-breakage guard).
 - History is derived by bucketing `createdAt`/`startDate` into months — good for
   trends, not exact point-in-time audit.
 - Keep `schema.graphql` in sync with `workforce_analytics` whenever **[API]**
