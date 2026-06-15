@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
+{% import "macros/charts.html" as charts %}
+
+{% block title %}<title>Capability Coverage</title>{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/{{ lang }}/analytics">Analytics</a></li>
+            <li class="breadcrumb-item active">Capability Coverage</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="bi bi-grid-3x3-gap"></i> Team Capability Coverage</h1>
+        <span class="text-muted small">Depth score = sum of capability level weights per team × domain</span>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-primary">{{ summary.total_teams }}</div>
+                    <div class="small text-muted">Active Teams</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-info">{{ summary.active_domains }}</div>
+                    <div class="small text-muted">Domains with Coverage</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-success">{{ summary.max_depth }}</div>
+                    <div class="small text-muted">Peak Depth Score</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ECharts Heatmap -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-grid-3x3-gap-fill"></i> Capability Heatmap (Teams × Domains)</h5>
+        </div>
+        <div class="card-body">
+            {{ charts::chart(id="heatmap", height=chart_height) }}
+            <script type="application/json" id="heatmap-data">{{ chart_option | safe }}</script>
+        </div>
+        <div class="card-footer small text-muted">
+            Cell value = sum of level weights across all active people in each team
+            (Desired=1, Novice=2, Experienced=3, Expert=4, Specialist=5).
+            Validated level is preferred; self-identified is used where unvalidated.
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Domain Strength Ranking -->
+        <div class="col-12 col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-trophy"></i> Domain Strength Ranking</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th class="text-muted" style="width:2rem">#</th>
+                                <th>Domain</th>
+                                <th class="text-end">Depth</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if domain_totals %}
+                            {% for d in domain_totals %}
+                            <tr>
+                                <td class="text-muted small">{{ loop.index }}</td>
+                                <td>{{ viz::domain_chip(domain=d.key) }}</td>
+                                <td class="text-end fw-bold">{{ d.total }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr><td colspan="3" class="text-muted text-center p-3">No data available.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- CSS Fallback Coverage Table -->
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Coverage Table</h5>
+                </div>
+                <div class="card-body p-0" style="overflow-x:auto">
+                    {% if table_rows %}
+                    <table class="table table-sm mb-0" style="font-size:0.72rem;white-space:nowrap">
+                        <thead>
+                            <tr>
+                                <th style="min-width:130px">Team</th>
+                                {% for label in domain_labels %}
+                                <th class="text-center p-0" style="min-width:34px">
+                                    <div style="writing-mode:vertical-rl;transform:rotate(180deg);padding:6px 3px;font-size:0.68rem">{{ label }}</div>
+                                </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in table_rows %}
+                            <tr>
+                                <td class="small">
+                                    {% if row.team_id %}
+                                    <a href="/{{ lang }}/team/{{ row.team_id }}">{{ row.team }}</a>
+                                    {% else %}
+                                    {{ row.team }}
+                                    {% endif %}
+                                </td>
+                                {% for cell in row.cells %}
+                                <td class="text-center p-0" style="background:rgba(10,109,46,{{ cell.opacity }})">
+                                    <span style="font-size:0.65rem;display:block;padding:3px 0;{% if cell.opacity > 0.4 %}color:#fff{% else %}color:#666{% endif %}">
+                                        {% if cell.depth > 0 %}{{ cell.depth }}{% else %}&mdash;{% endif %}
+                                    </span>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-muted text-center p-4">No team capability data available.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /row -->
+</div>
+{% endblock content %}

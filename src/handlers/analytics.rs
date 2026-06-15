@@ -9,6 +9,38 @@ use crate::{AppData, generate_basic_context};
 use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles};
 use crate::security::{self, MinimumRole};
 
+/// All 16 SkillDomain variants in canonical display order: (key, short label).
+const SKILL_DOMAINS: &[(&str, &str)] = &[
+    ("COMBAT",                                "Combat"),
+    ("INTELLIGENCE",                          "Intelligence"),
+    ("STRATEGY",                              "Strategy"),
+    ("ENGINEERING",                           "Engineering"),
+    ("MEDICAL",                               "Medical"),
+    ("JOINT_OPERATIONS",                      "Joint Ops"),
+    ("SOFTWARE_ENGINEERING",                  "Software Eng"),
+    ("CLOUD_PLATFORM_DEV_OPS",               "Cloud/DevOps"),
+    ("DATA_ANALYTICS_AND_AI",                "Data & AI"),
+    ("CYBER_SECURITY",                        "Cyber Security"),
+    ("PRODUCT_AGILE_AND_DELIVERY",           "Product/Agile"),
+    ("USER_EXPERIENCE",                       "UX"),
+    ("PROCUREMENT_AND_VENDOR_MANAGEMENT",    "Procurement"),
+    ("PEOPLE_AND_ORGANISATIONAL_LEADERSHIP", "People & Org"),
+    ("GOVERNANCE",                            "Governance"),
+    ("CORPORATE_SERVICES",                    "Corporate Svcs"),
+];
+
+/// Numeric weight for each CapabilityLevel; used to compute depth scores.
+fn level_weight(level: &str) -> i64 {
+    match level {
+        "DESIRED"     => 1,
+        "NOVICE"      => 2,
+        "EXPERIENCED" => 3,
+        "EXPERT"      => 4,
+        "SPECIALIST"  => 5,
+        _             => 0,
+    }
+}
+
 #[get("/{lang}/analytics")]
 pub async fn analytics_dashboard(
     data: web::Data<AppData>,
@@ -229,5 +261,153 @@ pub async fn analytics_dashboard(
     ctx.insert("work_by_domain", &work_by_domain);
 
     let rendered = data.tmpl.render("analytics/analytics.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[get("/{lang}/analytics/coverage")]
+pub async fn analytics_coverage(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let people_list = analytics_people(auth.bearer, &data.api_url, Arc::clone(&data.client))
+        .await
+        .map(|r| r.all_people)
+        .unwrap_or_default();
+
+    let active_people: Vec<_> = people_list.iter()
+        .filter(|p| p.retired_at.is_none())
+        .collect();
+
+    // team_name → domain_key → weighted depth score (sum of level weights per person)
+    let mut depth_map: BTreeMap<String, BTreeMap<String, i64>> = BTreeMap::new();
+    let mut team_ids: BTreeMap<String, String> = BTreeMap::new();
+
+    for person in &active_people {
+        if let Some(role) = person.active_roles.first() {
+            let team_name = role.team.name_english.clone();
+            team_ids.entry(team_name.clone()).or_insert_with(|| role.team.id.to_string());
+
+            for cap in &person.capabilities {
+                let domain = serde_json::to_value(&cap.domain)
+                    .ok()
+                    .and_then(|v| v.as_str().map(String::from))
+                    .unwrap_or_else(|| "UNKNOWN".to_string());
+                let level_val = cap.validated_level.as_ref().or(Some(&cap.self_identified_level));
+                if let Some(lvl) = level_val {
+                    let level_str = serde_json::to_value(lvl)
+                        .ok()
+                        .and_then(|v| v.as_str().map(String::from))
+                        .unwrap_or_else(|| "UNKNOWN".to_string());
+                    *depth_map
+                        .entry(team_name.clone())
+                        .or_default()
+                        .entry(domain)
+                        .or_insert(0) += level_weight(&level_str);
+                }
+            }
+        }
+    }
+
+    // Only include domains where at least one team has non-zero depth
+    let active_domains: Vec<(&str, &str)> = SKILL_DOMAINS.iter()
+        .filter(|(key, _)| depth_map.values().any(|m| m.get(*key).copied().unwrap_or(0) > 0))
+        .copied()
+        .collect();
+
+    let domain_labels: Vec<&str> = active_domains.iter().map(|(_, label)| *label).collect();
+    let team_names: Vec<&str> = depth_map.keys().map(String::as_str).collect();
+
+    let max_depth: i64 = depth_map.values()
+        .flat_map(|m| m.values())
+        .copied()
+        .max()
+        .unwrap_or(1);
+
+    // ECharts heatmap series data: [domain_idx, team_idx, depth]
+    let mut heatmap_data: Vec<serde_json::Value> = Vec::new();
+    for (t_idx, team_name) in team_names.iter().enumerate() {
+        for (d_idx, (domain_key, _)) in active_domains.iter().enumerate() {
+            let depth = depth_map.get(*team_name)
+                .and_then(|m| m.get(*domain_key))
+                .copied()
+                .unwrap_or(0);
+            heatmap_data.push(json!([d_idx, t_idx, depth]));
+        }
+    }
+
+    let chart_option = json!({
+        "animation": false,
+        "tooltip": { "position": "top" },
+        "grid": { "top": "5%", "left": "20%", "right": "5%", "bottom": "25%" },
+        "xAxis": {
+            "type": "category",
+            "data": domain_labels,
+            "axisLabel": { "rotate": 35, "fontSize": 11 }
+        },
+        "yAxis": { "type": "category", "data": team_names },
+        "visualMap": {
+            "min": 0,
+            "max": max_depth,
+            "calculable": true,
+            "orient": "horizontal",
+            "left": "center",
+            "bottom": "2%",
+            "inRange": { "color": ["#f0f0f0", "#0a6d2e"] }
+        },
+        "series": [{
+            "type": "heatmap",
+            "data": heatmap_data,
+            "label": { "show": true, "fontSize": 10 }
+        }]
+    });
+
+    // CSS fallback table — opacity pre-computed as float for Tera
+    let table_rows: Vec<serde_json::Value> = depth_map.iter().map(|(team, domains)| {
+        let team_id = team_ids.get(team).cloned().unwrap_or_default();
+        let cells: Vec<serde_json::Value> = active_domains.iter().map(|(key, _)| {
+            let depth = domains.get(*key).copied().unwrap_or(0);
+            let opacity = if max_depth > 0 { depth as f64 / max_depth as f64 } else { 0.0 };
+            json!({ "depth": depth, "opacity": opacity })
+        }).collect();
+        json!({ "team": team, "team_id": team_id, "cells": cells })
+    }).collect();
+
+    // Domain strength totals for the ranking sidebar
+    let mut domain_totals: Vec<serde_json::Value> = active_domains.iter().map(|(key, label)| {
+        let total: i64 = depth_map.values()
+            .map(|m| m.get(*key).copied().unwrap_or(0))
+            .sum();
+        json!({ "domain": label, "key": key, "total": total })
+    }).collect();
+    domain_totals.sort_by(|a, b| {
+        b["total"].as_i64().unwrap_or(0).cmp(&a["total"].as_i64().unwrap_or(0))
+    });
+
+    let chart_height = format!("{}px", std::cmp::max(400, team_names.len() as i64 * 52 + 260));
+
+    ctx.insert("chart_option", &chart_option);
+    ctx.insert("chart_height", &chart_height);
+    ctx.insert("table_rows", &table_rows);
+    ctx.insert("domain_labels", &domain_labels);
+    ctx.insert("domain_totals", &domain_totals);
+    ctx.insert("summary", &json!({
+        "total_teams": team_names.len() as i64,
+        "active_domains": active_domains.len() as i64,
+        "max_depth": max_depth,
+    }));
+
+    let rendered = data.tmpl.render("analytics/coverage.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }
