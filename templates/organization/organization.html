@@ -24,7 +24,12 @@
             <a class="btn btn-primary" href="/{{ lang }}/organization/{{ organization.id }}/edit">
                 <i class="bi bi-pencil"></i> {{ fluent(key="edit-organization", lang=lang) }}
             </a>
-            {% if not organization.retiredAt %}
+            {% if organization.retiredAt %}
+            <form method="post" action="/{{ lang }}/organization/{{ organization.id }}/restore" class="d-inline m-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-outline-success"><i class="bi bi-arrow-counterclockwise"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
+            </form>
+            {% else %}
             <a class="btn btn-outline-danger" href="/{{ lang }}/organization/{{ organization.id }}/retire">
                 <i class="bi bi-building-x"></i> {{ fluent(key="retire-organization", lang=lang) }}
             </a>

@@ -1,0 +1,9 @@
+query AllPeople {
+  allPeople {
+    id
+    givenName
+    familyName
+    retiredAt
+    organization { id nameEn }
+  }
+}

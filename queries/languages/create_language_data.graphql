@@ -1,0 +1,3 @@
+mutation CreateLanguageData($data: NewLanguageData!) {
+  createLanguageData(data: $data) { id languageName }
+}

@@ -124,6 +124,30 @@ fn organization_detail_hides_retire_when_already_retired() {
     let html = tera.render("organization/organization.html", &ctx).unwrap();
     assert!(html.contains("/edit"));
     assert!(!html.contains("/retire"));
+    // a retired org offers Restore instead of Retire
+    assert!(html.contains("/organization/11111111-1111-1111-1111-111111111111/restore"));
+}
+
+#[test]
+fn team_detail_uses_still_active_sentinel_for_restore() {
+    let tera = tera();
+    // active team (sentinel) -> Retire shown, no badge, no Restore
+    let mut ctx = base_context("en", "operator");
+    let mut team = sample_team();
+    team["retiredAt"] = json!("Still Active");
+    ctx.insert("team", &team);
+    let html = tera.render("team/team.html", &ctx).unwrap();
+    assert!(html.contains("/team/66666666-6666-6666-6666-666666666666/retire"));
+    assert!(!html.contains("/restore"));
+
+    // retired team (a date) -> Restore shown, no Retire
+    let mut ctx = base_context("en", "operator");
+    let mut team = sample_team();
+    team["retiredAt"] = json!("2026-01-01");
+    ctx.insert("team", &team);
+    let html = tera.render("team/team.html", &ctx).unwrap();
+    assert!(html.contains("/team/66666666-6666-6666-6666-666666666666/restore"));
+    assert!(!html.contains("/team/66666666-6666-6666-6666-666666666666/retire"));
 }
 
 fn sample_org_tier() -> serde_json::Value {
@@ -291,6 +315,7 @@ fn sample_person() -> serde_json::Value {
         "retiredAt": null,
         "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization"},
         "capabilities": [],
+        "languageData": [],
         "activeRoles": [],
         "inactiveRoles": [],
         "findMatches": [],
@@ -535,6 +560,328 @@ fn person_page_affiliation_actions_operator_only() {
     let html = tera.render("person/person.html", &ctx).unwrap();
     assert!(!html.contains("/affiliation/new"));
     assert!(!html.contains("/end"));
+}
+
+fn sample_skill() -> serde_json::Value {
+    json!({
+        "id": "dddddddd-0000-0000-0000-000000000001",
+        "nameEn": "Threat Analysis",
+        "nameFr": "Analyse des menaces",
+        "descriptionEn": "Assessing threats",
+        "descriptionFr": "Évaluer les menaces",
+        "domain": "CYBER_SECURITY",
+        "capabilities": [
+            {"id": "cccccccc-0000-0000-0000-000000000001", "selfIdentifiedLevel": "EXPERT", "validatedLevel": "EXPERIENCED",
+             "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee"}}
+        ],
+    })
+}
+
+#[test]
+fn skill_index_renders_with_operator_actions() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("skills", &json!([{"id": "dddddddd-0000-0000-0000-000000000001", "nameEn": "Threat Analysis", "domain": "CYBER_SECURITY", "retiredAt": null}]));
+    let html = tera.render("skill/skill_index.html", &ctx).unwrap();
+    assert!(html.contains("/en/skill/dddddddd-0000-0000-0000-000000000001"));
+    assert!(html.contains("/en/skill/new"));
+
+    let mut ctx = base_context("en", "user");
+    ctx.insert("skills", &json!([]));
+    let html = tera.render("skill/skill_index.html", &ctx).unwrap();
+    assert!(!html.contains("/skill/new"));
+}
+
+#[test]
+fn skill_detail_and_form_render() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("skill", &sample_skill());
+    let html = tera.render("skill/skill.html", &ctx).unwrap();
+    assert!(html.contains("Threat Analysis"));
+    assert!(html.contains("/skill/dddddddd-0000-0000-0000-000000000001/edit"));
+    assert!(html.contains("Sam Lee"));
+
+    for edit in [false, true] {
+        let mut ctx = base_context("en", "operator");
+        ctx.insert("edit", &edit);
+        ctx.insert("skill", &sample_skill());
+        ctx.insert("skill_domains", &domain_options());
+        let html = tera.render("skill/skill_form.html", &ctx).unwrap();
+        if edit {
+            assert!(html.contains("/skill/dddddddd-0000-0000-0000-000000000001/edit"));
+        } else {
+            assert!(html.contains("/skill/new"));
+        }
+    }
+}
+
+#[test]
+fn capability_form_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &sample_person());
+    ctx.insert("skill_options", &json!([{"value": "dddddddd-0000-0000-0000-000000000001", "label": "Threat Analysis"}]));
+    ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+    let html = tera.render("capability/capability_form.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/capability/new"));
+    assert!(html.contains("name=\"skill_id\""));
+    assert!(html.contains("name=\"self_identified_level\""));
+}
+
+#[test]
+fn person_page_capability_actions_operator_only() {
+    let tera = tera();
+    let mut person = sample_person();
+    person["capabilities"] = json!([
+        {"id": "cccccccc-0000-0000-0000-000000000001", "nameEn": "Threat Analysis", "domain": "CYBER_SECURITY", "selfIdentifiedLevel": "EXPERT", "validatedLevel": "EXPERIENCED"}
+    ]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/capability/new"));
+    assert!(html.contains("/capability/cccccccc-0000-0000-0000-000000000001/retire"));
+
+    let mut ctx = base_context("en", "user");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(!html.contains("/capability/new"));
+}
+
+#[test]
+fn requirement_form_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_id", "77777777-7777-7777-7777-777777777777");
+    ctx.insert("skill_options", &json!([{"value": "dddddddd-0000-0000-0000-000000000001", "label": "Threat Analysis"}]));
+    ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+    let html = tera.render("role/requirement_form.html", &ctx).unwrap();
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/requirement/new"));
+    assert!(html.contains("name=\"skill_id\""));
+    assert!(html.contains("name=\"required_level\""));
+}
+
+#[test]
+fn role_page_requirement_actions_operator_only() {
+    let tera = tera();
+    let mut role = sample_role_record();
+    role["requirements"] = json!([{"id": "eeee0000-0000-0000-0000-000000000001", "nameEn": "Threat Analysis", "domain": "CYBER_SECURITY", "requiredLevel": "EXPERT"}]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_record", &role);
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/requirement/new"));
+    assert!(html.contains("/requirement/eeee0000-0000-0000-0000-000000000001/retire"));
+
+    let mut ctx = base_context("en", "user");
+    ctx.insert("role_record", &role);
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(!html.contains("/requirement/new"));
+}
+
+#[test]
+fn validation_form_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "admin");
+    ctx.insert("person_id", "88888888-8888-8888-8888-888888888888");
+    ctx.insert("capability_id", "cccccccc-0000-0000-0000-000000000001");
+    ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+    let html = tera.render("capability/validation_form.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/capability/cccccccc-0000-0000-0000-000000000001/validate"));
+    assert!(html.contains("name=\"validator_name\""));
+}
+
+#[test]
+fn language_form_renders() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &sample_person());
+    ctx.insert("language_names", &json!([{"value": "ENGLISH", "label": "English"}]));
+    ctx.insert("language_levels", &json!([{"value": "C", "label": "C"}]));
+    let html = tera.render("person/language_form.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/language/new"));
+    assert!(html.contains("name=\"language_name\""));
+    assert!(html.contains("name=\"reading\""));
+}
+
+#[test]
+fn person_page_shows_languages_and_validate_for_admin() {
+    let tera = tera();
+    let mut person = sample_person();
+    person["languageData"] = json!([{"id": "ffff0000-0000-0000-0000-000000000001", "languageName": "FRENCH", "reading": "C", "writing": "B", "speaking": "C"}]);
+    person["capabilities"] = json!([{"id": "cccccccc-0000-0000-0000-000000000001", "nameEn": "Threat Analysis", "domain": "CYBER_SECURITY", "selfIdentifiedLevel": "EXPERT", "validatedLevel": null}]);
+    // admin sees validate
+    let mut ctx = base_context("en", "admin");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(html.contains("/person/88888888-8888-8888-8888-888888888888/language/new"));
+    assert!(html.contains("FRENCH"));
+    assert!(html.contains("/capability/cccccccc-0000-0000-0000-000000000001/validate"));
+    // operator does NOT see validate (admin-only) but sees retire
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(!html.contains("/validate"));
+    assert!(html.contains("/capability/cccccccc-0000-0000-0000-000000000001/retire"));
+}
+
+fn status_options() -> serde_json::Value {
+    json!([{"value": "PLANNING", "label": "Planning"}, {"value": "IN_PROGRESS", "label": "In Progress"}])
+}
+
+#[test]
+fn task_index_and_form_render() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("tasks", &json!([{"id": "a0000000-0000-0000-0000-000000000001", "title": "Stand up cyber cell", "domain": "CYBER_SECURITY", "taskStatus": "PLANNING"}]));
+    let html = tera.render("task/task_index.html", &ctx).unwrap();
+    assert!(html.contains("/en/task/a0000000-0000-0000-0000-000000000001"));
+
+    let task = json!({"id": "a0000000-0000-0000-0000-000000000001", "title": "Stand up cyber cell", "domain": "CYBER_SECURITY",
+        "intendedOutcome": "Cell operational", "finalOutcome": "", "approvalTier": 2, "url": "",
+        "startDatestamp": "2026-01-01", "targetCompletionDate": "2026-06-01", "taskStatus": "PLANNING", "completedDate": ""});
+    for (edit, action) in [(false, "/role/77777777-7777-7777-7777-777777777777/task/new"), (true, "/task/a0000000-0000-0000-0000-000000000001/edit")] {
+        let mut ctx = base_context("en", "operator");
+        ctx.insert("edit", &edit);
+        ctx.insert("role_id", "77777777-7777-7777-7777-777777777777");
+        ctx.insert("task", &task);
+        ctx.insert("skill_domains", &domain_options());
+        ctx.insert("work_statuses", &status_options());
+        let html = tera.render("task/task_form.html", &ctx).unwrap();
+        assert!(html.contains(action));
+        assert!(html.contains("name=\"task_status\""));
+    }
+}
+
+#[test]
+fn work_form_renders() {
+    let tera = tera();
+    let work = json!({"id": "b0000000-0000-0000-0000-000000000001", "workDescription": "Draft plan", "url": "",
+        "domain": "CYBER_SECURITY", "capabilityLevel": "EXPERT", "effort": 3, "workStatus": "PLANNING"});
+    // create: task select present
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("edit", &false);
+    ctx.insert("role_id", "77777777-7777-7777-7777-777777777777");
+    ctx.insert("work", &work);
+    ctx.insert("task_options", &json!([{"value": "a0000000-0000-0000-0000-000000000001", "label": "A task"}]));
+    ctx.insert("skill_domains", &domain_options());
+    ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+    ctx.insert("work_statuses", &status_options());
+    let html = tera.render("work/work_form.html", &ctx).unwrap();
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/work/new"));
+    assert!(html.contains("name=\"task_id\""));
+    // edit: no task select
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("edit", &true);
+    ctx.insert("work", &work);
+    ctx.insert("skill_domains", &domain_options());
+    ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+    ctx.insert("work_statuses", &status_options());
+    let html = tera.render("work/work_form.html", &ctx).unwrap();
+    assert!(html.contains("/work/b0000000-0000-0000-0000-000000000001/edit"));
+    assert!(!html.contains("name=\"task_id\""));
+}
+
+#[test]
+fn publication_index_and_form_render() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("publications", &json!([{"id": "c0000000-0000-0000-0000-000000000001", "title": "Threat report", "publicationStatus": "DRAFT"}]));
+    let html = tera.render("publication/publication_index.html", &ctx).unwrap();
+    assert!(html.contains("/en/publication/c0000000-0000-0000-0000-000000000001"));
+    assert!(html.contains("/en/publication/new"));
+
+    let pubn = json!({"id": "c0000000-0000-0000-0000-000000000001", "title": "Threat report", "subjectText": "Threats",
+        "publicationStatus": "DRAFT", "urlString": "", "publishingId": "", "publishedDatestamp": "",
+        "publishingOrganization": {"id": "11111111-1111-1111-1111-111111111111"}});
+    // create: org select + lead author present
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("edit", &false);
+    ctx.insert("publication", &pubn);
+    ctx.insert("organization_options", &json!([{"value": "11111111-1111-1111-1111-111111111111", "label": "Test Org"}]));
+    ctx.insert("publication_statuses", &status_options());
+    let html = tera.render("publication/publication_form.html", &ctx).unwrap();
+    assert!(html.contains("/publication/new"));
+    assert!(html.contains("name=\"lead_author_name\""));
+    // edit: no org/author
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("edit", &true);
+    ctx.insert("publication", &pubn);
+    ctx.insert("publication_statuses", &status_options());
+    let html = tera.render("publication/publication_form.html", &ctx).unwrap();
+    assert!(html.contains("/publication/c0000000-0000-0000-0000-000000000001/edit"));
+    assert!(!html.contains("name=\"lead_author_name\""));
+}
+
+#[test]
+fn team_index_renders_with_retired_toggle() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("teams", &json!([
+        {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Active Team", "nameFrench": "x", "retiredAt": "Still Active", "organization": {"id": "1", "nameEn": "Org"}, "organizationLevel": {"id": "2", "nameEn": "Tier"}},
+        {"id": "66666666-6666-6666-6666-666666666667", "nameEnglish": "Old Team", "nameFrench": "y", "retiredAt": "2026-01-01", "organization": {"id": "1", "nameEn": "Org"}, "organizationLevel": {"id": "2", "nameEn": "Tier"}}
+    ]));
+    ctx.insert("show_retired", &false);
+    ctx.insert("q", "");
+    ctx.insert("total", &2);
+    ctx.insert("truncated", &false);
+    let html = tera.render("team/team_index.html", &ctx).unwrap();
+    assert!(html.contains("/teams?retired=1"));      // "show retired" link when hidden
+    assert!(html.contains("Active Team"));
+    // the retired one carries the badge
+    assert!(html.contains("/team/66666666-6666-6666-6666-666666666667"));
+    let badges = html.matches("badge bg-warning").count();
+    assert_eq!(badges, 1, "only the retired team should be badged");
+
+    ctx.insert("show_retired", &true);
+    let html = tera.render("team/team_index.html", &ctx).unwrap();
+    assert!(html.contains("/teams\""));               // "hide retired" link back to plain
+}
+
+#[test]
+fn role_index_renders_vacant_and_occupied() {
+    let tera = tera();
+    let mut ctx = base_context("en", "user");
+    ctx.insert("roles", &json!([
+        {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "titleFrench": "x", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "person": {"id": "8", "givenName": "Sam", "familyName": "Lee"}, "team": {"id": "6", "nameEnglish": "Team"}},
+        {"id": "77777777-7777-7777-7777-777777777778", "titleEnglish": "Advisor", "titleFrench": "y", "militaryOccupation": null, "rank": null, "person": null, "team": {"id": "6", "nameEnglish": "Team"}}
+    ]));
+    ctx.insert("q", "");
+    ctx.insert("total", &2);
+    ctx.insert("truncated", &false);
+    let html = tera.render("role/role_index.html", &ctx).unwrap();
+    assert!(html.contains("Sam Lee"));
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777778"));
+    assert!(html.contains("badge bg-danger"));  // vacant badge for the unassigned role
+}
+
+#[test]
+fn person_index_renders_with_retired_toggle() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("people", &json!([
+        {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "retiredAt": null, "organization": {"id": "1", "nameEn": "Org"}}
+    ]));
+    ctx.insert("show_retired", &false);
+    ctx.insert("q", "");
+    ctx.insert("total", &1);
+    ctx.insert("truncated", &false);
+    let html = tera.render("person/person_index.html", &ctx).unwrap();
+    assert!(html.contains("/people?retired=1"));
+    assert!(html.contains("Sam Lee"));
+    assert!(html.contains("/person/new"));  // operator sees New Person
+}
+
+#[test]
+fn person_list_partial_shows_truncation_note() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("people", &json!([{"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "retiredAt": null, "organization": {"id": "1", "nameEn": "Org"}}]));
+    ctx.insert("total", &250);
+    ctx.insert("truncated", &true);
+    // partial renders standalone (the HTMX swap target) with the cap note
+    let html = tera.render("person/person_list.html", &ctx).unwrap();
+    assert!(html.contains("id=\"person-list\""));
+    assert!(html.contains("250"));  // total shown in the truncation note
 }
 
 #[test]

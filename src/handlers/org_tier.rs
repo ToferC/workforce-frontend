@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership};
+use crate::graphql::{get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership, get_org_ownership_by_tier_id, update_org_ownership, restore_org_tier};
 use crate::security::{self, MinimumRole};
 use super::person::resolve_person_by_name;
 
@@ -517,17 +517,58 @@ pub async fn assign_org_owner_post(
 
     match resolve_person_by_name(&form.person_name, &auth.bearer, &lang, &data).await {
         Ok(Some(person_id)) => {
-            let new_ownership = create_org_ownership::NewOrgOwnership {
-                owner_id: person_id,
-                org_tier_id: org_tier_id.clone(),
+            // Reassign if the tier already has an ownership record;
+            // otherwise create one (tiers from createOrgTier have none).
+            let existing = get_org_ownership_by_tier_id(org_tier_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.ok();
+            let result = if let Some(existing) = existing {
+                update_org_ownership(update_org_ownership::OrgOwnershipData {
+                    id: existing.org_ownership_by_tier_id.id,
+                    owner_id: Some(person_id),
+                    org_tier_id: None,
+                    retired_at: None,
+                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
+            } else {
+                create_org_ownership(create_org_ownership::NewOrgOwnership {
+                    owner_id: person_id,
+                    org_tier_id: org_tier_id.clone(),
+                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
             };
-            match create_org_ownership(new_ownership, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+            match result {
                 Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
                 Err(e) => security::add_flash(&session, "danger", &e.to_string()),
             };
         },
         Ok(None) => security::add_flash(&session, "danger", by_lang(&lang, "Enter the owner's name.", "Entrez le nom du responsable.")),
         Err(message) => security::add_flash(&session, "danger", &message),
+    };
+
+    redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id))
+}
+
+#[post("/{lang}/org_tier/{org_tier_id}/restore")]
+pub async fn restore_org_tier_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<RetireForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, org_tier_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id));
+    }
+
+    match restore_org_tier(org_tier_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Organization tier restored.", "Niveau organisationnel restauré.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
     redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id))

@@ -64,3 +64,11 @@ pub async fn update_organization(data: update_organization::OrganizationData, be
         data,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/organizations/restore_organization.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct RestoreOrganization;
+
+pub async fn restore_organization(id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<restore_organization::ResponseData, ApiError> {
+    post_graphql::<RestoreOrganization>(&client, api_url, &bearer, restore_organization::Variables { id }).await
+}

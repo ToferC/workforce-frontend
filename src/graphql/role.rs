@@ -52,3 +52,11 @@ pub async fn update_role(data: update_role::RoleData, bearer: String, api_url: &
         data,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/roles/all_roles.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct AllRoles;
+
+pub async fn all_roles(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_roles::ResponseData, ApiError> {
+    post_graphql::<AllRoles>(&client, api_url, &bearer, all_roles::Variables {}).await
+}

@@ -1,0 +1,3 @@
+mutation RestoreOrgTier($id: UUID!) {
+  restoreOrgTier(id: $id) { id retiredAt }
+}

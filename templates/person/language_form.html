@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}<title>{{ fluent(key="add-language", lang=lang) }}</title>{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+    <h1 class="mb-4"><i class="bi bi-translate"></i> {{ fluent(key="add-language", lang=lang) }}</h1>
+    <p class="lead text-muted">{{ person.givenName }} {{ person.familyName }}</p>
+
+    {% set label_name = fluent(key="language", lang=lang) %}
+    {% set label_reading = fluent(key="reading", lang=lang) %}
+    {% set label_writing = fluent(key="writing", lang=lang) %}
+    {% set label_speaking = fluent(key="speaking", lang=lang) %}
+    {% set blank = fluent(key="not-specified", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+    {% set cancel_url = "/" ~ lang ~ "/person/" ~ person.id %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="/{{ lang }}/person/{{ person.id }}/language/new">
+                {{ forms::csrf(token=csrf_token) }}
+                {{ forms::select(name="language_name", label=label_name, options=language_names) }}
+                <div class="row">
+                    <div class="col-md-4">{{ forms::select(name="reading", label=label_reading, options=language_levels, required=false, blank_label=blank) }}</div>
+                    <div class="col-md-4">{{ forms::select(name="writing", label=label_writing, options=language_levels, required=false, blank_label=blank) }}</div>
+                    <div class="col-md-4">{{ forms::select(name="speaking", label=label_speaking, options=language_levels, required=false, blank_label=blank) }}</div>
+                </div>
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

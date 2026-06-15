@@ -9,6 +9,10 @@ pub mod publication;
 pub mod work;
 pub mod task;
 pub mod capability;
+pub mod skill;
+pub mod requirement;
+pub mod validation;
+pub mod language;
 
 pub use client::*;
 pub use log_in_mutation::*;
@@ -21,3 +25,7 @@ pub use publication::*;
 pub use work::*;
 pub use task::*;
 pub use capability::*;
+pub use skill::*;
+pub use requirement::*;
+pub use validation::*;
+pub use language::*;

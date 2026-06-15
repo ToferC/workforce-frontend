@@ -1,0 +1,3 @@
+query AllPublications {
+  allPublications { id title publicationStatus }
+}

@@ -290,3 +290,71 @@ affiliated-organization = Organisation affiliée
 affiliation-role = Rôle d'affiliation
 affiliation-role-helper = p. ex. Détachement, Liaison, Conseiller.
 none-label = Aucune
+
+## Skills & Capabilities
+skills = Compétences
+skill = Compétence
+description = Description
+create-skill = Créer une compétence
+edit-skill = Modifier la compétence
+new-skill-button = Nouvelle compétence
+people-with-skill = Personnes ayant cette compétence
+add-capability = Ajouter une capacité
+self-identified-level = Niveau auto-évalué
+retire-button = Retirer
+
+## Requirements, Validations, Languages
+add-requirement = Ajouter une exigence
+required-level = Niveau requis
+validate-capability = Valider la capacité
+validate-capability-help = Enregistrez la validation de cette capacité par une autre personne. Le niveau validé est recalculé comme la moyenne de toutes les validations.
+validate-button = Valider
+validator-name = Nom du validateur
+validated-level = Niveau validé
+languages = Langues
+language = Langue
+add-language = Ajouter une langue
+reading = Lecture
+writing = Écriture
+speaking = Expression orale
+not-specified = Non précisé
+
+## Tasks, Work, Publications
+title = Titre
+tasks = Tâches
+create-task = Créer une tâche
+edit-task = Modifier la tâche
+add-task = Ajouter une tâche
+intended-outcome = Résultat visé
+final-outcome = Résultat final
+approval-tier = Niveau d'approbation
+target-completion-date = Date d'achèvement prévue
+completed-date = Date d'achèvement
+status = Statut
+work-description = Description du travail
+capability-level = Niveau de capacité
+create-work = Ajouter du travail
+edit-work = Modifier le travail
+add-work = Ajouter du travail
+publications = Publications
+new-publication-button = Nouvelle publication
+create-publication = Créer une publication
+edit-publication = Modifier la publication
+publishing-organization = Organisation éditrice
+lead-author = Auteur principal
+subject = Sujet
+publishing-id = Identifiant de publication
+published-date = Date de publication
+
+## Index pages
+roles = Rôles
+show-retired = Afficher les retirés
+hide-retired = Masquer les retirés
+
+## Index search
+search-placeholder = Rechercher par nom…
+no-results = Aucun résultat.
+showing-first = Affichage des premiers
+refine-search = affinez votre recherche pour réduire les résultats.
+
+restore-button = Restaurer

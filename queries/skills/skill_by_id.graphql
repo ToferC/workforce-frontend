@@ -1,0 +1,20 @@
+query SkillById($id: UUID!) {
+  skillById(id: $id) {
+    id
+    nameEn
+    nameFr
+    descriptionEn
+    descriptionFr
+    domain
+    capabilities {
+      id
+      selfIdentifiedLevel
+      validatedLevel
+      person {
+        id
+        givenName
+        familyName
+      }
+    }
+  }
+}

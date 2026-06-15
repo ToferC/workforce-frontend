@@ -1,0 +1,3 @@
+query AllTasks {
+  allTasks { id title domain taskStatus }
+}

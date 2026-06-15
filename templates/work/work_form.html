@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    {% if edit %}<title>{{ fluent(key="edit-work", lang=lang) }}</title>
+    {% else %}<title>{{ fluent(key="create-work", lang=lang) }}</title>{% endif %}
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+    {% if edit %}
+    <h1 class="mb-4"><i class="bi bi-tools"></i> {{ fluent(key="edit-work", lang=lang) }}</h1>
+    {% else %}
+    <h1 class="mb-4"><i class="bi bi-tools"></i> {{ fluent(key="create-work", lang=lang) }}</h1>
+    {% endif %}
+
+    {% set label_task = fluent(key="task", lang=lang) %}
+    {% set label_desc = fluent(key="work-description", lang=lang) %}
+    {% set label_url = fluent(key="website-url", lang=lang) %}
+    {% set label_domain = fluent(key="primary-domain", lang=lang) %}
+    {% set label_level = fluent(key="capability-level", lang=lang) %}
+    {% set label_effort = fluent(key="effort", lang=lang) %}
+    {% set label_status = fluent(key="status", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+
+    {% if edit %}
+    {% set form_action = "/" ~ lang ~ "/work/" ~ work.id ~ "/edit" %}
+    {% set cancel_url = "/" ~ lang ~ "/work/" ~ work.id %}
+    {% else %}
+    {% set form_action = "/" ~ lang ~ "/role/" ~ role_id ~ "/work/new" %}
+    {% set cancel_url = "/" ~ lang ~ "/role/" ~ role_id %}
+    {% endif %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="{{ form_action | safe }}">
+                {{ forms::csrf(token=csrf_token) }}
+                {% if not edit %}{{ forms::select(name="task_id", label=label_task, options=task_options) }}{% endif %}
+                {{ forms::textarea(name="work_description", label=label_desc, value=work.workDescription) }}
+                {{ forms::text_input(name="url", label=label_url, value=work.url, type="url", required=false) }}
+                <div class="row">
+                    <div class="col-md-6">{{ forms::select(name="domain", label=label_domain, options=skill_domains, selected=work.domain) }}</div>
+                    <div class="col-md-6">{{ forms::select(name="capability_level", label=label_level, options=capability_levels, selected=work.capabilityLevel) }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">{{ forms::text_input(name="effort", label=label_effort, value=work.effort, type="number") }}</div>
+                    <div class="col-md-6">{{ forms::select(name="work_status", label=label_status, options=work_statuses, selected=work.workStatus) }}</div>
+                </div>
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

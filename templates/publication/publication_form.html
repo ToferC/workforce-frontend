@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    {% if edit %}<title>{{ fluent(key="edit-publication", lang=lang) }}</title>
+    {% else %}<title>{{ fluent(key="create-publication", lang=lang) }}</title>{% endif %}
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+    {% if edit %}
+    <h1 class="mb-4"><i class="bi bi-journal-richtext"></i> {{ fluent(key="edit-publication", lang=lang) }}</h1>
+    {% else %}
+    <h1 class="mb-4"><i class="bi bi-journal-richtext"></i> {{ fluent(key="create-publication", lang=lang) }}</h1>
+    {% endif %}
+
+    {% set label_org = fluent(key="publishing-organization", lang=lang) %}
+    {% set label_author = fluent(key="lead-author", lang=lang) %}
+    {% set help_author = fluent(key="owner-name-helper", lang=lang) %}
+    {% set label_title = fluent(key="title", lang=lang) %}
+    {% set label_subject = fluent(key="subject", lang=lang) %}
+    {% set label_status = fluent(key="status", lang=lang) %}
+    {% set label_url = fluent(key="website-url", lang=lang) %}
+    {% set label_pubid = fluent(key="publishing-id", lang=lang) %}
+    {% set label_pubdate = fluent(key="published-date", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+
+    {% if edit %}
+    {% set form_action = "/" ~ lang ~ "/publication/" ~ publication.id ~ "/edit" %}
+    {% set cancel_url = "/" ~ lang ~ "/publication/" ~ publication.id %}
+    {% else %}
+    {% set form_action = "/" ~ lang ~ "/publication/new" %}
+    {% set cancel_url = "/" ~ lang ~ "/publications" %}
+    {% endif %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="{{ form_action | safe }}">
+                {{ forms::csrf(token=csrf_token) }}
+                {% if not edit %}
+                {{ forms::select(name="organization_id", label=label_org, options=organization_options) }}
+                {{ forms::text_input(name="lead_author_name", label=label_author, help=help_author) }}
+                {% endif %}
+                {{ forms::text_input(name="title", label=label_title, value=publication.title) }}
+                {{ forms::textarea(name="subject_text", label=label_subject, value=publication.subjectText) }}
+                {{ forms::select(name="publication_status", label=label_status, options=publication_statuses, selected=publication.publicationStatus) }}
+                <div class="row">
+                    <div class="col-md-6">{{ forms::text_input(name="url_string", label=label_url, value=publication.urlString, type="url", required=false) }}</div>
+                    <div class="col-md-6">{{ forms::text_input(name="publishing_id", label=label_pubid, value=publication.publishingId, required=false) }}</div>
+                </div>
+                {{ forms::date_input(name="published_datestamp", label=label_pubdate, value=publication.publishedDatestamp) }}
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}<title>{{ fluent(key="roles", lang=lang) }}</title>{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h1 class="h3 mb-0"><i class="bi bi-briefcase"></i> {{ fluent(key="roles", lang=lang) }}</h1>
+        </div>
+        <div class="card-body">
+            <input type="search" class="form-control mb-3" name="q" value="{{ q }}"
+                placeholder="{{ fluent(key="search-placeholder", lang=lang) }}"
+                hx-get="/{{ lang }}/roles"
+                hx-trigger="keyup changed delay:300ms, search"
+                hx-target="#role-list" hx-swap="outerHTML">
+            {% include "role/role_list.html" %}
+        </div>
+    </div>
+</div>
+{% endblock content %}

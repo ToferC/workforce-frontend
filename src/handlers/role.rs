@@ -7,9 +7,10 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_role_by_id, get_team_by_id, get_people_by_name, create_role, update_role};
+use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, all_skills, get_skill_by_id, create_requirement, update_requirement};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
+use super::capability::CAPABILITY_LEVELS;
 
 /// Rank enum values, kept in sync with the API schema.
 pub const RANKS: [&str; 17] = [
@@ -495,4 +496,181 @@ pub async fn end_role_post(
     };
 
     redirect_to(format!("/{}/role/{}", &lang, &role_id))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RequirementForm {
+    pub csrf_token: String,
+    pub skill_id: String,
+    pub required_level: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RequirementRetireForm {
+    pub csrf_token: String,
+}
+
+fn level_options() -> serde_json::Value {
+    json!(CAPABILITY_LEVELS.iter().map(|l| json!({"value": l, "label": humanize(l)})).collect::<Vec<serde_json::Value>>())
+}
+
+#[get("/{lang}/role/{role_id}/requirement/new")]
+pub async fn create_requirement_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let skills = all_skills(auth.bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| json!(r.skills.iter().map(|s| json!({"value": s.id, "label": s.name_en})).collect::<Vec<_>>()))
+        .unwrap_or_else(|_| json!([]));
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("role_id", &role_id);
+    ctx.insert("skill_options", &skills);
+    ctx.insert("capability_levels", &level_options());
+
+    let rendered = data.tmpl.render("role/requirement_form.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/role/{role_id}/requirement/new")]
+pub async fn create_requirement_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<RequirementForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/role/{}/requirement/new", &lang, &role_id));
+    }
+
+    // The chosen skill supplies the requirement's name and domain
+    let skill = match get_skill_by_id(form.skill_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.skill_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/role/{}/requirement/new", &lang, &role_id));
+        },
+    };
+
+    let new_requirement = create_requirement::NewRequirement {
+        name_en: skill.name_en.clone(),
+        name_fr: skill.name_fr.clone(),
+        domain: serde_json::from_value(json!(skill.domain)).expect("SkillDomain deserialization is infallible"),
+        role_id: role_id.clone(),
+        skill_id: form.skill_id.clone(),
+        required_level: serde_json::from_value(json!(form.required_level)).expect("CapabilityLevel deserialization is infallible"),
+    };
+
+    match create_requirement(new_requirement, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Requirement added.", "Exigence ajoutée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/role/{}", &lang, &role_id))
+}
+
+#[post("/{lang}/role/{role_id}/requirement/{requirement_id}/retire")]
+pub async fn retire_requirement_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+    form: web::Form<RequirementRetireForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id, requirement_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+    }
+
+    let requirement_data = update_requirement::RequirementData {
+        id: requirement_id,
+        name_en: None,
+        name_fr: None,
+        domain: None,
+        required_level: None,
+        retired_at: Some(chrono::Utc::now().naive_utc()),
+    };
+
+    match update_requirement(requirement_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Requirement retired.", "Exigence retirée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/role/{}", &lang, &role_id))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RoleIndexParams {
+    #[serde(default)]
+    pub q: String,
+}
+
+#[get("/{lang}/roles")]
+pub async fn role_index(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    params: web::Query<RoleIndexParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    let query = params.q.trim().to_lowercase();
+    // allRoles is already active-only on the API side
+    let roles = all_roles(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_roles)
+        .unwrap_or_default();
+
+    let matched: Vec<_> = roles.iter()
+        .filter(|r| query.is_empty()
+            || r.title_english.to_lowercase().contains(&query)
+            || r.title_french.to_lowercase().contains(&query)
+            || r.person.as_ref().map_or(false, |p| format!("{} {}", p.given_name, p.family_name).to_lowercase().contains(&query)))
+        .collect();
+    let total = matched.len();
+    let visible: Vec<_> = matched.into_iter().take(super::person::INDEX_PAGE_CAP).collect();
+
+    ctx.insert("roles", &visible);
+    ctx.insert("total", &total);
+    ctx.insert("truncated", &(total > super::person::INDEX_PAGE_CAP));
+    ctx.insert("q", &params.q);
+
+    let template = if is_htmx(&req) { "role/role_list.html" } else { "role/role_index.html" };
+    let rendered = data.tmpl.render(template, &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
 }

@@ -12,11 +12,31 @@
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="h4 mb-0"><i class="bi bi-building"></i> Organizations</h2>
-                    {% if role == "operator" or role == "admin" %}
-                    <a class="btn btn-primary btn-sm" href="/{{ lang }}/organization/new">
-                        <i class="bi bi-plus-lg"></i> {{ fluent(key="new-organization-button", lang=lang) }}
-                    </a>
-                    {% endif %}
+                    <span>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/people">
+                            <i class="bi bi-person-lines-fill"></i> {{ fluent(key="person-index", lang=lang) }}
+                        </a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/teams">
+                            <i class="bi bi-people"></i> {{ fluent(key="teams", lang=lang) }}
+                        </a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/roles">
+                            <i class="bi bi-briefcase"></i> {{ fluent(key="roles", lang=lang) }}
+                        </a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/skills">
+                            <i class="bi bi-mortarboard"></i> {{ fluent(key="skills", lang=lang) }}
+                        </a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/tasks">
+                            <i class="bi bi-list-task"></i> {{ fluent(key="tasks", lang=lang) }}
+                        </a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/publications">
+                            <i class="bi bi-journal-richtext"></i> {{ fluent(key="publications", lang=lang) }}
+                        </a>
+                        {% if role == "operator" or role == "admin" %}
+                        <a class="btn btn-primary btn-sm" href="/{{ lang }}/organization/new">
+                            <i class="bi bi-plus-lg"></i> {{ fluent(key="new-organization-button", lang=lang) }}
+                        </a>
+                        {% endif %}
+                    </span>
                 </div>
                 <div class="card-body">
                     <ul class="list-group list-group-flush">

@@ -290,3 +290,71 @@ affiliated-organization = Affiliated organization
 affiliation-role = Affiliation role
 affiliation-role-helper = e.g. Secondment, Liaison, Advisor.
 none-label = None
+
+## Skills & Capabilities
+skills = Skills
+skill = Skill
+description = Description
+create-skill = Create Skill
+edit-skill = Edit Skill
+new-skill-button = New Skill
+people-with-skill = People with this skill
+add-capability = Add capability
+self-identified-level = Self-identified level
+retire-button = Retire
+
+## Requirements, Validations, Languages
+add-requirement = Add requirement
+required-level = Required level
+validate-capability = Validate capability
+validate-capability-help = Record another person's validation of this capability. The validated level is recalculated as the average of all validations.
+validate-button = Validate
+validator-name = Validator's name
+validated-level = Validated level
+languages = Languages
+language = Language
+add-language = Add language
+reading = Reading
+writing = Writing
+speaking = Speaking
+not-specified = Not specified
+
+## Tasks, Work, Publications
+title = Title
+tasks = Tasks
+create-task = Create Task
+edit-task = Edit Task
+add-task = Add task
+intended-outcome = Intended outcome
+final-outcome = Final outcome
+approval-tier = Approval tier
+target-completion-date = Target completion date
+completed-date = Completed date
+status = Status
+work-description = Work description
+capability-level = Capability level
+create-work = Add Work
+edit-work = Edit Work
+add-work = Add work
+publications = Publications
+new-publication-button = New Publication
+create-publication = Create Publication
+edit-publication = Edit Publication
+publishing-organization = Publishing organization
+lead-author = Lead author
+subject = Subject
+publishing-id = Publishing ID
+published-date = Published date
+
+## Index pages
+roles = Roles
+show-retired = Show retired
+hide-retired = Hide retired
+
+## Index search
+search-placeholder = Search by name…
+no-results = No matches.
+showing-first = Showing first
+refine-search = refine your search to narrow results.
+
+restore-button = Restore

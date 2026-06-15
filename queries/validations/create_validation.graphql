@@ -1,0 +1,3 @@
+mutation CreateValidation($data: NewValidation!) {
+  createValidation(data: $data) { id validatedLevel }
+}

@@ -1,0 +1,3 @@
+mutation UpdateLanguageData($data: LanguageDataUpdate!) {
+  updateLanguageData(data: $data) { id languageName }
+}

@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_team_by_id, create_team, update_team, create_team_ownership};
+use crate::graphql::{get_team_by_id, all_teams, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership, restore_team};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{parent_tier_options, skill_domain_options, OwnerForm};
 use super::person::resolve_person_by_name;
@@ -441,19 +441,114 @@ pub async fn assign_team_owner_post(
 
     match resolve_person_by_name(&form.person_name, &auth.bearer, &lang, &data).await {
         Ok(Some(person_id)) => {
-            let new_ownership = create_team_ownership::NewTeamOwnership {
-                person_id,
-                team_id: team_id.clone(),
-                start_datestamp: chrono::Utc::now().naive_utc(),
-                end_date: None,
+            // Reassign if the team already has an ownership record;
+            // otherwise create one.
+            let existing = get_team_ownership_by_team_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.ok();
+            let result = if let Some(existing) = existing {
+                update_team_ownership(update_team_ownership::TeamOwnershipData {
+                    id: existing.team_ownership_by_team_id.id,
+                    person_id: Some(person_id),
+                    team_id: None,
+                    start_datestamp: None,
+                    end_date: None,
+                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
+            } else {
+                create_team_ownership(create_team_ownership::NewTeamOwnership {
+                    person_id,
+                    team_id: team_id.clone(),
+                    start_datestamp: chrono::Utc::now().naive_utc(),
+                    end_date: None,
+                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
             };
-            match create_team_ownership(new_ownership, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+            match result {
                 Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
                 Err(e) => security::add_flash(&session, "danger", &e.to_string()),
             };
         },
         Ok(None) => security::add_flash(&session, "danger", by_lang(&lang, "Enter the owner's name.", "Entrez le nom du responsable.")),
         Err(message) => security::add_flash(&session, "danger", &message),
+    };
+
+    redirect_to(format!("/{}/team/{}", &lang, &team_id))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct IndexParams {
+    #[serde(default)]
+    pub retired: String,
+    #[serde(default)]
+    pub q: String,
+}
+
+#[get("/{lang}/teams")]
+pub async fn team_index(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    params: web::Query<IndexParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    let show_retired = params.retired == "1";
+    let query = params.q.trim().to_lowercase();
+    let teams = all_teams(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_teams)
+        .unwrap_or_default();
+
+    // Team.retiredAt is a non-null String using "Still Active" as the
+    // not-retired sentinel; hide retired teams unless ?retired=1
+    let matched: Vec<_> = teams.iter()
+        .filter(|t| show_retired || t.retired_at == "Still Active")
+        .filter(|t| query.is_empty()
+            || t.name_english.to_lowercase().contains(&query)
+            || t.name_french.to_lowercase().contains(&query))
+        .collect();
+    let total = matched.len();
+    let visible: Vec<_> = matched.into_iter().take(super::person::INDEX_PAGE_CAP).collect();
+
+    ctx.insert("teams", &visible);
+    ctx.insert("total", &total);
+    ctx.insert("truncated", &(total > super::person::INDEX_PAGE_CAP));
+    ctx.insert("q", &params.q);
+    ctx.insert("show_retired", &show_retired);
+
+    let template = if is_htmx(&req) { "team/team_list.html" } else { "team/team_index.html" };
+    let rendered = data.tmpl.render(template, &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/team/{team_id}/restore")]
+pub async fn restore_team_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<RetireForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, team_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/team/{}", &lang, &team_id));
+    }
+
+    match restore_team(team_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Team restored.", "Équipe restaurée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
     redirect_to(format!("/{}/team/{}", &lang, &team_id))

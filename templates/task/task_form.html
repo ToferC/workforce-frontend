@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    {% if edit %}<title>{{ fluent(key="edit-task", lang=lang) }}</title>
+    {% else %}<title>{{ fluent(key="create-task", lang=lang) }}</title>{% endif %}
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+    {% if edit %}
+    <h1 class="mb-4"><i class="bi bi-list-task"></i> {{ fluent(key="edit-task", lang=lang) }}</h1>
+    {% else %}
+    <h1 class="mb-4"><i class="bi bi-list-task"></i> {{ fluent(key="create-task", lang=lang) }}</h1>
+    {% endif %}
+
+    {% set label_title = fluent(key="title", lang=lang) %}
+    {% set label_domain = fluent(key="primary-domain", lang=lang) %}
+    {% set label_intended = fluent(key="intended-outcome", lang=lang) %}
+    {% set label_final = fluent(key="final-outcome", lang=lang) %}
+    {% set label_tier = fluent(key="approval-tier", lang=lang) %}
+    {% set label_url = fluent(key="website-url", lang=lang) %}
+    {% set label_start = fluent(key="start-date", lang=lang) %}
+    {% set label_target = fluent(key="target-completion-date", lang=lang) %}
+    {% set label_status = fluent(key="status", lang=lang) %}
+    {% set label_completed = fluent(key="completed-date", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+
+    {% if edit %}
+    {% set form_action = "/" ~ lang ~ "/task/" ~ task.id ~ "/edit" %}
+    {% set cancel_url = "/" ~ lang ~ "/task/" ~ task.id %}
+    {% else %}
+    {% set form_action = "/" ~ lang ~ "/role/" ~ role_id ~ "/task/new" %}
+    {% set cancel_url = "/" ~ lang ~ "/role/" ~ role_id %}
+    {% endif %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="{{ form_action | safe }}">
+                {{ forms::csrf(token=csrf_token) }}
+                {{ forms::text_input(name="title", label=label_title, value=task.title) }}
+                <div class="row">
+                    <div class="col-md-8">{{ forms::select(name="domain", label=label_domain, options=skill_domains, selected=task.domain) }}</div>
+                    <div class="col-md-4">{{ forms::text_input(name="approval_tier", label=label_tier, value=task.approvalTier, type="number") }}</div>
+                </div>
+                {{ forms::textarea(name="intended_outcome", label=label_intended, value=task.intendedOutcome) }}
+                {% if edit %}{{ forms::textarea(name="final_outcome", label=label_final, value=task.finalOutcome, required=false) }}{% endif %}
+                {{ forms::text_input(name="url", label=label_url, value=task.url, type="url", required=false) }}
+                <div class="row">
+                    <div class="col-md-4">{{ forms::date_input(name="start_date", label=label_start, value=task.startDatestamp, required=true) }}</div>
+                    <div class="col-md-4">{{ forms::date_input(name="target_completion_date", label=label_target, value=task.targetCompletionDate, required=true) }}</div>
+                    {% if edit %}<div class="col-md-4">{{ forms::date_input(name="completed_date", label=label_completed, value=task.completedDate) }}</div>{% endif %}
+                </div>
+                {{ forms::select(name="task_status", label=label_status, options=work_statuses, selected=task.taskStatus) }}
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

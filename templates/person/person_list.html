@@ -1,0 +1,18 @@
+{# Person list rows — rendered standalone for HTMX search, and included by
+   the full person_index page. #}
+<ul class="list-group list-group-flush" id="person-list">
+    {% for p in people %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <a href="/{{ lang }}/person/{{ p.id }}">{{ p.givenName }} {{ p.familyName }}</a>
+        <span>
+            <span class="text-muted small">{{ p.organization.nameEn }}</span>
+            {% if p.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+        </span>
+    </li>
+    {% else %}
+    <li class="list-group-item text-muted">{{ fluent(key="no-results", lang=lang) }}</li>
+    {% endfor %}
+    {% if truncated %}
+    <li class="list-group-item text-muted small">{{ fluent(key="showing-first", lang=lang) }} {{ people | length }} / {{ total }} — {{ fluent(key="refine-search", lang=lang) }}</li>
+    {% endif %}
+</ul>

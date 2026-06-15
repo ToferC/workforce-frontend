@@ -2,28 +2,9 @@ query AllTeams {
   allTeams {
     id
     nameEnglish
-    descriptionEnglish
-    organizationLevel {
-      nameEn
-      id
-    }
-    organization {
-      id
-      nameEn
-    }
-    occupiedRoles {
-      titleEnglish
-      id
-    }
-    vacantRoles {
-      titleEnglish
-      id
-    }
-    owner {
-      givenName
-      familyName
-      email
-      id
-    }
+    nameFrench
+    retiredAt
+    organization { id nameEn }
+    organizationLevel { id nameEn }
   }
 }

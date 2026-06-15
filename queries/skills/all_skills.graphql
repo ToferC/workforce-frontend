@@ -1,0 +1,8 @@
+query AllSkills {
+  skills {
+    id
+    nameEn
+    domain
+    retiredAt
+  }
+}

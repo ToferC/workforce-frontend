@@ -1,0 +1,6 @@
+mutation UpdateSkill($data: SkillData!) {
+  updateSkill(data: $data) {
+    id
+    nameEn
+  }
+}

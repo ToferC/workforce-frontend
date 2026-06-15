@@ -1,0 +1,23 @@
+{# Role list rows — standalone for HTMX search, included by role_index. #}
+<ul class="list-group list-group-flush" id="role-list">
+    {% for r in roles %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <a href="/{{ lang }}/role/{{ r.id }}">
+            {% if lang == "fr" %}{{ r.titleFrench }}{% else %}{{ r.titleEnglish }}{% endif %}
+        </a>
+        <span>
+            {% if r.person %}
+            <span class="text-muted small">{{ r.person.givenName }} {{ r.person.familyName }}</span>
+            {% else %}
+            <span class="badge bg-danger">{{ fluent(key="vacant", lang=lang) }}</span>
+            {% endif %}
+            <span class="text-muted small ms-1">{{ r.team.nameEnglish }}</span>
+        </span>
+    </li>
+    {% else %}
+    <li class="list-group-item text-muted">{{ fluent(key="no-results", lang=lang) }}</li>
+    {% endfor %}
+    {% if truncated %}
+    <li class="list-group-item text-muted small">{{ fluent(key="showing-first", lang=lang) }} {{ roles | length }} / {{ total }} — {{ fluent(key="refine-search", lang=lang) }}</li>
+    {% endif %}
+</ul>

@@ -152,27 +152,60 @@ Same slice, in dependency order, reusing the macros and helper:
 
 | Entity | Notes |
 |---|---|
-| **Skill** | Plain bilingual form + `domain` enum select. ⚠️ `SkillData` has **no** `retiredAt` — skills can't be retired through the API today (backend gap, §5). |
-| **Capability** | Created from a person's page (person + skill + org + self-identified level). Update = level changes + retire. HTMX inline level editing on the person page is the highest-value enhancement here. |
-| **Requirement** | Created from a role's page (skill + required level). |
-| **Validation** | Admin-only (matches backend guard); simple level form on the capability page. |
-| **LanguageData** | Section on the person page; Canadian A/B/C/E/X level selects. |
+| **Skill** ✅ | Done: index page (`/{lang}/skills`, linked from the home page), detail page (with people-who-have-it), create/edit forms (bilingual name/description + `domain` select). No retire — `SkillData` has no `retiredAt` (backend gap, §5). |
+| **Capability** ✅ | Done: "Add capability" on the person page (skill select + self-identified level; the chosen skill supplies name/domain, the person supplies the org, `validationValues` starts empty) and per-row "Retire" (sets `retiredAt`). Found & fixed a latent backend panic: `findMatches` unwrapped `validated_level`, so any capability with no validations yet (i.e. every freshly created one) crashed the person page. Inline HTMX level editing is still a future enhancement. |
+| **Requirement** ✅ | Done: "Add requirement" on the role page (skill select supplies name/domain + required level) and per-row "Retire" (`retiredAt`). |
+| **Validation** ✅ | Done: admin-only "Validate" button per capability on the person page → form (validator resolved by typed full name + validated level). The API recalculates the capability's validated level as the average of its validations (verified). |
+| **LanguageData** ✅ | Done: "Add language" on the person page (language select + reading/writing/speaking on the Canadian A/B/C/E/X scale, each optional). Languages section added to the person page. |
 
-### Phase 4 — Work-tracking & publications
+**Schema-drift fix during this slice:** the merged `main` made `Role.militaryOccupation`/`rank` nullable (civilian personnel) in the Rust models but never regenerated the checked-in SDL, so the running API returned null for fields the frontend's `schema.graphql` still marked `!`, panicking the role/person/team pages for civilian roles. Relaxed both fields to nullable in both schema files (introspection is the source of truth; the SDL files lag).
 
-Tasks, Work, Publications, PublicationContributors — same pattern, enum-heavy
-forms (`TaskStatus`, `WorkStatus`, `PublicationStatus`, `CapabilityLevel`).
-Lower priority; schedule after Phases 1–3 are proven.
+### Phase 4 — Work-tracking & publications ✅ (PublicationContributors deferred)
 
-### Phase 5 — List/index pages & polish
+| Entity | Status |
+|---|---|
+| **Task** ✅ | Index (`/{lang}/tasks`, linked from home), create from a role's page (the role is the creator), and edit (status, intended/final outcome, dates). `taskStatus` reuses the `WorkStatus` enum. |
+| **Work** ✅ | Create from a role's page (role fixed; pick a task from a select), and edit (description, domain, capability level, effort, status). Task/role can't be reassigned after creation (API limitation). |
+| **Publication** ✅ | Index (`/{lang}/publications`, linked from home) + create (publishing org select, lead author by typed name, title, subject, status, url/id/date) and edit (org & lead author are immutable in the API after creation, so the edit form omits them). |
+| **PublicationContributor** | Deferred — adds co-authors to a publication; not yet built. |
 
-- Today most entities have only detail pages reachable by ID. Add index pages
-  (the queries exist: `allOrganizations`, `allTeams`, `allRoles`, `skills`,
-  `allPeople`, `allTasks`, …) with New/Edit/Retire actions — otherwise the
-  CRUD UI has no entry point.
-- HTMX-powered search/filter on index pages (server-rendered table partials).
-- Hide retired records by default with a "show retired" toggle; offer
-  "restore" (update with `retiredAt: null`) where the API allows it.
+Enum selects (`WorkStatus`, `PublicationStatus`, `CapabilityLevel`, `SkillDomain`)
+are populated from constants kept in sync with the API schema. All verified
+end-to-end against the local API.
+
+### Phase 5 — List/index pages & polish (IN PROGRESS)
+
+- ✅ Index pages added for the entities that previously had only detail-by-ID
+  pages: **People** (`/{lang}/people`), **Teams** (`/{lang}/teams`),
+  **Roles** (`/{lang}/roles`) — joining the existing Organizations (home),
+  Skills, Tasks, and Publications indexes. All are linked from the home page,
+  giving the CRUD UI real entry points.
+- ✅ **Show-retired toggle** on the People and Teams indexes (`?retired=1`).
+  `allPeople`/`allTeams` return retired records, so the handler hides them by
+  default and the toggle reveals them; verified end-to-end. (`allRoles` is
+  already active-only on the API side, so the Roles index needs no toggle.
+  Note `Team.retiredAt` is a non-null `String` using the sentinel
+  `"Still Active"`, unlike other types' nullable timestamp.)
+- ✅ **HTMX live search** on the People, Teams, and Roles indexes. Each index
+  has a search box (`hx-get` with `keyup changed delay:300ms`) that swaps a
+  server-rendered list partial; the handler filters the list and returns just
+  the partial on `HX-Request`. This also solves the **list-size problem**: the
+  default view is capped (`INDEX_PAGE_CAP = 100`) with a "showing first N of
+  total — refine your search" note, so the People index renders 100 rows
+  instead of ~4.4k and you search to narrow.
+- ⏳ Not yet done: org-tier index (tiers are reachable via the org chart
+  builder); true offset/cursor pagination (the cap + search covers the
+  immediate need).
+- ✅ **Restore** (un-retire) implemented. Dedicated `restoreOrganization`/
+  `restoreOrgTier`/`restoreTeam`/`restorePerson` mutations on the API clear
+  `retired_at`; the frontend shows a "Restore" button (POST + CSRF) on the
+  detail page when an entity is retired, in place of "Retire". Two Diesel-level
+  subtleties were the real blockers, both fixed: the `update()` AsChangeset
+  skips `None` fields (so clearing a column needs an explicit
+  `set(retired_at.eq(None))` — done via new model `restore()` methods), and
+  `Team.retiredAt` is the `"Still Active"` sentinel string (the team detail
+  page now compares against it correctly — previously the badge always showed
+  and Retire never did).
 
 ## 4. Cross-cutting conventions
 

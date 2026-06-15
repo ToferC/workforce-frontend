@@ -1,0 +1,3 @@
+mutation CreateRequirement($data: NewRequirement!) {
+  createRequirement(data: $data) { id nameEn }
+}
