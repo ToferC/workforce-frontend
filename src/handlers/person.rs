@@ -4,8 +4,9 @@ use actix_identity::{Identity};
 use serde::Deserialize;
 use serde_json::json;
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
-use crate::{AppData, generate_basic_context, by_lang};
+use crate::{AppData, generate_basic_context, by_lang, level_weight, domain_short_label};
 use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data, restore_person};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
@@ -173,6 +174,55 @@ pub async fn person_by_id(
     let r = get_person_by_id(person_id, bearer, &data.api_url, Arc::clone(&data.client))
         .await
         .expect("Unable to get person");
+
+    // Capability radar: best level per domain (validated as the filled series,
+    // self-identified as a lighter dashed series). Rendered only when the
+    // person has at least 3 distinct domains, since a radar needs ≥3 axes.
+    let person = &r.person_by_id;
+    let mut dom_validated: BTreeMap<String, i64> = BTreeMap::new();
+    let mut dom_self: BTreeMap<String, i64> = BTreeMap::new();
+    for cap in &person.capabilities {
+        let domain = serde_json::to_value(&cap.domain)
+            .ok()
+            .and_then(|v| v.as_str().map(String::from))
+            .unwrap_or_default();
+        let self_w = serde_json::to_value(&cap.self_identified_level)
+            .ok()
+            .and_then(|v| v.as_str().map(String::from))
+            .map(|s| level_weight(&s))
+            .unwrap_or(0);
+        let val_w = cap.validated_level.as_ref()
+            .and_then(|l| serde_json::to_value(l).ok())
+            .and_then(|v| v.as_str().map(String::from))
+            .map(|s| level_weight(&s))
+            .unwrap_or(0);
+        let e = dom_self.entry(domain.clone()).or_insert(0);
+        if self_w > *e { *e = self_w; }
+        let e = dom_validated.entry(domain).or_insert(0);
+        if val_w > *e { *e = val_w; }
+    }
+
+    let domains: Vec<String> = dom_self.keys().cloned().collect();
+    if domains.len() >= 3 {
+        let indicators: Vec<serde_json::Value> = domains.iter()
+            .map(|d| json!({"name": domain_short_label(d), "max": 5}))
+            .collect();
+        let val_series: Vec<i64> = domains.iter().map(|d| *dom_validated.get(d).unwrap_or(&0)).collect();
+        let self_series: Vec<i64> = domains.iter().map(|d| *dom_self.get(d).unwrap_or(&0)).collect();
+        let radar = json!({
+            "tooltip": {},
+            "legend": {"bottom": 0, "data": ["Validated", "Self-identified"]},
+            "radar": {"indicator": indicators, "radius": "65%"},
+            "series": [{
+                "type": "radar",
+                "data": [
+                    {"value": val_series, "name": "Validated", "areaStyle": {"opacity": 0.2}},
+                    {"value": self_series, "name": "Self-identified", "lineStyle": {"type": "dashed"}}
+                ]
+            }]
+        });
+        ctx.insert("capability_radar", &radar);
+    }
 
     ctx.insert("person", &r.person_by_id);
 

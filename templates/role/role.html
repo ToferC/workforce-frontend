@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "macros/viz.html" as viz %}
+{% import "macros/charts.html" as charts %}
 
 {% block title %}
     <title>{{ fluent(key="role", lang=lang )}}</title>
@@ -110,6 +111,17 @@
             <div class="p-4 text-muted">{{ fluent(key="none-label", lang=lang) }}</div>
             {% endif %}
         </div>
+        {% if requirement_match %}
+        <div class="card-body border-top">
+            <h3 class="h6 text-muted mb-2"><i class="bi bi-bar-chart-steps"></i> Incumbent fit — required vs held</h3>
+            {{ charts::chart(id="requirement-match", height="320px") }}
+            <script type="application/json" id="requirement-match-data">{{ requirement_match | safe }}</script>
+            <p class="small text-muted mb-0 mt-2">
+                Green bars meet or exceed the required level; red bars fall short.
+                Levels: Desired (1) → Specialist (5).
+            </p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Work -->

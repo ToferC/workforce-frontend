@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "macros/viz.html" as viz %}
+{% import "macros/charts.html" as charts %}
 
 {% block title %}
     <title>{{ fluent(key="person", lang=lang )}}</title>
@@ -155,6 +156,12 @@
                 {% endfor %}
             </ul>
         </div>
+        {% if capability_radar %}
+        <div class="card-body border-top">
+            {{ charts::chart(id="capability-radar", height="360px") }}
+            <script type="application/json" id="capability-radar-data">{{ capability_radar | safe }}</script>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Languages -->

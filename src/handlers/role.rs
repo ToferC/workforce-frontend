@@ -5,8 +5,9 @@ use chrono::{NaiveDate, NaiveDateTime};
 use serde::Deserialize;
 use serde_json::json;
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
-use crate::{AppData, generate_basic_context, by_lang};
+use crate::{AppData, generate_basic_context, by_lang, level_weight};
 use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, all_skills, get_skill_by_id, create_requirement, update_requirement};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
@@ -162,6 +163,74 @@ pub async fn role_by_id(
     let r = get_role_by_id(role_id, bearer, &data.api_url, Arc::clone(&data.client))
         .await
         .expect("Unable to get role");
+
+    // Requirement-match bars: compare each role requirement against the level
+    // the incumbent actually holds in that domain (validated preferred, self
+    // as fallback). Only built for an occupied role that has requirements.
+    let role_rec = &r.role_by_id;
+    if !role_rec.requirements.is_empty() {
+        if let Some(person) = &role_rec.person {
+            let mut held_by_domain: BTreeMap<String, i64> = BTreeMap::new();
+            for cap in &person.capabilities {
+                let domain = serde_json::to_value(&cap.domain)
+                    .ok()
+                    .and_then(|v| v.as_str().map(String::from))
+                    .unwrap_or_default();
+                let self_w = serde_json::to_value(&cap.self_identified_level)
+                    .ok()
+                    .and_then(|v| v.as_str().map(String::from))
+                    .map(|s| level_weight(&s))
+                    .unwrap_or(0);
+                let val_w = cap.validated_level.as_ref()
+                    .and_then(|l| serde_json::to_value(l).ok())
+                    .and_then(|v| v.as_str().map(String::from))
+                    .map(|s| level_weight(&s))
+                    .unwrap_or(0);
+                let held = if val_w > 0 { val_w } else { self_w };
+                let e = held_by_domain.entry(domain).or_insert(0);
+                if held > *e { *e = held; }
+            }
+
+            let labels: Vec<String> = role_rec.requirements.iter()
+                .map(|req| req.name_en.clone())
+                .collect();
+            let required: Vec<i64> = role_rec.requirements.iter()
+                .map(|req| serde_json::to_value(&req.required_level)
+                    .ok()
+                    .and_then(|v| v.as_str().map(String::from))
+                    .map(|s| level_weight(&s))
+                    .unwrap_or(0))
+                .collect();
+            let held: Vec<serde_json::Value> = role_rec.requirements.iter()
+                .enumerate()
+                .map(|(i, req)| {
+                    let domain = serde_json::to_value(&req.domain)
+                        .ok()
+                        .and_then(|v| v.as_str().map(String::from))
+                        .unwrap_or_default();
+                    let held_w = *held_by_domain.get(&domain).unwrap_or(&0);
+                    let meets = held_w >= required[i];
+                    json!({
+                        "value": held_w,
+                        "itemStyle": {"color": if meets { "#198754" } else { "#dc3545" }},
+                    })
+                })
+                .collect();
+
+            let req_match = json!({
+                "tooltip": {"trigger": "axis"},
+                "legend": {"data": ["Required", "Held"], "bottom": 0},
+                "grid": {"left": "3%", "right": "4%", "bottom": "14%", "containLabel": true},
+                "xAxis": {"type": "category", "data": labels, "axisLabel": {"rotate": 20, "interval": 0}},
+                "yAxis": {"type": "value", "max": 5, "name": "Level"},
+                "series": [
+                    {"name": "Required", "type": "bar", "data": required, "itemStyle": {"color": "#6c757d"}},
+                    {"name": "Held", "type": "bar", "data": held}
+                ]
+            });
+            ctx.insert("requirement_match", &req_match);
+        }
+    }
 
     ctx.insert("role_record", &r.role_by_id);
 
