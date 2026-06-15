@@ -31,6 +31,9 @@
                         <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/publications">
                             <i class="bi bi-journal-richtext"></i> {{ fluent(key="publications", lang=lang) }}
                         </a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/products">
+                            <i class="bi bi-box-seam"></i> {{ fluent(key="products", lang=lang) }}
+                        </a>
                         {% if role == "operator" or role == "admin" %}
                         <a class="btn btn-primary btn-sm" href="/{{ lang }}/organization/new">
                             <i class="bi bi-plus-lg"></i> {{ fluent(key="new-organization-button", lang=lang) }}

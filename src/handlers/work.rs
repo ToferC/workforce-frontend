@@ -133,7 +133,11 @@ pub async fn create_work_post(
 
     let new_work = create_work::NewWork {
         task_id: form.task_id.clone(),
-        role_id: role_id.clone(),
+        // This form always creates work assigned to the role in the path;
+        // vacant work (role_id = None) is created elsewhere.
+        role_id: Some(role_id.clone()),
+        // Optional specific skill — not yet selectable from this form.
+        skill_id: None,
         work_description: form.work_description.trim().to_string(),
         url: if form.url.trim().is_empty() { None } else { Some(form.url.trim().to_string()) },
         domain: serde_json::from_value(json!(form.domain)).expect("SkillDomain deserialization is infallible"),
@@ -223,6 +227,11 @@ pub async fn edit_work_post(
 
     let work_data = update_work::WorkData {
         id: work_id.clone(),
+        // The API can't move work between tasks/roles from this form, and
+        // the skill is not editable here, so leave these unchanged (None).
+        task_id: None,
+        role_id: None,
+        skill_id: None,
         work_description: Some(form.work_description.trim().to_string()),
         url: if form.url.trim().is_empty() { None } else { Some(form.url.trim().to_string()) },
         domain: Some(serde_json::from_value(json!(form.domain)).expect("SkillDomain deserialization is infallible")),

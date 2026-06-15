@@ -17,6 +17,7 @@ pub mod work;
 pub mod task;
 pub mod capability;
 pub mod skill;
+pub mod product;
 
 pub use authentication_hander::*;
 pub use base::{index, raw_index};
@@ -37,3 +38,4 @@ pub use work::*;
 pub use task::*;
 pub use capability::*;
 pub use skill::*;
+pub use product::*;

@@ -12,6 +12,8 @@ query PersonById($id:UUID!) {
     country
     peoplesoftId
     orcidId
+    personnelType
+    activeEffort
     retiredAt
     organization {
       id

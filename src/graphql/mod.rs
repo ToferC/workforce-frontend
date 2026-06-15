@@ -13,6 +13,7 @@ pub mod skill;
 pub mod requirement;
 pub mod validation;
 pub mod language;
+pub mod product;
 
 pub use client::*;
 pub use log_in_mutation::*;
@@ -29,3 +30,4 @@ pub use skill::*;
 pub use requirement::*;
 pub use validation::*;
 pub use language::*;
+pub use product::*;

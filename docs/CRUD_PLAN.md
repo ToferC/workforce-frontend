@@ -1,7 +1,7 @@
-# Frontend CRUD Plan: Epifront ↔ workforce_analytics
+# Frontend CRUD Plan: Workforce ↔ workforce_analytics
 
 Plan for adding create / update / delete (retire) functionality to the
-workforce-frontend (Epifront) app against the workforce_analytics GraphQL API.
+workforce-frontend (Workforce) app against the workforce_analytics GraphQL API.
 
 ## 1. Where things stand
 
@@ -128,7 +128,7 @@ Build the complete vertical slice once, then copy it:
   the form macros), confirm-retire partial; Edit/Retire buttons on the detail
   page and index, shown only for operator/admin.
 - Fluent strings for every new label/button/flash in both
-  `i18n/en/epifront.ftl` and `i18n/fr/epifront.ftl`.
+  `i18n/en/workforce.ftl` and `i18n/fr/workforce.ftl`.
 - HTMX: form posts with `hx-post` returning the form partial with inline
   errors on failure; retire button opens an HTMX confirm modal.
 

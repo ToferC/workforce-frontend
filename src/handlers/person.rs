@@ -8,6 +8,14 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data, restore_person};
 use crate::security::{self, MinimumRole};
+use super::org_tier::humanize;
+
+/// PersonnelType enum values, kept in sync with the API schema.
+pub const PERSONNEL_TYPES: [&str; 5] = ["MILITARY", "CIVILIAN", "CONTRACTOR", "STUDENT", "OTHER"];
+
+pub fn personnel_type_options() -> serde_json::Value {
+    json!(PERSONNEL_TYPES.iter().map(|t| json!({"value": t, "label": humanize(t)})).collect::<Vec<serde_json::Value>>())
+}
 
 #[derive(Deserialize, Debug)]
 pub struct PersonForm {
@@ -29,6 +37,7 @@ pub struct PersonForm {
     pub peoplesoft_id: String,
     #[serde(default)]
     pub orcid_id: String,
+    pub personnel_type: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -113,6 +122,7 @@ fn person_from_form(form: &PersonForm, id: Option<&str>) -> serde_json::Value {
         "country": form.country,
         "peoplesoftId": form.peoplesoft_id,
         "orcidId": form.orcid_id,
+        "personnelType": form.personnel_type,
         "organization": {"id": form.organization_id},
     })
 }
@@ -190,10 +200,11 @@ pub async fn create_person_form(
     ctx.insert("person", &json!({
         "userEmail": "", "familyName": "", "givenName": "", "email": "", "phone": "",
         "workAddress": "", "city": "", "province": "", "postalCode": "", "country": "",
-        "peoplesoftId": "", "orcidId": "",
+        "peoplesoftId": "", "orcidId": "", "personnelType": "",
         "organization": {"id": ""},
     }));
     ctx.insert("organization_options", &organization_options(&auth.bearer, &data).await);
+    ctx.insert("personnel_types", &personnel_type_options());
 
     let rendered = data.tmpl.render("person/person_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -227,6 +238,7 @@ pub async fn create_person_post(
         ctx.insert("edit", &false);
         ctx.insert("person", &person_from_form(&form, None));
         ctx.insert("organization_options", &organization_options);
+        ctx.insert("personnel_types", &personnel_type_options());
         let rendered = data.tmpl.render("person/person_form.html", &ctx).unwrap();
         HttpResponse::Ok().body(rendered)
     };
@@ -264,6 +276,8 @@ pub async fn create_person_post(
         organization_id: form.organization_id.clone(),
         peoplesoft_id: form.peoplesoft_id.trim().to_string(),
         orcid_id: form.orcid_id.trim().to_string(),
+        personnel_type: serde_json::from_value(json!(form.personnel_type))
+            .expect("PersonnelType deserialization is infallible"),
     };
 
     match create_person(new_person, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
@@ -309,6 +323,7 @@ pub async fn edit_person_form(
     ctx.insert("edit", &true);
     ctx.insert("person", &r.person_by_id);
     ctx.insert("organization_options", &organization_options(&auth.bearer, &data).await);
+    ctx.insert("personnel_types", &personnel_type_options());
 
     let rendered = data.tmpl.render("person/person_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -350,6 +365,8 @@ pub async fn edit_person_post(
         organization_id: Some(form.organization_id.clone()),
         peoplesoft_id: Some(form.peoplesoft_id.trim().to_string()),
         orcid_id: Some(form.orcid_id.trim().to_string()),
+        personnel_type: Some(serde_json::from_value(json!(form.personnel_type))
+            .expect("PersonnelType deserialization is infallible")),
         updated_at: None,
         retired_at: None,
     };
@@ -370,6 +387,7 @@ pub async fn edit_person_post(
             ctx.insert("edit", &true);
             ctx.insert("person", &person_from_form(&form, Some(&person_id)));
             ctx.insert("organization_options", &organization_options(&auth.bearer, &data).await);
+            ctx.insert("personnel_types", &personnel_type_options());
 
             let rendered = data.tmpl.render("person/person_form.html", &ctx).unwrap();
             HttpResponse::Ok().body(rendered)
@@ -443,6 +461,7 @@ pub async fn retire_person_post(
         organization_id: None,
         peoplesoft_id: None,
         orcid_id: None,
+        personnel_type: None,
         updated_at: None,
         retired_at: Some(chrono::Utc::now().naive_utc()),
     };

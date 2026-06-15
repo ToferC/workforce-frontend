@@ -1,0 +1,6 @@
+mutation CreateProduct($data: NewProduct!) {
+  createProduct(data: $data) {
+    id
+    nameEn
+  }
+}

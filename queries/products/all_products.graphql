@@ -1,0 +1,14 @@
+query AllProducts {
+  allProducts {
+    id
+    nameEn
+    nameFr
+    productStatus
+    primaryDomain
+    effort
+    organization {
+      id
+      nameEn
+    }
+  }
+}

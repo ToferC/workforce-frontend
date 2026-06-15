@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    {% if edit %}<title>{{ fluent(key="edit-product", lang=lang) }}</title>
+    {% else %}<title>{{ fluent(key="create-product", lang=lang) }}</title>{% endif %}
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+    {% if edit %}
+    <h1 class="mb-4"><i class="bi bi-box-seam"></i> {{ fluent(key="edit-product", lang=lang) }}</h1>
+    {% else %}
+    <h1 class="mb-4"><i class="bi bi-box-seam"></i> {{ fluent(key="create-product", lang=lang) }}</h1>
+    {% endif %}
+
+    {% set label_org = fluent(key="organization", lang=lang) %}
+    {% set label_owner = fluent(key="product-owner", lang=lang) %}
+    {% set label_name_en = fluent(key="name-english", lang=lang) %}
+    {% set label_name_fr = fluent(key="name-french", lang=lang) %}
+    {% set label_desc_en = fluent(key="description-english", lang=lang) %}
+    {% set label_desc_fr = fluent(key="description-french", lang=lang) %}
+    {% set label_domain = fluent(key="primary-domain", lang=lang) %}
+    {% set label_url = fluent(key="website-url", lang=lang) %}
+    {% set label_status = fluent(key="status", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+
+    {% if edit %}
+    {% set form_action = "/" ~ lang ~ "/product/" ~ product.id ~ "/edit" %}
+    {% set cancel_url = "/" ~ lang ~ "/product/" ~ product.id %}
+    {% else %}
+    {% set form_action = "/" ~ lang ~ "/product/new" %}
+    {% set cancel_url = "/" ~ lang ~ "/products" %}
+    {% endif %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="{{ form_action | safe }}">
+                {{ forms::csrf(token=csrf_token) }}
+
+                {% if not edit %}
+                {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=product.organization.id) }}
+                {% endif %}
+
+                {{ forms::select(name="product_owner_role_id", label=label_owner, options=role_options, selected=product.productOwner.id) }}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="name_en", label=label_name_en, value=product.nameEn) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="name_fr", label=label_name_fr, value=product.nameFr) }}
+                    </div>
+                </div>
+
+                {{ forms::textarea(name="description_en", label=label_desc_en, value=product.descriptionEn) }}
+                {{ forms::textarea(name="description_fr", label=label_desc_fr, value=product.descriptionFr) }}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, selected=product.primaryDomain) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::select(name="product_status", label=label_status, options=work_statuses, selected=product.productStatus) }}
+                    </div>
+                </div>
+
+                {{ forms::text_input(name="url", label=label_url, value=product.url, type="url", required=false) }}
+
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

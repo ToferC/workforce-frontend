@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Epifront** is a Rust web application for organizational management in epidemiology/public health contexts. It manages people, roles, capabilities, teams, organizations, and related data within public health workflows.
+**Workforce** is a Rust web application for organizational management in epidemiology/public health contexts. It manages people, roles, capabilities, teams, organizations, and related data within public health workflows.
 
 ## Technology Stack
 

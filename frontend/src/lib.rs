@@ -17,7 +17,7 @@ extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
-const APP_NAME: &str = "Epifront";
+const APP_NAME: &str = "Workforce";
 
 #[derive(Clone, Debug)]
 pub struct AppData {

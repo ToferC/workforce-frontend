@@ -1,0 +1,45 @@
+query ProductById($id: UUID!) {
+  productById(id: $id) {
+    id
+    nameEn
+    nameFr
+    descriptionEn
+    descriptionFr
+    primaryDomain
+    url
+    productStatus
+    retiredAt
+    effort
+    organization {
+      id
+      nameEn
+    }
+    productOwner {
+      id
+      titleEnglish
+      person {
+        id
+        givenName
+        familyName
+      }
+      team {
+        id
+        nameEnglish
+      }
+    }
+    tasks {
+      id
+      title
+      taskStatus
+      domain
+      effort
+    }
+    vacantWork {
+      id
+      workDescription
+      domain
+      capabilityLevel
+      effort
+    }
+  }
+}

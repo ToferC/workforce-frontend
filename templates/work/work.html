@@ -37,7 +37,7 @@
                     <span class="text-muted">Assigned by:</span>
                     <a href="/{{lang}}/person/{{work.task.createdBy.person.id}}">{{ work.task.createdBy.person.givenName }} {{ work.task.createdBy.person.familyName }}</a>
                     &mdash;
-                    <a href="/{{ lang }}/role/{{ work.task.createdBy.id }}">{{ work.role.titleEnglish }} &mdash; {{ work.task.createdBy.militaryOccupation }}-{{ work.task.createdBy.rank }}</a>
+                    <a href="/{{ lang }}/role/{{ work.task.createdBy.id }}">{{ work.task.createdBy.titleEnglish }} &mdash; {{ work.task.createdBy.militaryOccupation }}-{{ work.task.createdBy.rank }}</a>
                 </li>
                 <li class="list-group-item">
                     <span class="text-muted">Team:</span>
@@ -53,7 +53,7 @@
             <h2 class="h4 mb-0"><i class="bi bi-person-check"></i> Assigned To</h2>
         </div>
         <div class="card-body p-0">
-            {% if work.role.person %}
+            {% if work.role and work.role.person %}
             <ul class="list-group list-group-flush">
                 <li class="list-group-item">
                     <a href="/{{lang}}/person/{{work.role.person.id}}" class="fw-semibold">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>

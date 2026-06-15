@@ -10,6 +10,7 @@ use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_task_by_id, all_tasks, create_task, update_task};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
+use super::product::product_options;
 
 /// WorkStatus enum values (used by both tasks and work).
 pub const WORK_STATUSES: [&str; 5] = ["PLANNING", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"];
@@ -45,6 +46,8 @@ pub struct TaskForm {
     pub task_status: String,
     #[serde(default)]
     pub completed_date: String,
+    #[serde(default)]
+    pub product_id: String,
 }
 
 fn task_from_form(form: &TaskForm, id: Option<&str>) -> serde_json::Value {
@@ -60,6 +63,7 @@ fn task_from_form(form: &TaskForm, id: Option<&str>) -> serde_json::Value {
         "targetCompletionDate": form.target_completion_date,
         "taskStatus": form.task_status,
         "completedDate": form.completed_date,
+        "productId": form.product_id,
     })
 }
 
@@ -123,20 +127,23 @@ pub async fn create_task_form(
     let (lang, role_id) = path_params.into_inner();
     let session = req.get_session();
 
-    if let Err(response) = security::require_role(&session, &lang, MinimumRole::Operator) {
-        return response;
-    }
-
     let today = chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &false);
     ctx.insert("role_id", &role_id);
     ctx.insert("task", &json!({
         "title": "", "domain": "", "intendedOutcome": "", "finalOutcome": "", "approvalTier": 1,
-        "url": "", "startDatestamp": today, "targetCompletionDate": today, "taskStatus": "PLANNING", "completedDate": "",
+        "url": "", "startDatestamp": today, "targetCompletionDate": today, "taskStatus": "PLANNING", "completedDate": "", "productId": "",
     }));
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
 
     let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -173,6 +180,7 @@ pub async fn create_task_post(
         start_datestamp: parse_date(&form.start_date).unwrap_or_else(|| chrono::Utc::now().naive_utc()),
         target_completion_date: parse_date(&form.target_completion_date).unwrap_or_else(|| chrono::Utc::now().naive_utc()),
         task_status: serde_json::from_value(json!(form.task_status)).expect("WorkStatus deserialization is infallible"),
+        product_id: if form.product_id.trim().is_empty() { None } else { Some(form.product_id.clone()) },
     };
 
     match create_task(new_task, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
@@ -188,6 +196,7 @@ pub async fn create_task_post(
             ctx.insert("task", &task_from_form(&form, None));
             ctx.insert("skill_domains", &skill_domain_options());
             ctx.insert("work_statuses", &work_status_options());
+            ctx.insert("product_options", &product_options("", &data).await);
             let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
             HttpResponse::Ok().body(rendered)
         },
@@ -209,7 +218,7 @@ pub async fn edit_task_form(
         Err(response) => return response,
     };
 
-    let r = match get_task_by_id(task_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    let r = match get_task_by_id(task_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -222,6 +231,7 @@ pub async fn edit_task_form(
     ctx.insert("task", &r.task_by_id);
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
 
     let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -260,9 +270,10 @@ pub async fn edit_task_post(
         target_completion_date: parse_date(&form.target_completion_date),
         task_status: Some(serde_json::from_value(json!(form.task_status)).expect("WorkStatus deserialization is infallible")),
         completed_date: parse_date(&form.completed_date),
+        product_id: if form.product_id.trim().is_empty() { None } else { Some(form.product_id.clone()) },
     };
 
-    match update_task(task_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match update_task(task_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Task updated.", "Tâche mise à jour."));
             redirect_to(format!("/{}/task/{}", &lang, response.update_task.id))
@@ -274,6 +285,7 @@ pub async fn edit_task_post(
             ctx.insert("task", &task_from_form(&form, Some(&task_id)));
             ctx.insert("skill_domains", &skill_domain_options());
             ctx.insert("work_statuses", &work_status_options());
+            ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
             let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
             HttpResponse::Ok().body(rendered)
         },

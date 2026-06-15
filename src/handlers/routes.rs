@@ -129,6 +129,14 @@ use crate::handlers::{
     edit_task_form,
     edit_task_post,
 
+    // product
+    product_by_id,
+    product_index,
+    create_product_form,
+    create_product_post,
+    edit_product_form,
+    edit_product_post,
+
 };
 
 pub fn configure_services(config: &mut web::ServiceConfig) {
@@ -254,7 +262,15 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_task_form);
     config.service(edit_task_post);
     config.service(task_by_id);
-    
+
+    // product — "new" must be registered before the {product_id} catch-all
+    config.service(product_index);
+    config.service(create_product_form);
+    config.service(create_product_post);
+    config.service(edit_product_form);
+    config.service(edit_product_post);
+    config.service(product_by_id);
+
     //config.service(about);
     config.service(toggle_language);
     config.service(toggle_language_index);

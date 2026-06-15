@@ -34,6 +34,15 @@ pub const MILITARY_OCCUPATIONS: [&str; 36] = [
     "SPECIAL_FORCES", "OFFICER", "OTHER",
 ];
 
+/// OccupationalGroup enum values (civilian classifications), kept in sync
+/// with the API schema.
+pub const OCCUPATIONAL_GROUPS: [&str; 12] = [
+    "ADMINISTRATIVE_SERVICES", "COMPUTER_SYSTEMS", "ECONOMICS_AND_SOCIAL_SCIENCE",
+    "ENGINEERING", "EXECUTIVE", "FINANCIAL_MANAGEMENT", "HUMAN_RESOURCES",
+    "INFORMATION_SERVICES", "PROGRAM_ADMINISTRATION", "RESEARCH",
+    "TECHNICAL_SERVICES", "OTHER",
+];
+
 fn enum_options(values: &[&str]) -> serde_json::Value {
     json!(values
         .iter()
@@ -50,8 +59,16 @@ pub struct RoleForm {
     pub title_en: String,
     pub title_fr: String,
     pub effort: f64,
+    // Military role holders set these; civilian holders leave them blank.
+    #[serde(default)]
     pub military_occupation: String,
+    #[serde(default)]
     pub rank: String,
+    // Civilian role holders set these; military holders leave them blank.
+    #[serde(default)]
+    pub occupational_group: String,
+    #[serde(default)]
+    pub occupational_level: String,
     pub start_date: String,
     // Optional: full name of the person to assign; blank creates a vacant role
     #[serde(default)]
@@ -114,6 +131,8 @@ fn role_from_form(form: &RoleForm) -> serde_json::Value {
         "effort": form.effort,
         "militaryOccupation": form.military_occupation,
         "rank": form.rank,
+        "occupationalGroup": form.occupational_group,
+        "occupationalLevel": form.occupational_level,
         "startDate": form.start_date,
         "personName": form.person_name,
         "teamId": form.team_id,
@@ -181,6 +200,7 @@ pub async fn create_role_form(
     ctx.insert("role_form", &json!({
         "titleEnglish": "", "titleFrench": "", "effort": 1.0,
         "militaryOccupation": "", "rank": "", "personName": "",
+        "occupationalGroup": "", "occupationalLevel": "",
         "startDate": chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string(),
         "teamId": team.id,
         "orgTierId": if params.org_tier.is_empty() { team.organization_level.id.clone() } else { params.org_tier.clone() },
@@ -189,6 +209,7 @@ pub async fn create_role_form(
     ctx.insert("team", &team);
     ctx.insert("ranks", &enum_options(&RANKS));
     ctx.insert("military_occupations", &enum_options(&MILITARY_OCCUPATIONS));
+    ctx.insert("occupational_groups", &enum_options(&OCCUPATIONAL_GROUPS));
 
     let template = if is_htmx(&req) {
         "org_chart/add_role_form.html"
@@ -284,6 +305,14 @@ pub async fn create_role_post(
     }
 
     if form_error.is_none() {
+        // Military and civilian classifications are mutually exclusive and
+        // all optional on the API: send Some only for the fields the form
+        // actually filled in, leaving the rest null.
+        let blank_to_none = |value: &str| -> Option<serde_json::Value> {
+            let trimmed = value.trim();
+            if trimmed.is_empty() { None } else { Some(json!(trimmed)) }
+        };
+
         let new_role = create_role::NewRole {
             person_id,
             team_id: form.team_id.clone(),
@@ -291,10 +320,13 @@ pub async fn create_role_post(
             title_fr: form.title_fr.trim().to_string(),
             effort: form.effort,
             active: true,
-            military_occupation: serde_json::from_value(json!(form.military_occupation))
-                .expect("MilitaryOccupation deserialization is infallible"),
-            rank: serde_json::from_value(json!(form.rank))
-                .expect("Rank deserialization is infallible"),
+            military_occupation: blank_to_none(&form.military_occupation)
+                .map(|v| serde_json::from_value(v).expect("MilitaryOccupation deserialization is infallible")),
+            rank: blank_to_none(&form.rank)
+                .map(|v| serde_json::from_value(v).expect("Rank deserialization is infallible")),
+            occupational_group: blank_to_none(&form.occupational_group)
+                .map(|v| serde_json::from_value(v).expect("OccupationalGroup deserialization is infallible")),
+            occupational_level: form.occupational_level.trim().parse::<i64>().ok(),
             start_datestamp: start.unwrap(),
             end_date: None,
         };
@@ -335,6 +367,7 @@ pub async fn create_role_post(
     ctx.insert("team", &team);
     ctx.insert("ranks", &enum_options(&RANKS));
     ctx.insert("military_occupations", &enum_options(&MILITARY_OCCUPATIONS));
+    ctx.insert("occupational_groups", &enum_options(&OCCUPATIONAL_GROUPS));
 
     let template = if is_htmx(&req) {
         ctx.insert("form_error", &error);

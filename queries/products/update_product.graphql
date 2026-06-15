@@ -1,0 +1,6 @@
+mutation UpdateProduct($data: ProductData!) {
+  updateProduct(data: $data) {
+    id
+    nameEn
+  }
+}
