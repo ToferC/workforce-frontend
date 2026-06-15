@@ -49,6 +49,8 @@ use crate::handlers::{
     create_requirement_form,
     create_requirement_post,
     retire_requirement_post,
+    edit_requirement_form,
+    edit_requirement_post,
 
     // capability
     capability_search,
@@ -180,6 +182,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(role_index);
     config.service(create_requirement_form);
     config.service(create_requirement_post);
+    config.service(edit_requirement_form);
+    config.service(edit_requirement_post);
     config.service(retire_requirement_post);
     config.service(role_by_id);
 

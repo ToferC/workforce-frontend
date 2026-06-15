@@ -543,6 +543,12 @@ pub struct RequirementRetireForm {
     pub csrf_token: String,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct RequirementEditForm {
+    pub csrf_token: String,
+    pub required_level: String,
+}
+
 fn level_options() -> serde_json::Value {
     json!(CAPABILITY_LEVELS.iter().map(|l| json!({"value": l, "label": humanize(l)})).collect::<Vec<serde_json::Value>>())
 }
@@ -654,6 +660,88 @@ pub async fn retire_requirement_post(
 
     match update_requirement(requirement_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Requirement retired.", "Exigence retirée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/role/{}", &lang, &role_id))
+}
+
+#[get("/{lang}/role/{role_id}/requirement/{requirement_id}/edit")]
+pub async fn edit_requirement_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id, requirement_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let role = match get_role_by_id(role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.role_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+        },
+    };
+
+    let requirement = match role.requirements.iter().find(|r| r.id == requirement_id) {
+        Some(r) => r,
+        None => {
+            security::add_flash(&session, "danger", by_lang(&lang, "Requirement not found.", "Exigence introuvable."));
+            return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+        },
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("edit", &true);
+    ctx.insert("role_id", &role_id);
+    ctx.insert("requirement", requirement);
+    ctx.insert("capability_levels", &level_options());
+
+    let rendered = data.tmpl.render("role/requirement_form.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/role/{role_id}/requirement/{requirement_id}/edit")]
+pub async fn edit_requirement_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+    form: web::Form<RequirementEditForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id, requirement_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/role/{}/requirement/{}/edit", &lang, &role_id, &requirement_id));
+    }
+
+    let requirement_data = update_requirement::RequirementData {
+        id: requirement_id.clone(),
+        name_en: None,
+        name_fr: None,
+        domain: None,
+        required_level: Some(
+            serde_json::from_value(json!(form.required_level))
+                .expect("CapabilityLevel deserialization is infallible"),
+        ),
+        retired_at: None,
+    };
+
+    match update_requirement(requirement_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Requirement updated.", "Exigence mise à jour.")),
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
