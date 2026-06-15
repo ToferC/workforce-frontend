@@ -15,6 +15,9 @@
             <a class="btn btn-primary" href="/{{ lang }}/task/{{ task.id }}/edit">
                 <i class="bi bi-pencil"></i> {{ fluent(key="edit-task", lang=lang) }}
             </a>
+            <a class="btn btn-outline-primary" href="/{{ lang }}/task/{{ task.id }}/work/new">
+                <i class="bi bi-plus-circle"></i> Add Work Item
+            </a>
         </div>
         {% endif %}
     </div>
@@ -72,7 +75,14 @@
                     <li class="list-group-item px-0 small"><span class="text-muted">Phone:</span> {{ work.role.person.phone }}</li>
                 </ul>
                 {% else %}
-                <p class="text-muted small mt-2 mb-0">Not assigned.</p>
+                <p class="text-muted small mt-2 mb-0">
+                    Not assigned.
+                    {% if role == "operator" or role == "admin" %}
+                    <a href="/{{ lang }}/work/{{ work.id }}/assign" class="ms-2 btn btn-sm btn-outline-success">
+                        <i class="bi bi-person-plus"></i> Assign
+                    </a>
+                    {% endif %}
+                </p>
                 {% endif %}
             </div>
             {% endfor %}

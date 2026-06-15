@@ -28,6 +28,10 @@ query WorkById($id:UUID!) {
         }
       }
     }
+    skill {
+      id
+      nameEn
+    }
     role {
       id
       titleEnglish

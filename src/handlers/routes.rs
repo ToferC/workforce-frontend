@@ -118,8 +118,12 @@ use crate::handlers::{
     work_by_id,
     create_work_form,
     create_work_post,
+    create_vacant_work_form,
+    create_vacant_work_post,
     edit_work_form,
     edit_work_post,
+    assign_work_form,
+    assign_work_post,
 
     // task
     task_by_id,
@@ -248,9 +252,13 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_publication_post);
     config.service(publication_by_id);
 
-    // work
+    // work — specific sub-paths before {work_id} catch-all
     config.service(create_work_form);
     config.service(create_work_post);
+    config.service(create_vacant_work_form);
+    config.service(create_vacant_work_post);
+    config.service(assign_work_form);
+    config.service(assign_work_post);
     config.service(edit_work_form);
     config.service(edit_work_post);
     config.service(work_by_id);

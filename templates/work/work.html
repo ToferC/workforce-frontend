@@ -15,6 +15,15 @@
             <a class="btn btn-primary" href="/{{ lang }}/work/{{ work.id }}/edit">
                 <i class="bi bi-pencil"></i> {{ fluent(key="edit-work", lang=lang) }}
             </a>
+            {% if work.role %}
+            <a class="btn btn-warning" href="/{{ lang }}/work/{{ work.id }}/assign">
+                <i class="bi bi-arrow-left-right"></i> Reassign
+            </a>
+            {% else %}
+            <a class="btn btn-success" href="/{{ lang }}/work/{{ work.id }}/assign">
+                <i class="bi bi-person-plus"></i> Assign
+            </a>
+            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -28,6 +37,9 @@
             <ul class="list-group list-group-flush">
                 <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ work.url }}">{{ work.url }}</a></li>
                 <li class="list-group-item"><span class="text-muted">Domain:</span> {{ work.domain }} &rarr; {{ work.capabilityLevel }}</li>
+                {% if work.skill %}
+                <li class="list-group-item"><span class="text-muted">Required Skill:</span> {{ work.skill.nameEn }}</li>
+                {% endif %}
                 <li class="list-group-item">
                     <span class="text-muted">Task:</span>
                     <a href="/{{lang}}/task/{{work.task.id}}">{{ work.task.title }}</a>
