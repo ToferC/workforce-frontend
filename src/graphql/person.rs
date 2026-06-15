@@ -132,3 +132,11 @@ pub struct AnalyticsPeople;
 pub async fn analytics_people(bearer: String, api_url: &str, client: Arc<Client>) -> Result<analytics_people::ResponseData, ApiError> {
     post_graphql::<AnalyticsPeople>(&client, api_url, &bearer, analytics_people::Variables {}).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/analytics/analytics_mobility.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct AnalyticsMobility;
+
+pub async fn analytics_mobility(bearer: String, api_url: &str, client: Arc<Client>) -> Result<analytics_mobility::ResponseData, ApiError> {
+    post_graphql::<AnalyticsMobility>(&client, api_url, &bearer, analytics_mobility::Variables {}).await
+}

@@ -149,6 +149,7 @@ use crate::handlers::{
     analytics_dashboard,
     analytics_coverage,
     analytics_delivery,
+    analytics_mobility_view,
 
 };
 
@@ -295,6 +296,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     // analytics — specific sub-paths before the dashboard catch-all
     config.service(analytics_coverage);
     config.service(analytics_delivery);
+    config.service(analytics_mobility_view);
     config.service(analytics_dashboard);
 
     //config.service(about);

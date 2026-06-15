@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::{AppData, generate_basic_context, status_color};
-use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap};
+use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap, analytics_mobility};
 use crate::security::{self, MinimumRole};
 
 /// All 16 SkillDomain variants in canonical display order: (key, short label).
@@ -550,5 +550,112 @@ pub async fn analytics_delivery(
     }));
 
     let rendered = data.tmpl.render("analytics/delivery.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[get("/{lang}/analytics/mobility")]
+pub async fn analytics_mobility_view(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let people = analytics_mobility(auth.bearer, &data.api_url, Arc::clone(&data.client))
+        .await
+        .map(|r| r.all_people)
+        .unwrap_or_default();
+
+    // Bipartite "previous team (was) → current team (now)" transitions.
+    // For each person we take the team of their most recent prior role and
+    // the team of their current role; a move is recorded when they differ.
+    // The (was)/(now) split keeps the sankey acyclic by construction.
+    let mut links: BTreeMap<(String, String), i64> = BTreeMap::new();
+    let mut movers: i64 = 0;
+    let mut teams_seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+
+    for person in &people {
+        // Current team: active role with the latest start date
+        let dest = person.active_roles.iter()
+            .max_by(|a, b| a.start_date.cmp(&b.start_date))
+            .map(|r| r.team.name_english.clone());
+
+        // Previous team: inactive role with the latest end date
+        let origin = person.inactive_roles.iter()
+            .max_by(|a, b| a.end_date.cmp(&b.end_date))
+            .map(|r| r.team.name_english.clone());
+
+        if let (Some(o), Some(d)) = (origin, dest) {
+            if o != d {
+                teams_seen.insert(o.clone());
+                teams_seen.insert(d.clone());
+                *links.entry((o, d)).or_insert(0) += 1;
+                movers += 1;
+            }
+        }
+    }
+
+    // Sankey nodes: origins labelled "(was)", destinations "(now)".
+    let mut node_names: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for (o, d) in links.keys() {
+        node_names.insert(format!("{} (was)", o));
+        node_names.insert(format!("{} (now)", d));
+    }
+    let nodes: Vec<serde_json::Value> = node_names.iter()
+        .map(|n| json!({"name": n}))
+        .collect();
+
+    let link_data: Vec<serde_json::Value> = links.iter()
+        .map(|((o, d), count)| json!({
+            "source": format!("{} (was)", o),
+            "target": format!("{} (now)", d),
+            "value": count,
+        }))
+        .collect();
+
+    let total_moves: i64 = links.values().sum();
+
+    let chart_option = json!({
+        "tooltip": {"trigger": "item", "triggerOn": "mousemove"},
+        "series": [{
+            "type": "sankey",
+            "layout": "none",
+            "emphasis": {"focus": "adjacency"},
+            "nodeAlign": "justify",
+            "data": nodes,
+            "links": link_data,
+            "label": {"fontSize": 11},
+            "lineStyle": {"color": "gradient", "curveness": 0.5},
+        }]
+    });
+
+    // Fallback / detail table, sorted by volume
+    let mut table_rows: Vec<serde_json::Value> = links.iter()
+        .map(|((o, d), count)| json!({"from": o, "to": d, "count": count}))
+        .collect();
+    table_rows.sort_by(|a, b| {
+        b["count"].as_i64().unwrap_or(0).cmp(&a["count"].as_i64().unwrap_or(0))
+    });
+
+    ctx.insert("chart_option", &chart_option);
+    ctx.insert("table_rows", &table_rows);
+    ctx.insert("has_moves", &(!links.is_empty()));
+    ctx.insert("summary", &json!({
+        "total_moves": total_moves,
+        "movers": movers,
+        "teams_involved": teams_seen.len() as i64,
+        "total_people": people.len() as i64,
+    }));
+
+    let rendered = data.tmpl.render("analytics/mobility.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }
