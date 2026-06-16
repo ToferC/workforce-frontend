@@ -82,6 +82,7 @@ use crate::handlers::{
     restore_organization_post,
 
     // org_tier
+    org_tier_index,
     org_tier_by_id,
     create_org_tier_form,
     create_org_tier_post,
@@ -231,7 +232,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(organization_by_id);
 
     // org_tier
-    // "new" must be registered before the {org_tier_id} catch-all
+    // "new" and "index" must be registered before the {org_tier_id} catch-all
+    config.service(org_tier_index);
     config.service(create_org_tier_form);
     config.service(create_org_tier_post);
     config.service(edit_org_tier_form);

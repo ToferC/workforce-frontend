@@ -1,0 +1,17 @@
+query AllOrgTiers {
+  allOrgTiers {
+    id
+    nameEn
+    nameFr
+    tierLevel
+    primaryDomain
+    retiredAt
+    organization {
+      id
+      nameEn
+      nameFr
+      acronymEn
+      acronymFr
+    }
+  }
+}

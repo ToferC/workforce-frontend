@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership, get_org_ownership_by_tier_id, update_org_ownership, restore_org_tier};
+use crate::graphql::{all_org_tiers, get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership, get_org_ownership_by_tier_id, update_org_ownership, restore_org_tier};
 use crate::security::{self, MinimumRole};
 use super::person::resolve_person_by_name;
 
@@ -127,6 +127,60 @@ fn org_tier_from_form(form: &OrgTierForm, id: Option<&str>) -> serde_json::Value
             json!({"id": form.parent_tier})
         },
     })
+}
+
+#[derive(Deserialize, Debug)]
+pub struct OrgTierIndexParams {
+    #[serde(default)]
+    pub retired: String,
+    #[serde(default)]
+    pub q: String,
+}
+
+#[get("/{lang}/org_tiers")]
+pub async fn org_tier_index(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    params: web::Query<OrgTierIndexParams>,
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    let show_retired = params.retired == "1";
+    let query = params.q.trim().to_lowercase();
+    let tiers = all_org_tiers(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_org_tiers)
+        .unwrap_or_default();
+
+    let matched: Vec<_> = tiers.iter()
+        .filter(|t| show_retired || t.retired_at.is_none())
+        .filter(|t| query.is_empty()
+            || t.name_en.to_lowercase().contains(&query)
+            || t.name_fr.to_lowercase().contains(&query)
+            || t.organization.name_en.to_lowercase().contains(&query)
+            || t.organization.name_fr.to_lowercase().contains(&query)
+            || t.organization.acronym_en.to_lowercase().contains(&query)
+            || t.organization.acronym_fr.to_lowercase().contains(&query))
+        .collect();
+    let total = matched.len();
+    let visible: Vec<_> = matched.into_iter().take(super::person::INDEX_PAGE_CAP).collect();
+
+    ctx.insert("org_tiers", &visible);
+    ctx.insert("total", &total);
+    ctx.insert("truncated", &(total > super::person::INDEX_PAGE_CAP));
+    ctx.insert("q", &params.q);
+    ctx.insert("show_retired", &show_retired);
+
+    let template = if is_htmx(&req) { "org_tier/org_tier_list.html" } else { "org_tier/org_tier_index.html" };
+    let rendered = data.tmpl.render(template, &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
 }
 
 #[get("/{lang}/org_tier/{org_tier_id}")]

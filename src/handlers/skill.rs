@@ -43,11 +43,24 @@ fn skill_from_form(form: &SkillForm, id: Option<&str>) -> serde_json::Value {
     })
 }
 
+fn is_htmx(req: &HttpRequest) -> bool {
+    req.headers().get("HX-Request").is_some()
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SkillIndexParams {
+    #[serde(default)]
+    pub retired: String,
+    #[serde(default)]
+    pub q: String,
+}
+
 #[get("/{lang}/skills")]
 pub async fn skill_index(
     data: web::Data<AppData>,
     id: Option<Identity>,
     path: web::Path<String>,
+    params: web::Query<SkillIndexParams>,
 
     req: HttpRequest) -> impl Responder {
     let lang = path.into_inner();
@@ -59,13 +72,29 @@ pub async fn skill_index(
         None => "".to_string(),
     };
 
-    let r = all_skills(bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get skills");
+    let show_retired = params.retired == "1";
+    let query = params.q.trim().to_lowercase();
+    let skills = all_skills(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.skills)
+        .unwrap_or_default();
 
-    ctx.insert("skills", &r.skills);
+    let matched: Vec<_> = skills.iter()
+        .filter(|s| show_retired || s.retired_at.is_none())
+        .filter(|s| query.is_empty()
+            || s.name_en.to_lowercase().contains(&query)
+            || s.name_fr.to_lowercase().contains(&query))
+        .collect();
+    let total = matched.len();
+    let visible: Vec<_> = matched.into_iter().take(super::person::INDEX_PAGE_CAP).collect();
 
-    let rendered = data.tmpl.render("skill/skill_index.html", &ctx).unwrap();
+    ctx.insert("skills", &visible);
+    ctx.insert("total", &total);
+    ctx.insert("truncated", &(total > super::person::INDEX_PAGE_CAP));
+    ctx.insert("q", &params.q);
+    ctx.insert("show_retired", &show_retired);
+
+    let template = if is_htmx(&req) { "skill/skill_list.html" } else { "skill/skill_index.html" };
+    let rendered = data.tmpl.render(template, &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }
 
