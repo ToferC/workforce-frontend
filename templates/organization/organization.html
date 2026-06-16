@@ -24,6 +24,9 @@
             <a class="btn btn-primary" href="/{{ lang }}/organization/{{ organization.id }}/edit">
                 <i class="bi bi-pencil"></i> {{ fluent(key="edit-organization", lang=lang) }}
             </a>
+            <a class="btn btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ organization.id }}">
+                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-top-tier", lang=lang) }}
+            </a>
             {% if organization.retiredAt %}
             <form method="post" action="/{{ lang }}/organization/{{ organization.id }}/restore" class="d-inline m-0">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
