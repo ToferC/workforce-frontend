@@ -1,0 +1,17 @@
+{# Skill <select> for a single domain. Returned by the /{lang}/skill_options
+   endpoint and swapped into #skill-select-wrapper by the skill picker card.
+   Expects: skill_options : [{value, label}] (skills in the chosen domain). #}
+<div class="mb-3">
+    <label class="form-label" for="skill_id">
+        {{ fluent(key="skill", lang=lang) }} <span class="text-danger">*</span>
+    </label>
+    <select class="form-select" id="skill_id" name="skill_id" required{% if skill_options | length == 0 %} disabled{% endif %}>
+        {% if skill_options | length == 0 %}
+        <option value="">{{ fluent(key="no-skills-in-domain", lang=lang) }}</option>
+        {% else %}
+        {% for option in skill_options %}
+        <option value="{{ option.value }}">{{ option.label }}</option>
+        {% endfor %}
+        {% endif %}
+    </select>
+</div>

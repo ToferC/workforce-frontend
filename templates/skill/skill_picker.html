@@ -1,0 +1,47 @@
+{# Two-step HTMX skill picker: choose a domain first, then a skill within it.
+   Shared by the requirement and capability forms so a single flat dropdown of
+   every skill is never the only option. Expects in context:
+     skill_domains : [{value, label}]                          domains that have active skills
+     skill_groups  : [{value, label, skills:[{value,label}]}]  initial / no-JS fallback
+   The chosen skill is submitted as the parent form's `skill_id` field. Choosing
+   a domain loads /{lang}/skill_options, which narrows the skill <select> to that
+   domain. With no JS the grouped <select> below remains fully usable. #}
+<div class="card border-info mb-3" id="skill-picker">
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label" for="skill_domain">
+                {{ fluent(key="skill-domain", lang=lang) }}
+            </label>
+            <select class="form-select" id="skill_domain" name="skill_domain"
+                    hx-get="/{{ lang }}/skill_options"
+                    hx-trigger="change"
+                    hx-target="#skill-select-wrapper"
+                    hx-swap="innerHTML">
+                <option value="" selected>{{ fluent(key="select-domain-prompt", lang=lang) }}</option>
+                {% for d in skill_domains %}
+                <option value="{{ d.value }}">{{ d.label }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-text">{{ fluent(key="skill-picker-help", lang=lang) }}</div>
+        </div>
+
+        {# Skill select. Grouped by domain initially; HTMX swaps in a domain-
+           filtered list once a domain is chosen. #}
+        <div id="skill-select-wrapper">
+            <div class="mb-3">
+                <label class="form-label" for="skill_id">
+                    {{ fluent(key="skill", lang=lang) }} <span class="text-danger">*</span>
+                </label>
+                <select class="form-select" id="skill_id" name="skill_id" required>
+                    {% for group in skill_groups %}
+                    <optgroup label="{{ group.label }}">
+                        {% for option in group.skills %}
+                        <option value="{{ option.value }}">{{ option.label }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+</div>

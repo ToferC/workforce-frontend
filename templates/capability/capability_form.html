@@ -21,7 +21,7 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/person/{{ person.id }}/capability/new">
                 {{ forms::csrf(token=csrf_token) }}
-                {{ forms::select(name="skill_id", label=label_skill, options=skill_options) }}
+                {% include "skill/skill_picker.html" %}
                 {{ forms::select(name="self_identified_level", label=label_level, options=capability_levels) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>

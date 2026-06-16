@@ -8,7 +8,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang, level_weight, chart_json};
-use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, all_skills, get_skill_by_id, create_requirement, update_requirement};
+use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
@@ -731,13 +731,12 @@ pub async fn create_requirement_form(
         Err(response) => return response,
     };
 
-    let skills = all_skills(auth.bearer, &data.api_url, Arc::clone(&data.client)).await
-        .map(|r| json!(r.skills.iter().map(|s| json!({"value": s.id, "label": s.name_en})).collect::<Vec<_>>()))
-        .unwrap_or_else(|_| json!([]));
+    let (skill_domains, skill_groups) = super::skill::skill_picker_data(&data, auth.bearer).await;
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("role_id", &role_id);
-    ctx.insert("skill_options", &skills);
+    ctx.insert("skill_domains", &skill_domains);
+    ctx.insert("skill_groups", &skill_groups);
     ctx.insert("capability_levels", &level_options());
 
     let rendered = data.tmpl.render("role/requirement_form.html", &ctx).unwrap();

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{all_skills, get_skill_by_id, create_skill, update_skill};
 use crate::security::{self, MinimumRole};
-use super::org_tier::skill_domain_options;
+use super::org_tier::{skill_domain_options, humanize, SKILL_DOMAINS};
 
 #[derive(Deserialize, Debug)]
 pub struct SkillForm {
@@ -95,6 +95,96 @@ pub async fn skill_index(
 
     let template = if is_htmx(&req) { "skill/skill_list.html" } else { "skill/skill_index.html" };
     let rendered = data.tmpl.render(template, &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+/// SkillDomain key (e.g. "SOFTWARE_ENGINEERING") for a generated enum value.
+fn domain_key(domain: &impl serde::Serialize) -> String {
+    serde_json::to_value(domain)
+        .ok()
+        .and_then(|v| v.as_str().map(str::to_string))
+        .unwrap_or_default()
+}
+
+/// Fetch active (non-retired) skills and shape them for the two-step skill
+/// picker card. Returns `(skill_domains, skill_groups)` as template-ready JSON:
+///   skill_domains : [{value, label}]                          domains that have skills
+///   skill_groups  : [{value, label, skills:[{value,label}]}]  no-JS fallback
+pub async fn skill_picker_data(
+    data: &web::Data<AppData>,
+    bearer: String,
+) -> (serde_json::Value, serde_json::Value) {
+    let skills = all_skills(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.skills)
+        .unwrap_or_default();
+
+    let mut domains = Vec::new();
+    let mut groups = Vec::new();
+    // Walk the canonical domain order so groups always render consistently,
+    // skipping domains that have no active skills.
+    for domain in SKILL_DOMAINS.iter() {
+        let mut matched: Vec<_> = skills.iter()
+            .filter(|s| s.retired_at.is_none())
+            .filter(|s| domain_key(&s.domain) == *domain)
+            .collect();
+        if matched.is_empty() {
+            continue;
+        }
+        matched.sort_by(|a, b| a.name_en.to_lowercase().cmp(&b.name_en.to_lowercase()));
+        let options: Vec<serde_json::Value> = matched.iter()
+            .map(|s| json!({"value": s.id, "label": s.name_en}))
+            .collect();
+        let label = humanize(domain);
+        domains.push(json!({"value": domain, "label": label.clone()}));
+        groups.push(json!({"value": domain, "label": label, "skills": options}));
+    }
+
+    (json!(domains), json!(groups))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SkillOptionsParams {
+    #[serde(default)]
+    pub domain: String,
+}
+
+/// HTMX partial: the skill `<select>` for a single domain. Loaded by the skill
+/// picker card when a domain is chosen and swapped into `#skill-select-wrapper`.
+#[get("/{lang}/skill_options")]
+pub async fn skill_options(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    params: web::Query<SkillOptionsParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match session.get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    let domain = params.domain.trim().to_string();
+    let options: Vec<serde_json::Value> = if domain.is_empty() {
+        Vec::new()
+    } else {
+        let skills = all_skills(bearer, &data.api_url, Arc::clone(&data.client)).await
+            .map(|r| r.skills)
+            .unwrap_or_default();
+        let mut matched: Vec<_> = skills.iter()
+            .filter(|s| s.retired_at.is_none())
+            .filter(|s| domain_key(&s.domain) == domain)
+            .collect();
+        matched.sort_by(|a, b| a.name_en.to_lowercase().cmp(&b.name_en.to_lowercase()));
+        matched.iter().map(|s| json!({"value": s.id, "label": s.name_en})).collect()
+    };
+
+    ctx.insert("skill_options", &options);
+
+    let rendered = data.tmpl.render("skill/skill_select.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }
 
