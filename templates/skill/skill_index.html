@@ -1,31 +1,30 @@
 {% extends "base.html" %}
 
-{% block title %}
-    <title>{{ fluent(key="skills", lang=lang) }}</title>
-{% endblock title %}
+{% block title %}<title>{{ fluent(key="skills", lang=lang) }}</title>{% endblock title %}
 
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="card shadow-lg mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h1 class="h3 mb-0"><i class="bi bi-mortarboard"></i> {{ fluent(key="skills", lang=lang) }}</h1>
-            {% if role == "operator" or role == "admin" %}
-            <a class="btn btn-primary btn-sm" href="/{{ lang }}/skill/new">
-                <i class="bi bi-plus-lg"></i> {{ fluent(key="new-skill-button", lang=lang) }}
-            </a>
-            {% endif %}
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for skill in skills %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <a href="/{{ lang }}/skill/{{ skill.id }}">{{ skill.nameEn }}</a>
-                    <span class="badge bg-secondary">{{ skill.domain }}</span>
-                </li>
+            <span>
+                {% if role == "operator" or role == "admin" %}
+                <a class="btn btn-primary btn-sm" href="/{{ lang }}/skill/new"><i class="bi bi-plus-lg"></i> {{ fluent(key="new-skill-button", lang=lang) }}</a>
+                {% endif %}
+                {% if show_retired %}
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/skills">{{ fluent(key="hide-retired", lang=lang) }}</a>
                 {% else %}
-                <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
-                {% endfor %}
-            </ul>
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/skills?retired=1">{{ fluent(key="show-retired", lang=lang) }}</a>
+                {% endif %}
+            </span>
+        </div>
+        <div class="card-body">
+            <input type="search" class="form-control mb-3" name="q" value="{{ q }}"
+                placeholder="{{ fluent(key="search-placeholder", lang=lang) }}"
+                hx-get="/{{ lang }}/skills{% if show_retired %}?retired=1{% endif %}"
+                hx-trigger="keyup changed delay:300ms, search"
+                hx-target="#skill-list" hx-swap="outerHTML">
+            {% include "skill/skill_list.html" %}
         </div>
     </div>
 </div>

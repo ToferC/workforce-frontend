@@ -2,6 +2,7 @@ query AllSkills {
   skills {
     id
     nameEn
+    nameFr
     domain
     retiredAt
   }

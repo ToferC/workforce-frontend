@@ -356,6 +356,7 @@ published-date = Published date
 
 ## Index pages
 roles = Roles
+org-tiers = Organization Tiers
 show-retired = Show retired
 hide-retired = Hide retired
 

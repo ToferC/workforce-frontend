@@ -11,6 +11,18 @@ type UUID = String;
 #[derive(GraphQLQuery, Serialize, Deserialize)]
 #[graphql(
     schema_path = "schema.graphql",
+    query_path = "queries/org_tiers/all_org_tiers.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct AllOrgTiers;
+
+pub async fn all_org_tiers(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_org_tiers::ResponseData, ApiError> {
+    post_graphql::<AllOrgTiers>(&client, api_url, &bearer, all_org_tiers::Variables {}).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
     query_path = "queries/org_tiers/org_tier_by_id.graphql",
     response_derives = "Debug, Serialize, PartialEq"
 )]
