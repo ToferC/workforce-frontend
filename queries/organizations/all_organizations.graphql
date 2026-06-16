@@ -2,8 +2,11 @@ query AllOrganizations {
   allOrganizations {
     id
     nameEn
+    nameFr
     acronymEn
+    acronymFr
     orgType
     url
+    retiredAt
   }
 }

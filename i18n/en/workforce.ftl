@@ -11,6 +11,7 @@ app-mvp = Workforce Analytics MVP
 
 ## Organization
 organization = Organization
+organizations = Organizations
 org_tier = Organization Tier
 team = Team
 work = Work

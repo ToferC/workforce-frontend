@@ -6,8 +6,68 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_organization_by_id, create_organization, update_organization, restore_organization};
+use crate::graphql::{get_organization_by_id, all_organizations, create_organization, update_organization, restore_organization};
 use crate::security::{self, MinimumRole};
+
+fn is_htmx(req: &HttpRequest) -> bool {
+    req.headers().get("HX-Request").is_some()
+}
+
+#[derive(Deserialize, Debug)]
+pub struct OrgIndexParams {
+    #[serde(default)]
+    pub retired: String,
+    #[serde(default)]
+    pub q: String,
+}
+
+/// Index of all organizations, with name/acronym search and an optional
+/// retired filter. Mirrors the team/person index pattern (HTMX live search
+/// re-renders just the list partial).
+#[get("/{lang}/organizations")]
+pub async fn organization_index(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    params: web::Query<OrgIndexParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    let show_retired = params.retired == "1";
+    let query = params.q.trim().to_lowercase();
+    let orgs = all_organizations(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_organizations)
+        .unwrap_or_default();
+
+    let matched: Vec<_> = orgs.iter()
+        .filter(|o| show_retired || o.retired_at.is_none())
+        .filter(|o| query.is_empty()
+            || o.name_en.to_lowercase().contains(&query)
+            || o.name_fr.to_lowercase().contains(&query)
+            || o.acronym_en.to_lowercase().contains(&query)
+            || o.acronym_fr.to_lowercase().contains(&query))
+        .collect();
+    let total = matched.len();
+    let visible: Vec<_> = matched.into_iter().take(super::person::INDEX_PAGE_CAP).collect();
+
+    ctx.insert("organizations", &visible);
+    ctx.insert("total", &total);
+    ctx.insert("truncated", &(total > super::person::INDEX_PAGE_CAP));
+    ctx.insert("q", &params.q);
+    ctx.insert("show_retired", &show_retired);
+
+    let template = if is_htmx(&req) { "organization/organization_list.html" } else { "organization/organization_index.html" };
+    let rendered = data.tmpl.render(template, &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
 
 #[derive(Deserialize, Debug)]
 pub struct OrganizationForm {

@@ -1,0 +1,20 @@
+{# Organization list rows — standalone for HTMX search, included by organization_index. #}
+<ul class="list-group list-group-flush" id="organization-list">
+    {% for org in organizations %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <a href="/{{ lang }}/organization/{{ org.id }}">
+            {% if lang == "fr" %}{{ org.nameFr }}{% else %}{{ org.nameEn }}{% endif %}
+            <span class="text-muted small ms-1">{% if lang == "fr" %}{{ org.acronymFr }}{% else %}{{ org.acronymEn }}{% endif %}</span>
+        </a>
+        <span>
+            <span class="text-muted small">{{ org.orgType }}</span>
+            {% if org.retiredAt %}<span class="badge bg-warning text-dark ms-1">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+        </span>
+    </li>
+    {% else %}
+    <li class="list-group-item text-muted">{{ fluent(key="no-results", lang=lang) }}</li>
+    {% endfor %}
+    {% if truncated %}
+    <li class="list-group-item text-muted small">{{ fluent(key="showing-first", lang=lang) }} {{ organizations | length }} / {{ total }} — {{ fluent(key="refine-search", lang=lang) }}</li>
+    {% endif %}
+</ul>

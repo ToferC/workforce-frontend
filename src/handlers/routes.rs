@@ -71,6 +71,7 @@ use crate::handlers::{
     edit_skill_post,
 
     // organization
+    organization_index,
     organization_by_id,
     create_organization_form,
     create_organization_post,
@@ -226,6 +227,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(retire_organization_form);
     config.service(retire_organization_post);
     config.service(restore_organization_post);
+    config.service(organization_index);
     config.service(organization_by_id);
 
     // org_tier
