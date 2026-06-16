@@ -8,7 +8,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang, level_weight, chart_json};
-use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, all_skills, get_skill_by_id, create_requirement, update_requirement};
+use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, all_skills, get_skill_by_id, create_requirement, update_requirement};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
@@ -591,6 +591,87 @@ pub async fn end_role_post(
                 "success",
                 by_lang(&lang, "Role ended.", "Rôle terminé."),
             );
+        },
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+        },
+    };
+
+    redirect_to(format!("/{}/role/{}", &lang, &role_id))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct AssignRoleForm {
+    pub csrf_token: String,
+    pub person_id: String,
+}
+
+/// Assign a person to a vacant role. Driven by the "Assign" buttons on the
+/// role detail (potential matches), person detail (potential job matches),
+/// and vacancy pages — each posts the chosen person_id here.
+#[post("/{lang}/role/{role_id}/assign")]
+pub async fn assign_role_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<AssignRoleForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+    }
+
+    if form.person_id.trim().is_empty() {
+        security::add_flash(&session, "danger", by_lang(&lang, "No person selected.", "Aucune personne sélectionnée."));
+        return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+    }
+
+    match assign_person_to_role(form.person_id.clone(), role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => {
+            security::add_flash(&session, "success", by_lang(&lang, "Person assigned to role.", "Personne affectée au rôle."));
+        },
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+        },
+    };
+
+    redirect_to(format!("/{}/role/{}", &lang, &role_id))
+}
+
+/// Remove the person from a role, leaving it vacant.
+#[post("/{lang}/role/{role_id}/vacate")]
+pub async fn vacate_role_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<EndRoleForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+    }
+
+    match vacate_role(role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => {
+            security::add_flash(&session, "success", by_lang(&lang, "Role vacated.", "Rôle libéré."));
         },
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());

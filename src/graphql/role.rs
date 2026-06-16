@@ -54,6 +54,38 @@ pub async fn update_role(data: update_role::RoleData, bearer: String, api_url: &
 }
 
 #[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/roles/assign_person_to_role.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct AssignPersonToRole;
+
+/// Assign a person to a vacant role. The API errors if the role is already
+/// occupied, surfaced here as an ApiError::GraphQL.
+pub async fn assign_person_to_role(person_id: UUID, role_id: UUID, bearer: String, api_url: &str, client: Arc<Client>) -> Result<assign_person_to_role::ResponseData, ApiError> {
+    post_graphql::<AssignPersonToRole>(&client, api_url, &bearer, assign_person_to_role::Variables {
+        person_id,
+        role_id,
+    }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/roles/vacate_role.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct VacateRole;
+
+/// Remove the person from a role, leaving it vacant.
+pub async fn vacate_role(role_id: UUID, bearer: String, api_url: &str, client: Arc<Client>) -> Result<vacate_role::ResponseData, ApiError> {
+    post_graphql::<VacateRole>(&client, api_url, &bearer, vacate_role::Variables {
+        role_id,
+    }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
 #[graphql(schema_path = "schema.graphql", query_path = "queries/roles/all_roles.graphql", response_derives = "Debug, Serialize, PartialEq")]
 pub struct AllRoles;
 

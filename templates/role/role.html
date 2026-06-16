@@ -26,6 +26,14 @@
             <a class="btn btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/work/new">
                 <i class="bi bi-plus-lg"></i> {{ fluent(key="add-work", lang=lang) }}
             </a>
+            {% if role_record.person %}
+            <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/vacate" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-outline-warning">
+                    <i class="bi bi-person-dash"></i> Vacate role
+                </button>
+            </form>
+            {% endif %}
             {% if role_record.active == "true" %}
             <a class="btn btn-outline-danger" href="/{{ lang }}/role/{{ role_record.id }}/end">
                 <i class="bi bi-stop-circle"></i> {{ fluent(key="end-role", lang=lang) }}
@@ -184,7 +192,18 @@
         <div class="card-body p-0">
             {% for person in role_record.findMatches %}
             <div class="p-3 border-bottom">
-                <a href="/{{lang}}/person/{{person.id}}" class="fw-semibold">{{ person.givenName }} {{ person.familyName }}</a>
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <a href="/{{lang}}/person/{{person.id}}" class="fw-semibold">{{ person.givenName }} {{ person.familyName }}</a>
+                    {% if role == "operator" or role == "admin" %}
+                    <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/assign" class="m-0">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="person_id" value="{{ person.id }}">
+                        <button type="submit" class="btn btn-sm btn-success">
+                            <i class="bi bi-person-plus"></i> Assign
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
                 <ul class="list-group list-group-flush mt-2">
                     <li class="list-group-item px-0 small"><span class="text-muted">Phone:</span> {{ person.phone }}</li>
                     <li class="list-group-item px-0 small"><span class="text-muted">Email:</span> {{ person.email }}</li>

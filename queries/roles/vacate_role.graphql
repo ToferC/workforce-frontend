@@ -1,0 +1,5 @@
+mutation VacateRole($roleId: UUID!) {
+  vacateRole(roleId: $roleId) {
+    id
+  }
+}
