@@ -200,8 +200,21 @@
         <div class="card-body p-0">
             {% for match in person.findMatches %}
             <div class="p-3 border-bottom">
-                <a href="/{{lang}}/role/{{match.id}}" class="fw-semibold">{{ match.titleEnglish }}</a>
-                <span class="text-muted small ms-2">{{ match.militaryOccupation }}-{{ match.rank }}</span>
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <a href="/{{lang}}/role/{{match.id}}" class="fw-semibold">{{ match.titleEnglish }}</a>
+                        <span class="text-muted small ms-2">{{ match.militaryOccupation }}-{{ match.rank }}</span>
+                    </div>
+                    {% if role == "operator" or role == "admin" %}
+                    <form method="post" action="/{{ lang }}/role/{{ match.id }}/assign" class="m-0">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="person_id" value="{{ person.id }}">
+                        <button type="submit" class="btn btn-sm btn-success">
+                            <i class="bi bi-person-plus"></i> Assign to this role
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
                 <ul class="list-group list-group-flush mt-2">
                     {% for req in match.requirements %}
                     <li class="list-group-item px-0 small">{{ req.nameEn }} <span class="text-muted">({{ req.domain }})</span> &mdash; {{ req.requiredLevel }}</li>

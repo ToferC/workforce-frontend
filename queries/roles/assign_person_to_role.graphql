@@ -1,0 +1,5 @@
+mutation AssignPersonToRole($personId: UUID!, $roleId: UUID!) {
+  assignPersonToRole(personId: $personId, roleId: $roleId) {
+    id
+  }
+}

@@ -46,6 +46,8 @@ use crate::handlers::{
     edit_role_post,
     end_role_form,
     end_role_post,
+    assign_role_post,
+    vacate_role_post,
     create_requirement_form,
     create_requirement_post,
     retire_requirement_post,
@@ -188,6 +190,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_role_post);
     config.service(end_role_form);
     config.service(end_role_post);
+    config.service(assign_role_post);
+    config.service(vacate_role_post);
     config.service(role_index);
     config.service(create_requirement_form);
     config.service(create_requirement_post);
