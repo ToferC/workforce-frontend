@@ -155,7 +155,6 @@ pub async fn create_capability_post(
         skill_id: form.skill_id.clone(),
         organization_id: person.organization.id.clone(),
         self_identified_level: serde_json::from_value(json!(form.self_identified_level)).expect("CapabilityLevel deserialization is infallible"),
-        validation_values: vec![],
     };
 
     match create_capability(new_capability, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
@@ -209,8 +208,9 @@ pub struct ValidationForm {
 }
 
 /// Admin-only: validate someone's capability. The currently signed-in user
-/// is automatically recorded as the validator. The API recalculates the
-/// capability's validated level from the average of its validations.
+/// is automatically recorded as the validating authority. The submitted level
+/// is set directly as the capability's validated level (latest authoritative
+/// validation wins); it also stamps who validated it and when.
 #[get("/{lang}/person/{person_id}/capability/{capability_id}/validate")]
 pub async fn validate_capability_form(
     data: web::Data<AppData>,

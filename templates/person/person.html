@@ -135,9 +135,20 @@
             <ul class="list-group list-group-flush">
                 {% for cap in person.capabilities %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span class="d-flex align-items-center gap-2 flex-wrap">
-                        <span>{{ cap.nameEn }} {{ viz::domain_chip(domain=cap.domain) }}</span>
-                        {{ viz::capability_scale(self_level=cap.selfIdentifiedLevel, validated_level=cap.validatedLevel) }}
+                    <span class="d-flex flex-column">
+                        <span class="d-flex align-items-center gap-2 flex-wrap">
+                            <span>{{ cap.nameEn }} {{ viz::domain_chip(domain=cap.domain) }}</span>
+                            {{ viz::capability_scale(self_level=cap.selfIdentifiedLevel, validated_level=cap.validatedLevel) }}
+                        </span>
+                        <small class="text-muted">
+                            {% if cap.validatedBy %}
+                            {% set validator_name = cap.validatedBy.givenName ~ " " ~ cap.validatedBy.familyName %}
+                            {% set validated_on = cap.validatedAt | default(value="") | truncate(length=10, end="") %}
+                            <i class="bi bi-patch-check"></i> {{ fluent(key="validated-by", name=validator_name, date=validated_on, lang=lang) }}
+                            {% else %}
+                            {{ fluent(key="not-yet-validated", lang=lang) }}
+                            {% endif %}
+                        </small>
                     </span>
                     {% if role == "operator" or role == "admin" %}
                     <span class="d-flex gap-1">
