@@ -32,6 +32,12 @@ query PersonById($id:UUID!) {
       domain
       selfIdentifiedLevel
       validatedLevel
+      validatedAt
+      validatedBy {
+        id
+        givenName
+        familyName
+      }
     }
     activeRoles {
       id
