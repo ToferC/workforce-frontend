@@ -373,6 +373,19 @@ pub async fn create_role_post(
         form_error = Some(by_lang(&lang, "Invalid start date.", "Date de début invalide.").to_string());
     }
 
+    // Military and civilian classifications are mutually exclusive: a role is
+    // one or the other, never both. The client form disables the opposite
+    // group, but enforce it here too for non-JS / direct posts.
+    let has_military = !form.rank.trim().is_empty() || !form.military_occupation.trim().is_empty();
+    let has_civilian = !form.occupational_group.trim().is_empty() || !form.occupational_level.trim().is_empty();
+    if form_error.is_none() && has_military && has_civilian {
+        form_error = Some(by_lang(
+            &lang,
+            "A role must be either military or civilian, not both. Clear one classification.",
+            "Un rôle doit être soit militaire, soit civil, pas les deux. Effacez une classification.",
+        ).to_string());
+    }
+
     if form_error.is_none() {
         // Military and civilian classifications are mutually exclusive and
         // all optional on the API: send Some only for the fields the form
