@@ -311,6 +311,13 @@ add-capability = Ajouter une capacité
 self-identified-level = Niveau auto-évalué
 retire-button = Retirer
 
+## Skill picker (two-step domain then skill selection)
+skill-domain = Domaine
+select-domain-prompt = Choisissez un domaine…
+skill-picker-help = Choisissez un domaine pour réduire la liste des compétences.
+select-domain-first = Sélectionnez un domaine pour choisir une compétence.
+no-skills-in-domain = Aucune compétence dans ce domaine pour le moment.
+
 ## Requirements, Validations, Languages
 add-requirement = Ajouter une exigence
 required-level = Niveau requis

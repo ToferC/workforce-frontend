@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_capability_by_name_and_level, all_skills, get_skill_by_id, get_person_by_id, create_capability, update_capability, create_validation, get_user_by_email};
+use crate::graphql::{get_capability_by_name_and_level, get_skill_by_id, get_person_by_id, create_capability, update_capability, create_validation, get_user_by_email};
 use crate::security::{self, MinimumRole};
 use super::person::resolve_person_by_name;
 
@@ -98,13 +98,12 @@ pub async fn create_capability_form(
         },
     };
 
-    let skills = all_skills(auth.bearer, &data.api_url, Arc::clone(&data.client)).await
-        .map(|r| json!(r.skills.iter().map(|s| json!({"value": s.id, "label": s.name_en})).collect::<Vec<_>>()))
-        .unwrap_or_else(|_| json!([]));
+    let (skill_domains, skill_groups) = super::skill::skill_picker_data(&data, auth.bearer).await;
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("person", &person);
-    ctx.insert("skill_options", &skills);
+    ctx.insert("skill_domains", &skill_domains);
+    ctx.insert("skill_groups", &skill_groups);
     ctx.insert("capability_levels", &level_options());
 
     let rendered = data.tmpl.render("capability/capability_form.html", &ctx).unwrap();

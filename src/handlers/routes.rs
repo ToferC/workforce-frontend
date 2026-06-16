@@ -64,6 +64,7 @@ use crate::handlers::{
 
     // skill
     skill_index,
+    skill_options,
     skill_by_id,
     create_skill_form,
     create_skill_post,
@@ -213,6 +214,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     // skill
     // "new" must be registered before the {skill_id} catch-all
     config.service(skill_index);
+    config.service(skill_options);
     config.service(create_skill_form);
     config.service(create_skill_post);
     config.service(edit_skill_form);

@@ -311,6 +311,13 @@ add-capability = Add capability
 self-identified-level = Self-identified level
 retire-button = Retire
 
+## Skill picker (two-step domain then skill selection)
+skill-domain = Domain
+select-domain-prompt = Choose a domain…
+skill-picker-help = Pick a domain to narrow the list of skills.
+select-domain-first = Select a domain to choose a skill.
+no-skills-in-domain = No skills in this domain yet.
+
 ## Requirements, Validations, Languages
 add-requirement = Add requirement
 required-level = Required level
