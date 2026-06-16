@@ -6,7 +6,8 @@ use actix_web::{HttpRequest, HttpResponse, HttpMessage, Responder, get, post, we
 use actix_session::{SessionExt};
 use actix_identity::{Identity};
 
-use crate::{AppData, generate_basic_context, graphql};
+use crate::{AppData, by_lang, generate_basic_context, graphql, security};
+use crate::graphql::ApiError;
 
 use super::LoginForm;
 
@@ -40,28 +41,74 @@ pub async fn login_form_input(
 
     let lang = path.into_inner();
 
+    let session = req.get_session();
+
+    // Redirect helper: queue a flash message and send the user back to the
+    // login form so they see what went wrong instead of a panic / dead end.
+    let back_to_login = |level: &str, message: &str| {
+        security::add_flash(&session, level, message);
+        HttpResponse::Found()
+            .append_header(("Location", format!("/{}/log_in", &lang)))
+            .finish()
+    };
+
     // validate form has data or re-load form
     if form.email.is_empty() || form.password.is_empty() {
-        println!("Form is empty");
-        return HttpResponse::Found().append_header(("Location", format!("/{}/log_in", &lang))).finish()
+        return back_to_login(
+            "warning",
+            by_lang(
+                &lang,
+                "Please enter both your email and password.",
+                "Veuillez saisir votre courriel et votre mot de passe.",
+            ),
+        );
     };
-    
-    let login_data = graphql::login(
+
+    let login_data = match graphql::login(
         form.email.to_lowercase().trim().to_string(),
-        form.password.clone(), 
+        form.password.clone(),
         &data.api_url,
         Arc::clone(&data.client),
     )
         .await
-        .expect("Unable to login").sign_in;
+    {
+        Ok(data) => data.sign_in,
+        // The API rejected the credentials. Use a generic message so we don't
+        // reveal whether the email is registered (account enumeration).
+        Err(ApiError::GraphQL(_)) => {
+            return back_to_login(
+                "danger",
+                by_lang(
+                    &lang,
+                    "The email or password you entered is incorrect. Please try again.",
+                    "Le courriel ou le mot de passe saisi est incorrect. Veuillez réessayer.",
+                ),
+            );
+        }
+        // Network failure or empty response from the API — not the user's fault.
+        Err(ApiError::Request(_)) | Err(ApiError::MissingData) => {
+            return back_to_login(
+                "danger",
+                by_lang(
+                    &lang,
+                    "We couldn't sign you in right now. Please try again in a moment.",
+                    "Connexion impossible pour le moment. Veuillez réessayer dans un instant.",
+                ),
+            );
+        }
+    };
 
     // Add user_name and role to session
-    Identity::login(&req.extensions(), login_data.email.to_owned())
-        .expect("Unable to login / identity");
-
-    println!("{:?}", &login_data);
-
-    let session = req.get_session();
+    if Identity::login(&req.extensions(), login_data.email.to_owned()).is_err() {
+        return back_to_login(
+            "danger",
+            by_lang(
+                &lang,
+                "We couldn't start your session. Please try again.",
+                "Impossible de démarrer votre session. Veuillez réessayer.",
+            ),
+        );
+    }
 
     // The API stores roles in uppercase ("ADMIN"); normalize so template
     // checks like role == "admin" and handler guards compare consistently
