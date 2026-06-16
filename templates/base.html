@@ -213,6 +213,56 @@
         });
     </script>
 
+    <!-- Role classification mutual exclusivity (military vs civilian) -->
+    <script>
+        (function () {
+            var MILITARY = ['rank', 'military_occupation'];
+            var CIVILIAN = ['occupational_group', 'occupational_level'];
+
+            function fieldsByName(form, names) {
+                return names
+                    .map(function (n) { return form.querySelector('[name="' + n + '"]'); })
+                    .filter(function (el) { return el; });
+            }
+
+            function hasValue(fields) {
+                return fields.some(function (el) { return el.value && el.value.trim() !== ''; });
+            }
+
+            // Disable (and thus exclude from submission) the classification the
+            // user isn't filling in. Plain POST still works without this script;
+            // the server enforces the same rule.
+            function sync(form) {
+                var mil = fieldsByName(form, MILITARY);
+                var civ = fieldsByName(form, CIVILIAN);
+                if (!mil.length && !civ.length) { return; }
+                var milActive = hasValue(mil);
+                var civActive = hasValue(civ);
+                mil.forEach(function (el) { el.disabled = civActive && !milActive; });
+                civ.forEach(function (el) { el.disabled = milActive && !civActive; });
+            }
+
+            function syncFromEvent(e) {
+                var name = e.target && e.target.name;
+                if (!name) { return; }
+                if (MILITARY.indexOf(name) === -1 && CIVILIAN.indexOf(name) === -1) { return; }
+                var form = e.target.closest('form');
+                if (form) { sync(form); }
+            }
+
+            document.addEventListener('input', syncFromEvent);
+            document.addEventListener('change', syncFromEvent);
+
+            function syncAll() {
+                document.querySelectorAll('form').forEach(sync);
+            }
+            // Initial state (incl. error re-renders with preserved values) and
+            // HTMX-swapped partials such as the org-chart inline add-role form.
+            document.addEventListener('DOMContentLoaded', syncAll);
+            document.body.addEventListener('htmx:afterSettle', syncAll);
+        })();
+    </script>
+
 </body>
 
 </html>
