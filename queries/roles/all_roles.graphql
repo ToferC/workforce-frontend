@@ -6,6 +6,6 @@ query AllRoles {
     militaryOccupation
     rank
     person { id givenName familyName }
-    team { id nameEnglish }
+    team { id nameEnglish organization { id nameEn } }
   }
 }

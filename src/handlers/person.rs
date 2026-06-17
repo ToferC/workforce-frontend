@@ -791,6 +791,13 @@ pub struct PeopleIndexParams {
     pub retired: String,
     #[serde(default)]
     pub q: String,
+    /// Organization UUID to filter by; empty means all organizations.
+    #[serde(default)]
+    pub org: String,
+    /// "in_role" | "available" | "" (all). Whether the person currently holds
+    /// an active role.
+    #[serde(default)]
+    pub status: String,
 }
 
 /// How many rows an index renders before truncating with a "refine search"
@@ -820,24 +827,42 @@ pub async fn person_index(
 
     let show_retired = params.retired == "1";
     let query = params.q.trim().to_lowercase();
-    let people = all_people(bearer, &data.api_url, Arc::clone(&data.client)).await
+    let selected_org = params.org.trim().to_string();
+    let selected_status = params.status.trim();
+    let people = all_people(bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
         .map(|r| r.all_people)
         .unwrap_or_default();
 
     // allPeople includes retired records (hidden unless ?retired=1) and is
-    // large, so filter by the search term and cap the rendered rows.
+    // large, so filter by the search term, org, role status, and cap the rows.
     let matched: Vec<_> = people.iter()
         .filter(|p| show_retired || p.retired_at.is_none())
         .filter(|p| query.is_empty() || format!("{} {}", p.given_name, p.family_name).to_lowercase().contains(&query))
+        .filter(|p| selected_org.is_empty() || p.organization.id == selected_org)
+        .filter(|p| match selected_status {
+            "in_role" => !p.active_roles.is_empty(),
+            "available" => p.active_roles.is_empty(),
+            _ => true,
+        })
         .collect();
     let total = matched.len();
     let visible: Vec<_> = matched.into_iter().take(INDEX_PAGE_CAP).collect();
+
+    // Organization filter options, active orgs only, sorted by name.
+    let mut organizations = all_organizations(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_organizations)
+        .unwrap_or_default();
+    organizations.retain(|o| o.retired_at.is_none());
+    organizations.sort_by(|a, b| a.name_en.to_lowercase().cmp(&b.name_en.to_lowercase()));
 
     ctx.insert("people", &visible);
     ctx.insert("total", &total);
     ctx.insert("truncated", &(total > INDEX_PAGE_CAP));
     ctx.insert("q", &params.q);
     ctx.insert("show_retired", &show_retired);
+    ctx.insert("organizations", &organizations);
+    ctx.insert("selected_org", &selected_org);
+    ctx.insert("selected_status", &selected_status);
 
     // HTMX search requests get just the list partial to swap in place
     let template = if is_htmx(&req) { "person/person_list.html" } else { "person/person_index.html" };

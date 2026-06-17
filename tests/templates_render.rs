@@ -959,10 +959,19 @@ fn role_index_renders_vacant_and_occupied() {
     ctx.insert("q", "");
     ctx.insert("total", &2);
     ctx.insert("truncated", &false);
+    ctx.insert("organizations", &json!([{"id": "1", "nameEn": "Alpha Org"}, {"id": "2", "nameEn": "Beta Org"}]));
+    ctx.insert("selected_org", "2");
+    ctx.insert("selected_status", "vacant");
     let html = tera.render("role/role_index.html", &ctx).unwrap();
     assert!(html.contains("Sam Lee"));
     assert!(html.contains("/role/77777777-7777-7777-7777-777777777778"));
     assert!(html.contains("badge bg-danger"));  // vacant badge for the unassigned role
+    // Filter controls render with the org list and persist the selections
+    assert!(html.contains("name=\"org\""));
+    assert!(html.contains("name=\"status\""));
+    assert!(html.contains("Alpha Org"));
+    assert!(html.contains("value=\"2\" selected"));            // selected org persisted
+    assert!(html.contains("value=\"vacant\" selected"));       // selected status persisted
 }
 
 #[test]
@@ -976,10 +985,19 @@ fn person_index_renders_with_retired_toggle() {
     ctx.insert("q", "");
     ctx.insert("total", &1);
     ctx.insert("truncated", &false);
+    ctx.insert("organizations", &json!([{"id": "1", "nameEn": "Alpha Org"}]));
+    ctx.insert("selected_org", "1");
+    ctx.insert("selected_status", "available");
     let html = tera.render("person/person_index.html", &ctx).unwrap();
     assert!(html.contains("/people?retired=1"));
     assert!(html.contains("Sam Lee"));
     assert!(html.contains("/person/new"));  // operator sees New Person
+    // Org + availability filters render and persist the active selections
+    assert!(html.contains("name=\"org\""));
+    assert!(html.contains("name=\"status\""));
+    assert!(html.contains("Alpha Org"));
+    assert!(html.contains("value=\"1\" selected"));            // selected org persisted
+    assert!(html.contains("value=\"available\" selected"));    // availability persisted
 }
 
 #[test]

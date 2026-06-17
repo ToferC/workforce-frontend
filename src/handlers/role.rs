@@ -8,7 +8,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang, level_weight, chart_json};
-use crate::graphql::{get_role_by_id, get_role_matches, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement, get_person_by_id, update_work};
+use crate::graphql::{get_role_by_id, get_role_matches, all_roles, all_organizations, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement, get_person_by_id, update_work};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
@@ -1116,6 +1116,12 @@ pub async fn edit_requirement_post(
 pub struct RoleIndexParams {
     #[serde(default)]
     pub q: String,
+    /// Organization UUID to filter by; empty means all organizations.
+    #[serde(default)]
+    pub org: String,
+    /// "filled" | "vacant" | "" (all). Whether the role has an incumbent.
+    #[serde(default)]
+    pub status: String,
 }
 
 #[get("/{lang}/roles")]
@@ -1136,8 +1142,10 @@ pub async fn role_index(
     };
 
     let query = params.q.trim().to_lowercase();
+    let selected_org = params.org.trim().to_string();
+    let selected_status = params.status.trim();
     // allRoles is already active-only on the API side
-    let roles = all_roles(bearer, &data.api_url, Arc::clone(&data.client)).await
+    let roles = all_roles(bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
         .map(|r| r.all_roles)
         .unwrap_or_default();
 
@@ -1146,14 +1154,30 @@ pub async fn role_index(
             || r.title_english.to_lowercase().contains(&query)
             || r.title_french.to_lowercase().contains(&query)
             || r.person.as_ref().map_or(false, |p| format!("{} {}", p.given_name, p.family_name).to_lowercase().contains(&query)))
+        .filter(|r| selected_org.is_empty() || r.team.organization.id == selected_org)
+        .filter(|r| match selected_status {
+            "filled" => r.person.is_some(),
+            "vacant" => r.person.is_none(),
+            _ => true,
+        })
         .collect();
     let total = matched.len();
     let visible: Vec<_> = matched.into_iter().take(super::person::INDEX_PAGE_CAP).collect();
+
+    // Organization filter options, active orgs only, sorted by name.
+    let mut organizations = all_organizations(bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.all_organizations)
+        .unwrap_or_default();
+    organizations.retain(|o| o.retired_at.is_none());
+    organizations.sort_by(|a, b| a.name_en.to_lowercase().cmp(&b.name_en.to_lowercase()));
 
     ctx.insert("roles", &visible);
     ctx.insert("total", &total);
     ctx.insert("truncated", &(total > super::person::INDEX_PAGE_CAP));
     ctx.insert("q", &params.q);
+    ctx.insert("organizations", &organizations);
+    ctx.insert("selected_org", &selected_org);
+    ctx.insert("selected_status", &selected_status);
 
     let template = if is_htmx(&req) { "role/role_list.html" } else { "role/role_index.html" };
     let rendered = data.tmpl.render(template, &ctx).unwrap();

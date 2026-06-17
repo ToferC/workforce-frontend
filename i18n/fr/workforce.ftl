@@ -227,6 +227,11 @@ empty-tier = Aucun niveau enfant ni équipe sous ce niveau.
 loading = Chargement...
 occupied = occupés
 vacant = Vacant
+filled = Pourvu
+in-role = En poste
+available = Disponible
+all-organizations = Toutes les organisations
+all-statuses = Tous
 no-roles = Aucun rôle dans cette équipe.
 
 ## Team Forms
