@@ -12,7 +12,7 @@
             <label class="form-label" for="skill_domain">
                 {{ fluent(key="skill-domain", lang=lang) }}
             </label>
-            <select class="form-select" id="skill_domain" name="domain"
+            <select class="form-select" id="skill_domain" name="skill_domain"
                     hx-get="/{{ lang }}/skill_options"
                     hx-trigger="change"
                     hx-target="#skill-select-wrapper"

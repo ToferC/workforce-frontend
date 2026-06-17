@@ -15,8 +15,9 @@ type UUID = String;
 )]
 pub struct CreateValidation;
 
-/// Admin-only on the API. Creating a validation makes the API recalculate
-/// the capability's validated level as the average of its validations.
+/// Admin-only on the API. Creating a validation sets the capability's
+/// validated level directly from the submitted level (central-authority
+/// model) and stamps the capability's `validatedBy` / `validatedAt`.
 pub async fn create_validation(data: create_validation::NewValidation, bearer: String, api_url: &str, client: Arc<Client>) -> Result<create_validation::ResponseData, ApiError> {
     post_graphql::<CreateValidation>(&client, api_url, &bearer, create_validation::Variables { data }).await
 }

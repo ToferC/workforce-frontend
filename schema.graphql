@@ -48,7 +48,10 @@ type Capability {
   createdAt: NaiveDateTime!
   updatedAt: NaiveDateTime!
   retiredAt: NaiveDateTime
+  validatedById: UUID
+  validatedAt: NaiveDateTime
   person: Person!
+  validatedBy: Person
   skillName: String!
   skill: Skill!
   "Detailed view of validations for this capability"
@@ -896,7 +899,6 @@ input NewCapability {
   skillId: UUID!
   organizationId: UUID!
   selfIdentifiedLevel: CapabilityLevel!
-  validationValues: [Int!]!
 }
 "Represents an insertable Language"
 input NewLanguageData {
