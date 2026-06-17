@@ -162,7 +162,7 @@
                             </div>
                             {% if role == "operator" or role == "admin" %}
                             {% if person.activeRoles | length > 0 %}
-                            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#job-match-modal-{{ loop.index }}">
+                            <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#job-match-modal-{{ loop.index }}">
                                 <i class="bi bi-person-plus"></i> Assign to this role
                             </button>
                             {% else %}
@@ -190,11 +190,11 @@
                     <div class="modal fade" id="{{ modal_id }}" tabindex="-1" aria-labelledby="{{ modal_id }}-label" aria-hidden="true">
                       <div class="modal-dialog modal-lg">
                         <div class="modal-content">
-                          <div class="modal-header bg-warning bg-opacity-10">
+                          <div class="modal-header bg-warning text-dark">
                             <h5 class="modal-title" id="{{ modal_id }}-label">
                               <i class="bi bi-arrow-left-right"></i> Confirm Transfer
                             </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                           </div>
                           <form method="post" action="/{{ lang }}/role/{{ match.id }}/assign">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -207,7 +207,7 @@
 
                               {% for ar in person.activeRoles %}
                               <div class="card border-warning mb-3">
-                                <div class="card-header bg-warning bg-opacity-10 d-flex align-items-center gap-2 flex-wrap">
+                                <div class="card-header bg-warning text-dark d-flex align-items-center gap-2 flex-wrap">
                                   <i class="bi bi-exclamation-triangle text-warning"></i>
                                   <strong>Role being vacated:</strong>
                                   {{ ar.titleEnglish }}
@@ -259,7 +259,7 @@
                               {% endfor %}
                             </div>
                             <div class="modal-footer">
-                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                               <button type="submit" class="btn btn-success">
                                 <i class="bi bi-check-lg"></i> Confirm Transfer
                               </button>
