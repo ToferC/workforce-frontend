@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% import "macros/viz.html" as viz %}
 {% import "macros/charts.html" as charts %}
+{% import "macros/match.html" as match %}
 
 {% block title %}
     <title>{{ fluent(key="role", lang=lang )}}</title>
@@ -129,55 +130,45 @@
                 <div class="card-header">
                     <h2 class="h4 mb-0"><i class="bi bi-bullseye"></i> Potential Matches</h2>
                 </div>
-                <div class="card-body p-0">
-                    {% for person in role_record.findMatches %}
-                    <div class="p-3 border-bottom">
-                        <div class="d-flex justify-content-between align-items-start gap-2">
-                            <a href="/{{lang}}/person/{{person.id}}" class="fw-semibold">{{ person.givenName }} {{ person.familyName }}</a>
-                            {% if role == "operator" or role == "admin" %}
-                            {% if person.activeRoles | length > 0 %}
-                            <a class="btn btn-sm btn-success"
-                               href="/{{ lang }}/role/{{ role_record.id }}/transfer-preview?person_id={{ person.id }}"
-                               hx-get="/{{ lang }}/role/{{ role_record.id }}/transfer-preview?person_id={{ person.id }}"
-                               hx-target="#transfer-modal-container" hx-swap="innerHTML">
-                                <i class="bi bi-person-plus"></i> Assign
-                            </a>
-                            {% else %}
-                            <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/assign" class="m-0">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                <input type="hidden" name="person_id" value="{{ person.id }}">
-                                <button type="submit" class="btn btn-sm btn-success">
-                                    <i class="bi bi-person-plus"></i> Assign
-                                </button>
-                            </form>
-                            {% endif %}
-                            {% endif %}
+                {% if role_record.requirements %}
+                {# Tuning sliders sit outside #role-matches so they keep their
+                   position when HTMX swaps the results. They debounce-fire an
+                   hx-get that re-runs the scored matcher with the new values. #}
+                <div class="card-body border-bottom"
+                     hx-get="/{{ lang }}/role/{{ role_record.id }}/matches"
+                     hx-trigger="input changed delay:300ms from:#match-controls input"
+                     hx-target="#role-matches" hx-swap="innerHTML"
+                     hx-include="#match-controls">
+                    <form id="match-controls" onsubmit="return false">
+                        <div class="row">
+                            <div class="col-sm-6 mb-2">
+                                <label for="min_coverage" class="form-label small mb-1">
+                                    Minimum match: <span id="min_coverage_label" class="fw-semibold">{{ min_coverage_pct }}</span>%
+                                </label>
+                                <input type="range" class="custom-range" id="min_coverage" name="min_coverage"
+                                       min="0.1" max="0.9" step="0.1" value="{{ min_coverage_pct / 100 }}"
+                                       oninput="document.getElementById('min_coverage_label').textContent = Math.round(this.value * 100)">
+                                <div class="small text-muted">How much of the requirement set a close candidate must meet.</div>
+                            </div>
+                            <div class="col-sm-6 mb-2">
+                                <label for="max_gap_per_req" class="form-label small mb-1">
+                                    Allowed skill gap: <span id="max_gap_label" class="fw-semibold">{{ max_gap_per_req }}</span> level(s)
+                                </label>
+                                <input type="range" class="custom-range" id="max_gap_per_req" name="max_gap_per_req"
+                                       min="0" max="4" step="1" value="{{ max_gap_per_req }}"
+                                       oninput="document.getElementById('max_gap_label').textContent = this.value">
+                                <div class="small text-muted">Largest shortfall tolerated on any single skill.</div>
+                            </div>
                         </div>
-                        <ul class="list-group list-group-flush mt-2">
-                            <li class="list-group-item px-0 small"><span class="text-muted">Phone:</span> {{ person.phone }}</li>
-                            <li class="list-group-item px-0 small"><span class="text-muted">Email:</span> {{ person.email }}</li>
-                            <li class="list-group-item px-0 small">
-                                <span class="text-muted">Current Role:</span>
-                                {% for r in person.activeRoles %}
-                                    {{ r.titleEnglish }} &mdash; {{ r.militaryOccupation }}-{{ r.rank }}
-                                {% endfor %}
-                            </li>
-                        </ul>
-                        <h4 class="h6 text-muted mt-2 mb-1">Capabilities</h4>
-                        <ul class="list-group list-group-flush">
-                            {% for cap in person.capabilities %}
-                            <li class="list-group-item px-0 small d-flex align-items-center gap-2 flex-wrap">
-                                {{ cap.nameEn }}
-                                {{ viz::domain_chip(domain=cap.domain) }}
-                                {{ viz::level_chip(level=cap.validatedLevel, source="validated") }}
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-
+                    </form>
+                </div>
+                {% endif %}
+                <div class="card-body p-0" id="role-matches">
+                    {% if role_record.requirements %}
+                    {% include "role/_matches.html" %}
                     {% else %}
-                    <div class="p-4 text-muted">No potential matches found.</div>
-                    {% endfor %}
+                    <div class="p-4 text-muted">Add requirements to this role to find matching candidates.</div>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}

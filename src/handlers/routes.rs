@@ -39,6 +39,7 @@ use crate::handlers::{
 
     // role
     role_by_id,
+    role_matches,
     role_index,
     create_role_form,
     create_role_post,
@@ -203,6 +204,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(edit_requirement_form);
     config.service(edit_requirement_post);
     config.service(retire_requirement_post);
+    config.service(role_matches);
     config.service(role_by_id);
 
     // capability

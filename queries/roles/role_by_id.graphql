@@ -61,23 +61,5 @@ query RoleById($id:UUID!) {
         familyName
       }
     }
-    findMatches {
-      id
-      givenName
-      familyName
-      phone
-      email
-      activeRoles {
-        id
-        militaryOccupation
-        rank
-        titleEnglish
-      }
-      capabilities {
-        nameEn
-        domain
-        validatedLevel
-      }
-    }
   }
 }

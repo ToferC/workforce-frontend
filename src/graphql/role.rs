@@ -25,6 +25,35 @@ pub async fn get_role_by_id(id: UUID, bearer: String, api_url: &str, client: Arc
 #[derive(GraphQLQuery, Serialize, Deserialize)]
 #[graphql(
     schema_path = "schema.graphql",
+    query_path = "queries/roles/role_fuzzy_matches.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct RoleFuzzyMatches;
+
+/// Tiered, scored candidate matches for a role. `min_coverage` is the minimum
+/// fraction of requirements a partial candidate must meet (0.0–1.0);
+/// `max_gap_per_req` is the largest single-skill shortfall tolerated before a
+/// candidate is dropped entirely. Drives the vacant-role matching UI.
+pub async fn get_role_matches(
+    id: UUID,
+    min_coverage: f64,
+    max_gap_per_req: i64,
+    limit: i64,
+    bearer: String,
+    api_url: &str,
+    client: Arc<Client>,
+) -> Result<role_fuzzy_matches::ResponseData, ApiError> {
+    post_graphql::<RoleFuzzyMatches>(&client, api_url, &bearer, role_fuzzy_matches::Variables {
+        id,
+        min_coverage,
+        max_gap_per_req,
+        limit,
+    }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
     query_path = "queries/roles/create_role.graphql",
     response_derives = "Debug, Serialize, PartialEq"
 )]

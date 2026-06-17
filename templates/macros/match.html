@@ -1,0 +1,77 @@
+{#
+  Role candidate-matching macros.
+  Import with: {% import "macros/match.html" as match %}
+
+  candidate_card(c, lang, role, csrf_token, role_id, is_full)
+    Renders one scored PersonMatchScore: name, match-score meter, the
+    per-requirement met/shortfall breakdown, current role, and the
+    Assign / transfer-preview action (operator/admin only).
+    `c`        : PersonMatchScore (matchScore, coverage, requirementsMet/Total,
+                 totalGap, requirementGaps[], person{})
+    `role`     : caller's access level string ("operator"/"admin"/…)
+    `is_full`  : true for the full-match tier (100% coverage)
+#}
+{% import "macros/viz.html" as viz %}
+
+{% macro candidate_card(c, lang, role, csrf_token, role_id, is_full) %}
+{%- set score_pct = (c.matchScore * 100) | round | int -%}
+<div class="p-3 border-bottom">
+    <div class="d-flex justify-content-between align-items-start gap-2">
+        <div class="flex-grow-1">
+            <a href="/{{ lang }}/person/{{ c.person.id }}" class="fw-semibold">{{ c.person.givenName }} {{ c.person.familyName }}</a>
+            <div class="mt-1">
+                {% if is_full %}
+                <span class="badge bg-success">100% &mdash; meets all {{ c.requirementsTotal }} requirements</span>
+                {% else %}
+                <span class="badge bg-warning text-dark">{{ score_pct }}% match</span>
+                <span class="small text-muted ms-1">{{ c.requirementsMet }}/{{ c.requirementsTotal }} requirements met</span>
+                {% endif %}
+            </div>
+            <div class="progress mt-2" style="height:6px; max-width:240px" title="Match score {{ score_pct }}%">
+                <div class="progress-bar {% if is_full %}bg-success{% else %}bg-warning{% endif %}" role="progressbar"
+                     style="width:{{ score_pct }}%" aria-valuenow="{{ score_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+        {% if role == "operator" or role == "admin" %}
+        {% if c.person.activeRoles | length > 0 %}
+        <a class="btn btn-sm btn-success text-nowrap"
+           href="/{{ lang }}/role/{{ role_id }}/transfer-preview?person_id={{ c.person.id }}"
+           hx-get="/{{ lang }}/role/{{ role_id }}/transfer-preview?person_id={{ c.person.id }}"
+           hx-target="#transfer-modal-container" hx-swap="innerHTML">
+            <i class="bi bi-person-plus"></i> Assign
+        </a>
+        {% else %}
+        <form method="post" action="/{{ lang }}/role/{{ role_id }}/assign" class="m-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="person_id" value="{{ c.person.id }}">
+            <button type="submit" class="btn btn-sm btn-success text-nowrap">
+                <i class="bi bi-person-plus"></i> Assign
+            </button>
+        </form>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    {# Per-requirement breakdown: green = held at/above level, red = shortfall #}
+    <div class="d-flex flex-wrap gap-1 mt-2">
+        {% for g in c.requirementGaps %}
+        {% if g.met %}
+        <span class="badge bg-success" title="Meets requirement">
+            <i class="bi bi-check2"></i> {{ g.skillName }} &mdash; {{ g.actualLevel }}
+        </span>
+        {% else %}
+        <span class="badge bg-danger" title="Short by {{ g.gap }} level(s)">
+            <i class="bi bi-exclamation-triangle"></i> {{ g.skillName }}: needs {{ g.requiredLevel }}{% if g.actualLevel %}, has {{ g.actualLevel }}{% else %}, none held{% endif %}
+        </span>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    {% if c.person.activeRoles | length > 0 %}
+    <div class="small text-muted mt-2">
+        <span>Current role:</span>
+        {% for r in c.person.activeRoles %}{{ r.titleEnglish }}{% if r.militaryOccupation %} &mdash; {{ r.militaryOccupation }}-{{ r.rank }}{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endmacro candidate_card %}
