@@ -616,6 +616,62 @@ footer hr,
     color: var(--text-secondary);
 }
 
+/* Detail page multi-pane layout
+   Object detail pages use a main pane (operational lists) + a sidebar
+   (identity/summary at-a-glance info). Panes stack on small screens and
+   sit side by side from the lg breakpoint up, filling the wide-monitor
+   space that the old single-column layout left empty. */
+.detail-layout {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: calc(-1 * var(--spacing-md));
+    margin-left: calc(-1 * var(--spacing-md));
+}
+
+.detail-main,
+.detail-aside {
+    padding-right: var(--spacing-md);
+    padding-left: var(--spacing-md);
+    width: 100%;
+}
+
+@media (min-width: 992px) {
+    .detail-main {
+        flex: 0 0 66.6667%;
+        max-width: 66.6667%;
+    }
+
+    .detail-aside {
+        flex: 0 0 33.3333%;
+        max-width: 33.3333%;
+    }
+
+    /* Keep the summary sidebar in view while scrolling the main pane. */
+    .detail-aside-sticky {
+        position: sticky;
+        top: var(--spacing-md);
+    }
+}
+
+/* Bootstrap 5 utility shims.
+   Templates were authored with Bootstrap 5 spacing/flex utilities, but the
+   vendored Bootstrap is 4.5.3 where these classes don't exist. Define the
+   ones the templates rely on so chips, badges and inline meta line up with
+   proper spacing instead of running together. */
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 1rem; }
+.ms-1 { margin-left: 0.25rem; }
+.ms-2 { margin-left: 0.5rem; }
+.ms-3 { margin-left: 1rem; }
+.ms-auto { margin-left: auto; }
+.me-1 { margin-right: 0.25rem; }
+.me-2 { margin-right: 0.5rem; }
+.me-3 { margin-right: 1rem; }
+.fw-normal { font-weight: 400; }
+.fw-semibold { font-weight: 600; }
+.fw-bold { font-weight: 700; }
+
 /* Enhanced Form Styles */
 .form-label {
     font-weight: 500;

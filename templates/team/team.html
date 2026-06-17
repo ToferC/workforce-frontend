@@ -38,72 +38,86 @@
         {% endif %}
     </div>
 
-    <!-- Details -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item">
-                    <span class="text-muted">Organization:</span>
-                    <a href="/{{lang}}/organization/{{ team.organization.id }}">{{ team.organization.nameEn }}</a>
-                </li>
-                <li class="list-group-item">
-                    <span class="text-muted">Organization Level:</span>
-                    <a href="/{{lang}}/org_tier/{{ team.organizationLevel.id }}">{{ team.organizationLevel.nameEn }}</a>
-                </li>
-                <li class="list-group-item">
-                    <span class="text-muted">Owner:</span>
-                    <a href="/{{lang}}/person/{{team.owner.id}}">{{ team.owner.givenName }} {{ team.owner.familyName }}</a>
-                    &mdash; {{ team.owner.email }}
-                </li>
-            </ul>
-        </div>
-    </div>
+    <div class="detail-layout">
+        <!-- Main pane: roles & work -->
+        <div class="detail-main">
+            <!-- Occupied Roles -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-person-check"></i> Occupied Roles</h2>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for role in team.occupiedRoles %}
+                        <li class="list-group-item">
+                            <a href="/{{lang}}/role/{{ role.id }}" class="fw-semibold">{{ role.titleEnglish }}</a>
+                            <span class="text-muted small ms-1">({{ role.militaryOccupation }}-{{ role.rank }})</span>
+                            &mdash;
+                            <a href="/{{lang}}/person/{{role.person.id}}">{{ role.person.givenName }} {{ role.person.familyName }}</a>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">No occupied roles.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
 
-    <!-- Occupied Roles -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-person-check"></i> Occupied Roles</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for role in team.occupiedRoles %}
-                <li class="list-group-item">
-                    <a href="/{{lang}}/role/{{ role.id }}" class="fw-semibold">{{ role.titleEnglish }}</a>
-                    <span class="text-muted small ms-1">({{ role.militaryOccupation }}-{{ role.rank }})</span>
-                    &mdash;
-                    <a href="/{{lang}}/person/{{role.person.id}}">{{ role.person.givenName }} {{ role.person.familyName }}</a>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
+            <!-- Vacant Roles -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-person-dash"></i> Vacant Roles</h2>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for role in team.vacantRoles %}
+                        <li class="list-group-item">
+                            <a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish }}</a>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">No vacant roles.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
 
-    <!-- Vacant Roles -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-person-dash"></i> Vacant Roles</h2>
+            <!-- Tasks -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-kanban"></i> Tasks</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-0">Under Construction</p>
+                </div>
+            </div>
         </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for role in team.vacantRoles %}
-                <li class="list-group-item">
-                    <a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish }}</a>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
 
-    <!-- Tasks -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-kanban"></i> Tasks</h2>
-        </div>
-        <div class="card-body">
-            <p class="text-muted mb-0">Under Construction</p>
+        <!-- Sidebar pane: summary -->
+        <div class="detail-aside">
+            <div class="detail-aside-sticky">
+                <!-- Details -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <span class="text-muted">Organization:</span>
+                                <a href="/{{lang}}/organization/{{ team.organization.id }}">{{ team.organization.nameEn }}</a>
+                            </li>
+                            <li class="list-group-item">
+                                <span class="text-muted">Organization Level:</span>
+                                <a href="/{{lang}}/org_tier/{{ team.organizationLevel.id }}">{{ team.organizationLevel.nameEn }}</a>
+                            </li>
+                            <li class="list-group-item">
+                                <span class="text-muted">Owner:</span>
+                                <a href="/{{lang}}/person/{{team.owner.id}}">{{ team.owner.givenName }} {{ team.owner.familyName }}</a>
+                                &mdash; {{ team.owner.email }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

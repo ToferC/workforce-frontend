@@ -29,134 +29,145 @@
         {% endif %}
     </div>
 
-    <!-- Details -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ work.url }}">{{ work.url }}</a></li>
-                <li class="list-group-item d-flex align-items-center gap-2">
-                    <span class="text-muted">Domain &rarr; Level:</span>
-                    {{ viz::domain_chip(domain=work.domain) }}
-                    {{ viz::level_chip(level=work.capabilityLevel) }}
-                </li>
-                {% if work.skill %}
-                <li class="list-group-item"><span class="text-muted">Required Skill:</span> {{ work.skill.nameEn }}</li>
-                {% endif %}
-                <li class="list-group-item">
-                    <span class="text-muted">Task:</span>
-                    <a href="/{{lang}}/task/{{work.task.id}}">{{ work.task.title }}</a>
-                </li>
-                <li class="list-group-item"><span class="text-muted">Target Completion:</span> {{ work.task.targetCompletionDate }}</li>
-                <li class="list-group-item">
-                    <span class="text-muted">Assigned by:</span>
-                    <a href="/{{lang}}/person/{{work.task.createdBy.person.id}}">{{ work.task.createdBy.person.givenName }} {{ work.task.createdBy.person.familyName }}</a>
-                    &mdash;
-                    <a href="/{{ lang }}/role/{{ work.task.createdBy.id }}">{{ work.task.createdBy.titleEnglish }} &mdash; {{ work.task.createdBy.militaryOccupation }}-{{ work.task.createdBy.rank }}</a>
-                </li>
-                <li class="list-group-item">
-                    <span class="text-muted">Team:</span>
-                    <a href="/{{lang}}/team/{{work.task.createdBy.team.id}}">{{ work.task.createdBy.team.nameEnglish }}</a>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Assigned To -->
     {% set assignee_qualified = false %}
     {% if work.role and work.role.person %}
         {% for match in work.capabilityMatches %}
             {% if match.person.id == work.role.person.id %}{% set_global assignee_qualified = true %}{% endif %}
         {% endfor %}
     {% endif %}
-    <div class="card shadow-lg mb-4">
-        <div class="card-header d-flex align-items-center justify-content-between">
-            <h2 class="h4 mb-0"><i class="bi bi-person-check"></i> Assigned To</h2>
-            {% if work.role and work.role.person %}
-                {% if assignee_qualified %}
-                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Meets required level</span>
-                {% else %}
-                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Below required level</span>
-                {% endif %}
-            {% endif %}
-        </div>
-        <div class="card-body p-0">
-            {% if work.role and work.role.person %}
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item">
-                    <a href="/{{lang}}/person/{{work.role.person.id}}" class="fw-semibold">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
-                </li>
-                <li class="list-group-item">
-                    <span class="text-muted">Role:</span>
-                    <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }} &mdash; {{ work.role.militaryOccupation }}-{{ work.role.rank }}</a>
-                </li>
-                <li class="list-group-item"><span class="text-muted">Address:</span> {{ work.role.person.workAddress }}</li>
-                <li class="list-group-item">
-                    <span class="text-muted">Organization:</span>
-                    <a href="/{{ lang }}/organization/{{ work.role.person.organization.id }}">{{ work.role.person.organization.nameEn }}</a>
-                </li>
-                <li class="list-group-item"><span class="text-muted">Email:</span> {{ work.role.person.email }}</li>
-                <li class="list-group-item"><span class="text-muted">Phone:</span> {{ work.role.person.phone }}</li>
-            </ul>
-            {% else %}
-            <div class="p-4 text-muted">Not assigned.</div>
-            {% endif %}
-        </div>
-    </div>
 
-    <!-- Qualified People -->
-    {% if role == "operator" or role == "admin" %}
-    <div class="card shadow-lg mb-4">
-        <div class="card-header d-flex align-items-center justify-content-between">
-            <h2 class="h4 mb-0"><i class="bi bi-people"></i> Qualified People</h2>
-            <span class="text-muted small">Validated at or above {{ work.capabilityLevel }}{% if work.skill %} in {{ work.skill.nameEn }}{% else %} in {{ work.domain }}{% endif %}</span>
-        </div>
-        <div class="card-body p-0">
-            {% if work.capabilityMatches | length > 0 %}
-            <ul class="list-group list-group-flush">
-                {% for match in work.capabilityMatches %}
-                <li class="list-group-item">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <div>
-                            <a href="/{{ lang }}/person/{{ match.person.id }}" class="fw-semibold">{{ match.person.givenName }} {{ match.person.familyName }}</a>
-                            {% if match.validatedLevel %}
-                            {{ viz::level_chip(level=match.validatedLevel, source="validated") }}
-                            {% else %}
-                            {{ viz::level_chip(level=match.selfIdentifiedLevel, source="self") }}
-                            {% endif %}
-                            {{ viz::effort_meter(value=match.person.activeEffort) }}
-                        </div>
-                        <div class="d-flex flex-wrap gap-1">
-                            {% if match.person.activeRoles | length > 0 %}
-                                {% for r in match.person.activeRoles %}
-                                    {% if work.role and r.id == work.role.id %}
-                                    <span class="badge bg-info text-dark align-self-center">Currently assigned &mdash; {{ r.titleEnglish }}</span>
+    <div class="detail-layout">
+        <!-- Main pane: assignment & candidates -->
+        <div class="detail-main">
+            <!-- Assigned To -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h2 class="h4 mb-0"><i class="bi bi-person-check"></i> Assigned To</h2>
+                    {% if work.role and work.role.person %}
+                        {% if assignee_qualified %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Meets required level</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Below required level</span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if work.role and work.role.person %}
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <a href="/{{lang}}/person/{{work.role.person.id}}" class="fw-semibold">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
+                        </li>
+                        <li class="list-group-item">
+                            <span class="text-muted">Role:</span>
+                            <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }} &mdash; {{ work.role.militaryOccupation }}-{{ work.role.rank }}</a>
+                        </li>
+                        <li class="list-group-item"><span class="text-muted">Address:</span> {{ work.role.person.workAddress }}</li>
+                        <li class="list-group-item">
+                            <span class="text-muted">Organization:</span>
+                            <a href="/{{ lang }}/organization/{{ work.role.person.organization.id }}">{{ work.role.person.organization.nameEn }}</a>
+                        </li>
+                        <li class="list-group-item"><span class="text-muted">Email:</span> {{ work.role.person.email }}</li>
+                        <li class="list-group-item"><span class="text-muted">Phone:</span> {{ work.role.person.phone }}</li>
+                    </ul>
+                    {% else %}
+                    <div class="p-4 text-muted">Not assigned.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Qualified People -->
+            {% if role == "operator" or role == "admin" %}
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h2 class="h4 mb-0"><i class="bi bi-people"></i> Qualified People</h2>
+                    <span class="text-muted small">Validated at or above {{ work.capabilityLevel }}{% if work.skill %} in {{ work.skill.nameEn }}{% else %} in {{ work.domain }}{% endif %}</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if work.capabilityMatches | length > 0 %}
+                    <ul class="list-group list-group-flush">
+                        {% for match in work.capabilityMatches %}
+                        <li class="list-group-item">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <div>
+                                    <a href="/{{ lang }}/person/{{ match.person.id }}" class="fw-semibold">{{ match.person.givenName }} {{ match.person.familyName }}</a>
+                                    {% if match.validatedLevel %}
+                                    {{ viz::level_chip(level=match.validatedLevel, source="validated") }}
                                     {% else %}
-                                    <form method="post" action="/{{ lang }}/work/{{ work.id }}/assign" class="d-inline">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                        <input type="hidden" name="role_id" value="{{ r.id }}">
-                                        <input type="hidden" name="skill_id" value="{% if work.skill %}{{ work.skill.id }}{% endif %}">
-                                        <button type="submit" class="btn btn-sm btn-outline-success">
-                                            <i class="bi bi-person-plus"></i> Assign as {{ r.titleEnglish }}
-                                        </button>
-                                    </form>
+                                    {{ viz::level_chip(level=match.selfIdentifiedLevel, source="self") }}
                                     {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted small align-self-center">No active role &mdash; assign a role first</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <div class="p-4 text-muted">No qualified people found for this work's requirements.</div>
+                                    {{ viz::effort_meter(value=match.person.activeEffort) }}
+                                </div>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% if match.person.activeRoles | length > 0 %}
+                                        {% for r in match.person.activeRoles %}
+                                            {% if work.role and r.id == work.role.id %}
+                                            <span class="badge bg-info text-dark align-self-center">Currently assigned &mdash; {{ r.titleEnglish }}</span>
+                                            {% else %}
+                                            <form method="post" action="/{{ lang }}/work/{{ work.id }}/assign" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                <input type="hidden" name="role_id" value="{{ r.id }}">
+                                                <input type="hidden" name="skill_id" value="{% if work.skill %}{{ work.skill.id }}{% endif %}">
+                                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                                    <i class="bi bi-person-plus"></i> Assign as {{ r.titleEnglish }}
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted small align-self-center">No active role &mdash; assign a role first</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="p-4 text-muted">No qualified people found for this work's requirements.</div>
+                    {% endif %}
+                </div>
+            </div>
             {% endif %}
         </div>
+
+        <!-- Sidebar pane: details -->
+        <div class="detail-aside">
+            <div class="detail-aside-sticky">
+                <!-- Details -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ work.url }}">{{ work.url }}</a></li>
+                            <li class="list-group-item d-flex align-items-center gap-2">
+                                <span class="text-muted">Domain &rarr; Level:</span>
+                                {{ viz::domain_chip(domain=work.domain) }}
+                                {{ viz::level_chip(level=work.capabilityLevel) }}
+                            </li>
+                            {% if work.skill %}
+                            <li class="list-group-item"><span class="text-muted">Required Skill:</span> {{ work.skill.nameEn }}</li>
+                            {% endif %}
+                            <li class="list-group-item">
+                                <span class="text-muted">Task:</span>
+                                <a href="/{{lang}}/task/{{work.task.id}}">{{ work.task.title }}</a>
+                            </li>
+                            <li class="list-group-item"><span class="text-muted">Target Completion:</span> {{ work.task.targetCompletionDate }}</li>
+                            <li class="list-group-item">
+                                <span class="text-muted">Assigned by:</span>
+                                <a href="/{{lang}}/person/{{work.task.createdBy.person.id}}">{{ work.task.createdBy.person.givenName }} {{ work.task.createdBy.person.familyName }}</a>
+                                &mdash;
+                                <a href="/{{ lang }}/role/{{ work.task.createdBy.id }}">{{ work.task.createdBy.titleEnglish }} &mdash; {{ work.task.createdBy.militaryOccupation }}-{{ work.task.createdBy.rank }}</a>
+                            </li>
+                            <li class="list-group-item">
+                                <span class="text-muted">Team:</span>
+                                <a href="/{{lang}}/team/{{work.task.createdBy.team.id}}">{{ work.task.createdBy.team.nameEnglish }}</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    {% endif %}
 </div>
 {% endblock content %}
