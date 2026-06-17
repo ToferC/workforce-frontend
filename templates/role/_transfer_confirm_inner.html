@@ -9,10 +9,10 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <input type="hidden" name="person_id" value="{{ person.id }}">
 
-    <p class="mb-3">
+    <b class="mb-3">
         You are about to assign <strong>{{ person.givenName }} {{ person.familyName }}</strong> to
         <strong>{{ target_role_title }}</strong>.
-    </p>
+    </b>
 
     {% for ar in person.activeRoles %}
     <div class="card border-warning mb-3">

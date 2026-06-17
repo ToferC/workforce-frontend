@@ -874,6 +874,38 @@ footer hr,
 [data-theme="light"] .domain-delivery { background-color: #fff3cd !important; color: #664d03 !important; }
 [data-theme="light"] .domain-corp     { background-color: #e2e3e5 !important; color: #41464b !important; }
 
+/* Modal dark-mode overrides (Bootstrap 4 hard-codes white backgrounds) */
+.modal-content {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.modal-header {
+    border-bottom-color: var(--border-color);
+}
+
+.modal-footer {
+    background-color: var(--bg-secondary);
+    border-top-color: var(--border-color);
+}
+
+.modal-body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.modal .close {
+    color: var(--text-primary);
+    text-shadow: none;
+    opacity: 0.75;
+}
+
+.modal .close:hover {
+    color: var(--text-primary);
+    opacity: 1;
+}
+
 /* Smooth Scrolling */
 html {
     scroll-behavior: smooth;
