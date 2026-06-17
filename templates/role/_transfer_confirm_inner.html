@@ -1,0 +1,74 @@
+{% import "macros/viz.html" as viz %}
+{# Shared transfer-confirmation form body.
+   Rendered inside a modal (HTMX) or a full page (no-JS fallback).
+   Context: lang, csrf_token, person (with activeRoles -> team, work),
+            target_role_id, target_role_title, has_work.
+   The submit button lives in the wrapper and references this form via
+   form="transferForm". #}
+<form id="transferForm" method="post" action="/{{ lang }}/role/{{ target_role_id }}/assign">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="person_id" value="{{ person.id }}">
+
+    <p class="mb-3">
+        You are about to assign <strong>{{ person.givenName }} {{ person.familyName }}</strong> to
+        <strong>{{ target_role_title }}</strong>.
+    </p>
+
+    {% for ar in person.activeRoles %}
+    <div class="card border-warning mb-3">
+        <div class="card-header bg-warning text-dark d-flex align-items-center gap-2 flex-wrap">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Role being vacated:</strong>
+            {{ ar.titleEnglish }}
+            <span class="text-muted small">({{ ar.militaryOccupation }}-{{ ar.rank }})</span>
+        </div>
+        <div class="card-body p-0">
+            {% if ar.team %}
+            <div class="px-3 py-2 border-bottom">
+                <span class="text-muted">Team:</span> {{ ar.team.nameEnglish }}
+            </div>
+            {% endif %}
+
+            {% if ar.work and ar.work | length > 0 %}
+            <div class="px-3 py-2">
+                <span class="text-danger font-weight-bold">
+                    <i class="bi bi-kanban"></i> {{ ar.work | length }} work item(s) currently assigned:
+                </span>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for w in ar.work %}
+                <li class="list-group-item">
+                    <span class="font-weight-bold">{{ w.workDescription }}</span>
+                    <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
+                        {{ viz::domain_chip(domain=w.domain) }}
+                        {{ viz::status_chip(status=w.workStatus) }}
+                        {{ viz::effort_meter(value=w.effort) }}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="px-3 py-2 text-muted">
+                <i class="bi bi-check-circle text-success"></i> No work currently assigned to this role.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if has_work %}
+    <div class="border-top pt-3">
+        <div class="custom-control custom-checkbox">
+            <input class="custom-control-input" type="checkbox" id="reassign-check"
+                   onchange="document.getElementById('reassign-val').value = this.checked ? '{{ target_role_id }}' : '';">
+            <label class="custom-control-label" for="reassign-check">
+                Reassign this person's current work to <strong>{{ target_role_title }}</strong>
+            </label>
+        </div>
+        <input type="hidden" id="reassign-val" name="reassign_work_to" value="">
+        <p class="text-muted small mt-1 mb-0">
+            Otherwise the work stays on the vacated role and becomes orphaned until reassigned.
+        </p>
+    </div>
+    {% endif %}
+</form>

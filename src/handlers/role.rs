@@ -621,6 +621,67 @@ pub struct AssignRoleForm {
     pub reassign_work_to: String,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct TransferPreviewParams {
+    pub person_id: String,
+}
+
+/// Render the transfer-confirmation modal (HTMX) or a full confirmation page
+/// (plain navigation fallback) for assigning `person_id` to this role. Shows
+/// the role(s) the person currently holds and the work attached to them so an
+/// operator can confirm — and optionally reassign that work to the new role.
+#[get("/{lang}/role/{role_id}/transfer-preview")]
+pub async fn transfer_preview(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    params: web::Query<TransferPreviewParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let role = match get_role_by_id(role_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.role_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+        },
+    };
+
+    let person = match get_person_by_id(params.person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.person_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+        },
+    };
+
+    let target_title = if lang == "fr" { role.title_french.clone() } else { role.title_english.clone() };
+    let has_work = person.active_roles.iter().any(|r| !r.work.is_empty());
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("person", &person);
+    ctx.insert("target_role_id", &role_id);
+    ctx.insert("target_role_title", &target_title);
+    ctx.insert("has_work", &has_work);
+    ctx.insert("cancel_url", &format!("/{}/role/{}", &lang, &role_id));
+
+    let template = if is_htmx(&req) {
+        "role/_transfer_confirm.html"
+    } else {
+        "role/transfer_confirm.html"
+    };
+
+    let rendered = data.tmpl.render(template, &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
 /// Assign a person to a vacant role. Driven by the "Assign" buttons on the
 /// role detail (potential matches), person detail (potential job matches),
 /// and vacancy pages — each posts the chosen person_id here.
