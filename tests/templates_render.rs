@@ -435,7 +435,27 @@ fn sample_role_record() -> serde_json::Value {
         "work": [],
         "requirements": [],
         "assignments": [],
-        "findMatches": [],
+    })
+}
+
+// A scored candidate as the fuzzyMatches resolver serializes it.
+fn sample_match_score(given: &str, family: &str, score: f64, met: i64, total: i64, full: bool) -> serde_json::Value {
+    json!({
+        "matchScore": score,
+        "coverage": met as f64 / total as f64,
+        "requirementsMet": met,
+        "requirementsTotal": total,
+        "totalGap": total - met,
+        "requirementGaps": [
+            {"skillName": "Threat Analysis", "requiredLevel": "EXPERT", "actualLevel": "EXPERT", "gap": 0, "met": true},
+            {"skillName": "Incident Response", "requiredLevel": "EXPERT", "actualLevel": if full { "EXPERT" } else { "EXPERIENCED" }, "gap": if full { 0 } else { 1 }, "met": full},
+        ],
+        "person": {
+            "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "givenName": given, "familyName": family,
+            "phone": "555", "email": "c@e.com",
+            "activeRoles": [{"id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "titleEnglish": "Analyst", "militaryOccupation": "CYBER", "rank": "CAPTAIN"}],
+            "capabilities": [],
+        },
     })
 }
 
@@ -512,6 +532,52 @@ fn role_detail_shows_assignment_history() {
     assert!(html.contains("Pat Kim"));
     assert!(html.contains("Current"));
     assert!(html.contains("/person/99999999-9999-9999-9999-999999999999"));
+}
+
+#[test]
+fn role_detail_vacant_renders_fuzzy_match_panel() {
+    let tera = tera();
+    let mut role = sample_role_record();
+    role["person"] = json!(null);
+    role["requirements"] = json!([
+        {"id": "r0000000-0000-0000-0000-000000000001", "nameEn": "Threat Analysis", "domain": "CYBER_SECURITY", "requiredLevel": "EXPERT"},
+    ]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_record", &role);
+    ctx.insert("match_role_id", "77777777-7777-7777-7777-777777777777");
+    ctx.insert("min_coverage_pct", &50);
+    ctx.insert("max_gap_per_req", &1);
+    ctx.insert("match_full", &json!([sample_match_score("Alex", "Roy", 1.0, 1, 1, true)]));
+    ctx.insert("match_partial", &json!([sample_match_score("Jamie", "Fox", 0.65, 3, 4, false)]));
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    // Tuning sliders present and wired to the HTMX endpoint
+    assert!(html.contains("name=\"min_coverage\""));
+    assert!(html.contains("name=\"max_gap_per_req\""));
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/matches"));
+    // Both tiers render their candidates and scores
+    assert!(html.contains("Full matches"));
+    assert!(html.contains("Close matches"));
+    assert!(html.contains("Alex Roy"));
+    assert!(html.contains("Jamie Fox"));
+    assert!(html.contains("65% match"));
+    // Shortfall breakdown surfaces the gap
+    assert!(html.contains("Incident Response"));
+}
+
+#[test]
+fn role_matches_partial_renders_standalone() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("match_role_id", "77777777-7777-7777-7777-777777777777");
+    ctx.insert("min_coverage_pct", &30);
+    ctx.insert("max_gap_per_req", &2);
+    ctx.insert("match_full", &json!([]));
+    ctx.insert("match_partial", &json!([sample_match_score("Jamie", "Fox", 0.5, 2, 4, false)]));
+    let html = tera.render("role/_matches.html", &ctx).unwrap();
+    assert!(html.contains("No one currently meets every requirement."));
+    assert!(html.contains("Jamie Fox"));
+    // Threshold caption reflects the slider values
+    assert!(html.contains("30%"));
 }
 
 #[test]

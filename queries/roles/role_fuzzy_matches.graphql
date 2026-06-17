@@ -1,0 +1,49 @@
+query RoleFuzzyMatches($id: UUID!, $minCoverage: Float!, $maxGapPerReq: Int!, $limit: Int!) {
+  roleById(id: $id) {
+    id
+    titleEnglish
+    titleFrench
+    fuzzyMatches(minCoverage: $minCoverage, maxGapPerReq: $maxGapPerReq, limit: $limit) {
+      roleId
+      fullMatches {
+        ...matchScoreFields
+      }
+      partialMatches {
+        ...matchScoreFields
+      }
+    }
+  }
+}
+
+fragment matchScoreFields on PersonMatchScore {
+  matchScore
+  coverage
+  requirementsMet
+  requirementsTotal
+  totalGap
+  requirementGaps {
+    skillName
+    requiredLevel
+    actualLevel
+    gap
+    met
+  }
+  person {
+    id
+    givenName
+    familyName
+    phone
+    email
+    activeRoles {
+      id
+      titleEnglish
+      militaryOccupation
+      rank
+    }
+    capabilities {
+      nameEn
+      domain
+      validatedLevel
+    }
+  }
+}

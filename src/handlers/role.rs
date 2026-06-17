@@ -8,7 +8,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang, level_weight, chart_json};
-use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement, get_person_by_id, update_work};
+use crate::graphql::{get_role_by_id, get_role_matches, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement, get_person_by_id, update_work};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
@@ -92,6 +92,23 @@ pub struct EndRoleForm {
     pub csrf_token: String,
 }
 
+/// Default tuning for the vacant-role candidate matcher. `min_coverage` is the
+/// fraction of requirements a "close" candidate must meet; `max_gap_per_req` is
+/// the largest single-skill shortfall tolerated. `LIMIT` caps each tier.
+const DEFAULT_MIN_COVERAGE: f64 = 0.5;
+const DEFAULT_MAX_GAP_PER_REQ: i64 = 1;
+const MATCH_LIMIT: i64 = 10;
+
+/// Query params for the HTMX-driven match panel: the two sliders post their
+/// values here so the panel re-renders without a full page load.
+#[derive(Deserialize, Debug)]
+pub struct MatchParams {
+    #[serde(default)]
+    pub min_coverage: Option<f64>,
+    #[serde(default)]
+    pub max_gap_per_req: Option<i64>,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct NewRoleParams {
     pub team: String,
@@ -160,7 +177,7 @@ pub async fn role_by_id(
         None => "".to_string(),
     };
 
-    let r = get_role_by_id(role_id, bearer, &data.api_url, Arc::clone(&data.client))
+    let r = get_role_by_id(role_id.clone(), bearer.clone(), &data.api_url, Arc::clone(&data.client))
         .await
         .expect("Unable to get role");
 
@@ -232,9 +249,87 @@ pub async fn role_by_id(
         }
     }
 
+    // Vacant roles with requirements get the scored candidate matcher seeded
+    // with default tuning. The panel itself can re-tune via HTMX (see
+    // `role_matches`). Roles without requirements have nothing to match against.
+    if role_rec.person.is_none() && !role_rec.requirements.is_empty() {
+        ctx.insert("match_role_id", &role_id);
+        match get_role_matches(
+            role_id.clone(),
+            DEFAULT_MIN_COVERAGE,
+            DEFAULT_MAX_GAP_PER_REQ,
+            MATCH_LIMIT,
+            bearer,
+            &data.api_url,
+            Arc::clone(&data.client),
+        ).await {
+            Ok(resp) => {
+                ctx.insert("match_full", &resp.role_by_id.fuzzy_matches.full_matches);
+                ctx.insert("match_partial", &resp.role_by_id.fuzzy_matches.partial_matches);
+            },
+            // Don't blow up the whole page if matching fails; the panel just
+            // renders empty with the error noted in the template fallback.
+            Err(e) => ctx.insert("match_error", &e.to_string()),
+        }
+        ctx.insert("min_coverage_pct", &((DEFAULT_MIN_COVERAGE * 100.0).round() as i64));
+        ctx.insert("max_gap_per_req", &DEFAULT_MAX_GAP_PER_REQ);
+    }
+
     ctx.insert("role_record", &r.role_by_id);
 
     let rendered = data.tmpl.render("role/role.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+/// HTMX target for the vacant-role candidate matcher. The min-coverage and
+/// max-gap sliders fire `hx-get` here with their values; this re-runs the
+/// scored matcher and returns just the `role/_matches.html` panel. The page
+/// degrades gracefully without JS because the initial panel is server-rendered
+/// on the role page itself.
+#[get("/{lang}/role/{role_id}/matches")]
+pub async fn role_matches(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    params: web::Query<MatchParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match session.get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    // Clamp slider inputs to the ranges the UI offers so a hand-edited query
+    // string can't push nonsense into the API.
+    let min_coverage = params.min_coverage.unwrap_or(DEFAULT_MIN_COVERAGE).clamp(0.0, 1.0);
+    let max_gap_per_req = params.max_gap_per_req.unwrap_or(DEFAULT_MAX_GAP_PER_REQ).clamp(0, 4);
+
+    ctx.insert("match_role_id", &role_id);
+    ctx.insert("min_coverage_pct", &((min_coverage * 100.0).round() as i64));
+    ctx.insert("max_gap_per_req", &max_gap_per_req);
+
+    match get_role_matches(
+        role_id,
+        min_coverage,
+        max_gap_per_req,
+        MATCH_LIMIT,
+        bearer,
+        &data.api_url,
+        Arc::clone(&data.client),
+    ).await {
+        Ok(resp) => {
+            ctx.insert("match_full", &resp.role_by_id.fuzzy_matches.full_matches);
+            ctx.insert("match_partial", &resp.role_by_id.fuzzy_matches.partial_matches);
+        },
+        Err(e) => ctx.insert("match_error", &e.to_string()),
+    }
+
+    let rendered = data.tmpl.render("role/_matches.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }
 
