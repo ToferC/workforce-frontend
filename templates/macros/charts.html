@@ -24,20 +24,31 @@
 <div id="{{ id }}" style="height:{{ height }};width:100%"></div>
 <script>
   (function() {
-    var el = document.getElementById("{{ id }}");
-    var dataEl = document.getElementById("{{ id }}-data");
-    if (!el || !dataEl || typeof echarts === "undefined") return;
-    var option = JSON.parse(dataEl.textContent || "{}");
-    var isDark = document.documentElement.getAttribute("data-theme") !== "light";
-    var chart = echarts.init(el, isDark ? "dark" : null, { renderer: "canvas" });
-    chart.setOption(option);
-    window.addEventListener("resize", function() { chart.resize(); });
-    document.addEventListener("themechange", function(e) {
-      var newDark = e.detail !== "light";
-      chart.dispose();
-      chart = echarts.init(el, newDark ? "dark" : null, { renderer: "canvas" });
+    // Defer until the DOM is parsed: the paired <script id="{{ id }}-data">
+    // payload is rendered *after* this macro, so it does not yet exist when
+    // this inline script first runs. Initialising immediately would read a
+    // null data element and silently bail out, leaving the chart blank.
+    function init() {
+      var el = document.getElementById("{{ id }}");
+      var dataEl = document.getElementById("{{ id }}-data");
+      if (!el || !dataEl || typeof echarts === "undefined") return;
+      var option = JSON.parse(dataEl.textContent || "{}");
+      var isDark = document.documentElement.getAttribute("data-theme") !== "light";
+      var chart = echarts.init(el, isDark ? "dark" : null, { renderer: "canvas" });
       chart.setOption(option);
-    });
+      window.addEventListener("resize", function() { chart.resize(); });
+      document.addEventListener("themechange", function(e) {
+        var newDark = e.detail !== "light";
+        chart.dispose();
+        chart = echarts.init(el, newDark ? "dark" : null, { renderer: "canvas" });
+        chart.setOption(option);
+      });
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
   })();
 </script>
 {% endmacro chart %}
