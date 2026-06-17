@@ -584,15 +584,16 @@ pub async fn analytics_mobility_view(
     let mut teams_seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
 
     for person in &people {
-        // Current team: active role with the latest start date
-        let dest = person.active_roles.iter()
-            .max_by(|a, b| a.start_date.cmp(&b.start_date))
-            .map(|r| r.team.name_english.clone());
+        // Current team: the open (current) tenure's role team.
+        let dest = person.role_assignments.iter()
+            .find(|a| a.is_current)
+            .map(|a| a.role.team.name_english.clone());
 
-        // Previous team: inactive role with the latest end date
-        let origin = person.inactive_roles.iter()
+        // Previous team: the most recently closed tenure's role team.
+        let origin = person.role_assignments.iter()
+            .filter(|a| !a.is_current)
             .max_by(|a, b| a.end_date.cmp(&b.end_date))
-            .map(|r| r.team.name_english.clone());
+            .map(|a| a.role.team.name_english.clone());
 
         if let (Some(o), Some(d)) = (origin, dest) {
             if o != d {

@@ -43,6 +43,28 @@
         {% endif %}
     </div>
 
+    <!-- Assignment history: who has occupied this durable position, and when -->
+    {% if role_record.assignments %}
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-clock-history"></i> Assignment History</h2>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                {% for a in role_record.assignments %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="/{{ lang }}/person/{{ a.person.id }}" class="fw-semibold">{{ a.person.givenName }} {{ a.person.familyName }}</a>
+                    <span class="text-muted small">
+                        {{ a.startDate }} &rarr; {{ a.endDate }}
+                        {% if a.isCurrent %}<span class="badge bg-success ms-2">Current</span>{% endif %}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
     {% if role_record.person %}
     <!-- Occupied Role -->
     <div class="card shadow-lg mb-4">

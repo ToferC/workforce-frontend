@@ -78,6 +78,22 @@ query PersonById($id:UUID!) {
       militaryOccupation
       rank
     }
+    roleAssignments {
+      id
+      startDate
+      endDate
+      isCurrent
+      role {
+        id
+        titleEnglish
+        militaryOccupation
+        rank
+        team {
+          id
+          nameEnglish
+        }
+      }
+    }
     findMatches {
       id
       titleEnglish
