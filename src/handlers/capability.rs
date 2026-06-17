@@ -72,7 +72,6 @@ pub async fn capability_search(
 
     let rendered = data.tmpl.render("capability/capability_search_results.html", &ctx).unwrap();
     HttpResponse::Ok()
-        .header("Bearer", bearer)
         .body(rendered)
 }
 #[get("/{lang}/person/{person_id}/capability/new")]

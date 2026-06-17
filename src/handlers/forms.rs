@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
 pub struct LoginForm {
+    pub csrf_token: String,
     pub email: String,
     pub password: String,
 }
