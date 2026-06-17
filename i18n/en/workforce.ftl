@@ -227,6 +227,11 @@ empty-tier = No child tiers or teams under this tier.
 loading = Loading...
 occupied = occupied
 vacant = Vacant
+filled = Filled
+in-role = In role
+available = Available
+all-organizations = All organizations
+all-statuses = All
 no-roles = No roles in this team.
 
 ## Team Forms

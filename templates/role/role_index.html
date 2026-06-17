@@ -9,11 +9,33 @@
             <h1 class="h3 mb-0"><i class="bi bi-briefcase"></i> {{ fluent(key="roles", lang=lang) }}</h1>
         </div>
         <div class="card-body">
-            <input type="search" class="form-control mb-3" name="q" value="{{ q }}"
-                placeholder="{{ fluent(key="search-placeholder", lang=lang) }}"
-                hx-get="/{{ lang }}/roles"
-                hx-trigger="keyup changed delay:300ms, search"
-                hx-target="#role-list" hx-swap="outerHTML">
+            <form id="role-filters" class="d-flex flex-wrap align-items-end mb-3" style="gap:.5rem"
+                  hx-get="/{{ lang }}/roles"
+                  hx-trigger="change, keyup changed delay:300ms, search"
+                  hx-target="#role-list" hx-swap="outerHTML">
+                <div class="flex-grow-1" style="min-width:200px">
+                    <label class="form-label small mb-1" for="role-q">{{ fluent(key="search-placeholder", lang=lang) }}</label>
+                    <input type="search" id="role-q" class="form-control" name="q" value="{{ q }}"
+                        placeholder="{{ fluent(key="search-placeholder", lang=lang) }}">
+                </div>
+                <div style="min-width:160px">
+                    <label class="form-label small mb-1" for="role-org">{{ fluent(key="organization", lang=lang) }}</label>
+                    <select id="role-org" class="form-control" name="org">
+                        <option value="">{{ fluent(key="all-organizations", lang=lang) }}</option>
+                        {% for o in organizations %}
+                        <option value="{{ o.id }}"{% if o.id == selected_org %} selected{% endif %}>{{ o.nameEn }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="min-width:140px">
+                    <label class="form-label small mb-1" for="role-status">{{ fluent(key="status", lang=lang) }}</label>
+                    <select id="role-status" class="form-control" name="status">
+                        <option value="">{{ fluent(key="all-statuses", lang=lang) }}</option>
+                        <option value="filled"{% if selected_status == "filled" %} selected{% endif %}>{{ fluent(key="filled", lang=lang) }}</option>
+                        <option value="vacant"{% if selected_status == "vacant" %} selected{% endif %}>{{ fluent(key="vacant", lang=lang) }}</option>
+                    </select>
+                </div>
+            </form>
             {% include "role/role_list.html" %}
         </div>
     </div>
