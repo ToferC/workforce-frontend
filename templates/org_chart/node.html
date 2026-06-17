@@ -3,12 +3,12 @@
    child tier is added. #}
 {% import "org_chart/chart_macros.html" as chart %}
 
-{% for child in node.childOrganizationTier %}
-    {{ chart::tier_node(tier=child, lang=lang, role=role) }}
-{% endfor %}
-
 {% for team in node.teams %}
     {{ chart::team_node(team=team, lang=lang, role=role, org_tier_id=node.id, organization_id=node.organization.id, stats=team_stats[team.id]) }}
+{% endfor %}
+
+{% for child in node.childOrganizationTier %}
+    {{ chart::tier_node(tier=child, lang=lang, role=role) }}
 {% endfor %}
 
 {% if node.childOrganizationTier | length == 0 and node.teams | length == 0 %}
