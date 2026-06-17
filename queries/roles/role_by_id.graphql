@@ -50,6 +50,17 @@ query RoleById($id:UUID!) {
       domain
       requiredLevel
     }
+    assignments {
+      id
+      startDate
+      endDate
+      isCurrent
+      person {
+        id
+        givenName
+        familyName
+      }
+    }
     findMatches {
       id
       givenName

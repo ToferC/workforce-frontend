@@ -318,6 +318,7 @@ fn sample_person() -> serde_json::Value {
         "languageData": [],
         "activeRoles": [],
         "inactiveRoles": [],
+        "roleAssignments": [],
         "findMatches": [],
         "affiliations": [],
         "publications": [],
@@ -433,6 +434,7 @@ fn sample_role_record() -> serde_json::Value {
         },
         "work": [],
         "requirements": [],
+        "assignments": [],
         "findMatches": [],
     })
 }
@@ -489,6 +491,49 @@ fn role_detail_shows_actions_for_operator_only() {
     let html = tera.render("role/role.html", &ctx).unwrap();
     assert!(!html.contains("/edit"));
     assert!(!html.contains("/end"));
+}
+
+#[test]
+fn role_detail_shows_assignment_history() {
+    let tera = tera();
+    let mut role = sample_role_record();
+    role["assignments"] = json!([
+        {"id": "a0000000-0000-0000-0000-000000000001", "startDate": "2026-01-01", "endDate": "Current", "isCurrent": true,
+         "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee"}},
+        {"id": "a0000000-0000-0000-0000-000000000002", "startDate": "2024-01-01", "endDate": "2025-12-31", "isCurrent": false,
+         "person": {"id": "99999999-9999-9999-9999-999999999999", "givenName": "Pat", "familyName": "Kim"}},
+    ]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_record", &role);
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(html.contains("Assignment History"));
+    // both occupants and the current badge appear
+    assert!(html.contains("Sam Lee"));
+    assert!(html.contains("Pat Kim"));
+    assert!(html.contains("Current"));
+    assert!(html.contains("/person/99999999-9999-9999-9999-999999999999"));
+}
+
+#[test]
+fn person_page_shows_past_roles_from_assignments() {
+    let tera = tera();
+    let mut person = sample_person();
+    // One current (excluded) and one closed (shown as a past role)
+    person["roleAssignments"] = json!([
+        {"id": "a0000000-0000-0000-0000-000000000003", "startDate": "2026-01-01", "endDate": "Current", "isCurrent": true,
+         "role": {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team"}}},
+        {"id": "a0000000-0000-0000-0000-000000000004", "startDate": "2023-01-01", "endDate": "2025-12-31", "isCurrent": false,
+         "role": {"id": "55555555-5555-5555-5555-555555555555", "titleEnglish": "Junior Analyst", "militaryOccupation": "CYBER", "rank": "LIEUTENANT", "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Old Team"}}},
+    ]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    // the closed tenure shows as a past role with its team and dates
+    assert!(html.contains("Junior Analyst"));
+    assert!(html.contains("Old Team"));
+    assert!(html.contains("2025-12-31"));
+    // the current tenure is not listed under Past Roles
+    assert!(!html.contains("/role/77777777-7777-7777-7777-777777777777"));
 }
 
 #[test]

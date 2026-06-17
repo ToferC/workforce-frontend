@@ -111,11 +111,17 @@
         </div>
         <div class="card-body p-0">
             <ul class="list-group list-group-flush">
-                {% for role in person.inactiveRoles %}
-                <li class="list-group-item">
-                    <a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish }}</a>
-                    <span class="text-muted small ms-2">{{ role.militaryOccupation }}-{{ role.rank }}</span>
+                {% for a in person.roleAssignments | default(value=[]) %}
+                {% if not a.isCurrent %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>
+                        <a href="/{{lang}}/role/{{ a.role.id }}">{{ a.role.titleEnglish }}</a>
+                        <span class="text-muted small ms-2">{{ a.role.militaryOccupation }}-{{ a.role.rank }}</span>
+                        <span class="text-muted small ms-1">&middot; {{ a.role.team.nameEnglish }}</span>
+                    </span>
+                    <span class="text-muted small">{{ a.startDate }} &rarr; {{ a.endDate }}</span>
                 </li>
+                {% endif %}
                 {% endfor %}
             </ul>
         </div>

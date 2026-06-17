@@ -650,7 +650,11 @@ pub async fn assign_role_post(
 
     match assign_person_to_role(form.person_id.clone(), role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => {
-            security::add_flash(&session, "success", by_lang(&lang, "Person assigned to role.", "Personne affectée au rôle."));
+            security::add_flash(&session, "success", by_lang(
+                &lang,
+                "Person assigned to role. Any role they previously held has been vacated and recorded in their history.",
+                "Personne affectée au rôle. Tout rôle qu'elle occupait auparavant a été libéré et inscrit dans son historique.",
+            ));
         },
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());

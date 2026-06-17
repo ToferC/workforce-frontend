@@ -1,27 +1,24 @@
-# Talent mobility: each person's current (active) and prior (inactive)
-# roles with their teams, used to build a previous-team → current-team
-# sankey of movement across the organization.
+# Talent mobility: each person's tenures (role assignments) with the team each
+# role belongs to, used to build a previous-team → current-team sankey of
+# movement across the organization. The open assignment is the current team;
+# the most recently closed assignment is the previous team.
 query AnalyticsMobility {
   allPeople {
     id
     givenName
     familyName
     retiredAt
-    activeRoles {
-      id
-      startDate
-      team {
-        id
-        nameEnglish
-      }
-    }
-    inactiveRoles {
+    roleAssignments {
       id
       startDate
       endDate
-      team {
+      isCurrent
+      role {
         id
-        nameEnglish
+        team {
+          id
+          nameEnglish
+        }
       }
     }
   }
