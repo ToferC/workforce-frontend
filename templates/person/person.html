@@ -17,7 +17,7 @@
             {% if person.personnelType %}<span class="badge bg-secondary align-middle">{{ person.personnelType }}</span>{% endif %}
         </p>
         {% if person.activeEffort is defined %}
-        <div class="d-flex align-items-center gap-2 mt-1">
+        <div class="d-flex align-items-center justify-content-center gap-2 mt-1">
             <span class="text-muted small"><i class="bi bi-speedometer2"></i> {{ fluent(key="active-effort", lang=lang) }}</span>
             {{ viz::effort_meter(value=person.activeEffort) }}
         </div>
@@ -42,257 +42,271 @@
         {% endif %}
     </div>
 
-    <!-- Contact Info -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-telephone"></i> Contact Info</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item"><span class="text-muted">Address:</span> {{ person.workAddress }}, {{ person.postalCode }}</li>
-                <li class="list-group-item"><span class="text-muted">Email:</span> {{ person.email }}</li>
-                <li class="list-group-item"><span class="text-muted">Phone:</span> {{ person.phone }}</li>
-            </ul>
-        </div>
-    </div>
+    <div class="detail-layout">
+        <!-- Main pane: operational at-a-glance information -->
+        <div class="detail-main">
+            <!-- Active Roles -->
+            {% for role in person.activeRoles %}
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0">
+                        <i class="bi bi-briefcase"></i>
+                        <a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish }}</a>
+                        <span class="text-muted fw-normal small ms-2">{{ role.militaryOccupation }}-{{ role.rank }}</span>
+                    </h2>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Current Effort:</span> {{ viz::effort_meter(value=role.effort) }}</li>
+                        <li class="list-group-item">
+                            <span class="text-muted">Team:</span>
+                            <a href="/{{lang}}/team/{{role.team.id}}">{{ role.team.nameEnglish }}</a>
+                        </li>
+                        <li class="list-group-item">
+                            <span class="text-muted">Team Owner:</span>
+                            <a href="/{{lang}}/person/{{role.team.owner.id}}">{{ role.team.owner.givenName }} {{ role.team.owner.familyName }}</a>
+                            &mdash; {{ role.team.owner.email }}
+                        </li>
+                    </ul>
 
-    <!-- Active Roles -->
-    {% for role in person.activeRoles %}
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0">
-                <i class="bi bi-briefcase"></i>
-                <a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish }}</a>
-                <span class="text-muted fw-normal small ms-2">{{ role.militaryOccupation }}-{{ role.rank }}</span>
-            </h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Current Effort:</span> {{ viz::effort_meter(value=role.effort) }}</li>
-                <li class="list-group-item">
-                    <span class="text-muted">Team:</span>
-                    <a href="/{{lang}}/team/{{role.team.id}}">{{ role.team.nameEnglish }}</a>
-                </li>
-                <li class="list-group-item">
-                    <span class="text-muted">Team Owner:</span>
-                    <a href="/{{lang}}/person/{{role.team.owner.id}}">{{ role.team.owner.givenName }} {{ role.team.owner.familyName }}</a>
-                    &mdash; {{ role.team.owner.email }}
-                </li>
-            </ul>
-
-            {% if role.work %}
-            <div class="p-3">
-                <h3 class="h6 text-muted mb-2">Work</h3>
-                <ul class="list-group list-group-flush">
-                    {% for work in role.work %}
-                    <li class="list-group-item px-0">
-                        <a href="/{{lang}}/work/{{work.id}}" class="fw-semibold">{{ work.workDescription | title }}</a>
-                        <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
-                            {{ viz::domain_chip(domain=work.domain) }}
-                            {{ viz::level_chip(level=work.capabilityLevel) }}
-                            {{ viz::status_chip(status=work.workStatus) }}
-                            {{ viz::effort_meter(value=work.effort) }}
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% else %}
-            <div class="p-3 text-muted small">No work assigned.</div>
-            {% endif %}
-        </div>
-    </div>
-    {% endfor %}
-
-    <!-- Past Roles -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-clock-history"></i> Past Roles</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for a in person.roleAssignments | default(value=[]) %}
-                {% if not a.isCurrent %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>
-                        <a href="/{{lang}}/role/{{ a.role.id }}">{{ a.role.titleEnglish }}</a>
-                        <span class="text-muted small ms-2">{{ a.role.militaryOccupation }}-{{ a.role.rank }}</span>
-                        <span class="text-muted small ms-1">&middot; {{ a.role.team.nameEnglish }}</span>
-                    </span>
-                    <span class="text-muted small">{{ a.startDate }} &rarr; {{ a.endDate }}</span>
-                </li>
-                {% endif %}
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-
-    <!-- Capabilities -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0"><i class="bi bi-award"></i> Capabilities</h2>
-            {% if role == "operator" or role == "admin" %}
-            <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/capability/new">
-                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-capability", lang=lang) }}
-            </a>
-            {% endif %}
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for cap in person.capabilities %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span class="d-flex flex-column">
-                        <span class="d-flex align-items-center gap-2 flex-wrap">
-                            <span>{{ cap.nameEn }} {{ viz::domain_chip(domain=cap.domain) }}</span>
-                            {{ viz::capability_scale(self_level=cap.selfIdentifiedLevel, validated_level=cap.validatedLevel) }}
-                        </span>
-                        <small class="text-muted">
-                            {% if cap.validatedBy %}
-                            {% set validator_name = cap.validatedBy.givenName ~ " " ~ cap.validatedBy.familyName %}
-                            {% set validated_on = cap.validatedAt | default(value="") | truncate(length=10, end="") %}
-                            <i class="bi bi-patch-check"></i> {{ fluent(key="validated-by", name=validator_name, date=validated_on, lang=lang) }}
-                            {% else %}
-                            {{ fluent(key="not-yet-validated", lang=lang) }}
-                            {% endif %}
-                        </small>
-                    </span>
-                    {% if role == "operator" or role == "admin" %}
-                    <span class="d-flex gap-1">
-                        {% if role == "admin" %}
-                        <a class="btn btn-sm btn-outline-success" href="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/validate">{{ fluent(key="validate-button", lang=lang) }}</a>
-                        {% endif %}
-                        <form method="post" action="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/retire" class="m-0">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="retire-button", lang=lang) }}</button>
-                        </form>
-                    </span>
-                    {% endif %}
-                </li>
-                {% else %}
-                <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% if capability_radar %}
-        <div class="card-body border-top">
-            {{ charts::chart(id="capability-radar", height="360px") }}
-            <script type="application/json" id="capability-radar-data">{{ capability_radar | safe }}</script>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Languages -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0"><i class="bi bi-translate"></i> {{ fluent(key="languages", lang=lang) }}</h2>
-            {% if role == "operator" or role == "admin" %}
-            <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/language/new">
-                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-language", lang=lang) }}
-            </a>
-            {% endif %}
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for lng in person.languageData %}
-                <li class="list-group-item">
-                    {{ lng.languageName }}
-                    <span class="text-muted small ms-2">
-                        {{ fluent(key="reading", lang=lang) }}: {{ lng.reading | default(value="—") }} &middot;
-                        {{ fluent(key="writing", lang=lang) }}: {{ lng.writing | default(value="—") }} &middot;
-                        {{ fluent(key="speaking", lang=lang) }}: {{ lng.speaking | default(value="—") }}
-                    </span>
-                </li>
-                {% else %}
-                <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-
-    <!-- Potential Job Matches -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-bullseye"></i> Potential Job Matches</h2>
-        </div>
-        <div class="card-body p-0">
-            {% for match in person.findMatches %}
-            <div class="p-3 border-bottom">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                    <div>
-                        <a href="/{{lang}}/role/{{match.id}}" class="fw-semibold">{{ match.titleEnglish }}</a>
-                        <span class="text-muted small ms-2">{{ match.militaryOccupation }}-{{ match.rank }}</span>
+                    {% if role.work %}
+                    <div class="p-3">
+                        <h3 class="h6 text-muted mb-2">Work</h3>
+                        <ul class="list-group list-group-flush">
+                            {% for work in role.work %}
+                            <li class="list-group-item px-0">
+                                <a href="/{{lang}}/work/{{work.id}}" class="fw-semibold">{{ work.workDescription | title }}</a>
+                                <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
+                                    {{ viz::domain_chip(domain=work.domain) }}
+                                    {{ viz::level_chip(level=work.capabilityLevel) }}
+                                    {{ viz::status_chip(status=work.workStatus) }}
+                                    {{ viz::effort_meter(value=work.effort) }}
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
                     </div>
-                    {% if role == "operator" or role == "admin" %}
-                    <form method="post" action="/{{ lang }}/role/{{ match.id }}/assign" class="m-0">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <input type="hidden" name="person_id" value="{{ person.id }}">
-                        <button type="submit" class="btn btn-sm btn-success">
-                            <i class="bi bi-person-plus"></i> Assign to this role
-                        </button>
-                    </form>
+                    {% else %}
+                    <div class="p-3 text-muted small">No work assigned.</div>
                     {% endif %}
                 </div>
-                <ul class="list-group list-group-flush mt-2">
-                    {% for req in match.requirements %}
-                    <li class="list-group-item px-0 small">{{ req.nameEn }} <span class="text-muted">({{ req.domain }})</span> &mdash; {{ req.requiredLevel }}</li>
-                    {% endfor %}
-                </ul>
             </div>
             {% endfor %}
-        </div>
-    </div>
 
-    <!-- Affiliations -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0"><i class="bi bi-link-45deg"></i> {{ fluent(key="affiliation", lang=lang) }}</h2>
-            {% if role == "operator" or role == "admin" %}
-            <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/affiliation/new">
-                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-affiliation", lang=lang) }}
-            </a>
-            {% endif %}
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% if person.affiliations %}
-                    {% for aff in person.affiliations %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>
-                            <a href="/{{lang}}/organization/{{aff.organization.id}}">{{ aff.organization.nameEn }}</a> &mdash; {{ aff.affiliationRole }}
-                        </span>
-                        {% if role == "operator" or role == "admin" %}
-                        <form method="post" action="/{{ lang }}/person/{{ person.id }}/affiliation/{{ aff.id }}/end" class="m-0">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="end-affiliation", lang=lang) }}</button>
-                        </form>
+            <!-- Capabilities -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h4 mb-0"><i class="bi bi-award"></i> Capabilities</h2>
+                    {% if role == "operator" or role == "admin" %}
+                    <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/capability/new">
+                        <i class="bi bi-plus-lg"></i> {{ fluent(key="add-capability", lang=lang) }}
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for cap in person.capabilities %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="d-flex flex-column">
+                                <span class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span>{{ cap.nameEn }} {{ viz::domain_chip(domain=cap.domain) }}</span>
+                                    {{ viz::capability_scale(self_level=cap.selfIdentifiedLevel, validated_level=cap.validatedLevel) }}
+                                </span>
+                                <small class="text-muted">
+                                    {% if cap.validatedBy %}
+                                    {% set validator_name = cap.validatedBy.givenName ~ " " ~ cap.validatedBy.familyName %}
+                                    {% set validated_on = cap.validatedAt | default(value="") | truncate(length=10, end="") %}
+                                    <i class="bi bi-patch-check"></i> {{ fluent(key="validated-by", name=validator_name, date=validated_on, lang=lang) }}
+                                    {% else %}
+                                    {{ fluent(key="not-yet-validated", lang=lang) }}
+                                    {% endif %}
+                                </small>
+                            </span>
+                            {% if role == "operator" or role == "admin" %}
+                            <span class="d-flex gap-1">
+                                {% if role == "admin" %}
+                                <a class="btn btn-sm btn-outline-success" href="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/validate">{{ fluent(key="validate-button", lang=lang) }}</a>
+                                {% endif %}
+                                <form method="post" action="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/retire" class="m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="retire-button", lang=lang) }}</button>
+                                </form>
+                            </span>
+                            {% endif %}
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% if capability_radar %}
+                <div class="card-body border-top">
+                    {{ charts::chart(id="capability-radar", height="360px") }}
+                    <script type="application/json" id="capability-radar-data">{{ capability_radar | safe }}</script>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Potential Job Matches -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-bullseye"></i> Potential Job Matches</h2>
+                </div>
+                <div class="card-body p-0">
+                    {% for match in person.findMatches %}
+                    <div class="p-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                <a href="/{{lang}}/role/{{match.id}}" class="fw-semibold">{{ match.titleEnglish }}</a>
+                                <span class="text-muted small ms-2">{{ match.militaryOccupation }}-{{ match.rank }}</span>
+                            </div>
+                            {% if role == "operator" or role == "admin" %}
+                            <form method="post" action="/{{ lang }}/role/{{ match.id }}/assign" class="m-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="person_id" value="{{ person.id }}">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-person-plus"></i> Assign to this role
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <ul class="list-group list-group-flush mt-2">
+                            {% for req in match.requirements %}
+                            <li class="list-group-item px-0 small">{{ req.nameEn }} <span class="text-muted">({{ req.domain }})</span> &mdash; {{ req.requiredLevel }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-muted">{{ fluent(key="none-label", lang=lang) }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Past Roles -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-clock-history"></i> Past Roles</h2>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for a in person.roleAssignments | default(value=[]) %}
+                        {% if not a.isCurrent %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <a href="/{{lang}}/role/{{ a.role.id }}">{{ a.role.titleEnglish }}</a>
+                                <span class="text-muted small ms-2">{{ a.role.militaryOccupation }}-{{ a.role.rank }}</span>
+                                <span class="text-muted small ms-1">&middot; {{ a.role.team.nameEnglish }}</span>
+                            </span>
+                            <span class="text-muted small">{{ a.startDate }} &rarr; {{ a.endDate }}</span>
+                        </li>
                         {% endif %}
-                    </li>
-                    {% endfor %}
-                {% else %}
-                    <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
-                {% endif %}
-            </ul>
+                        {% else %}
+                        <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- Publications -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-journal-richtext"></i> Publications</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% if person.publications %}
-                    {% for pub in person.publications %}
-                    <li class="list-group-item">
-                        <a href="/{{lang}}/publication/{{pub.id}}">{{ pub.title }}</a>
-                        <span class="text-muted small ms-2">{{ pub.subjectText }}</span>
-                    </li>
-                    {% endfor %}
-                {% else %}
-                    <li class="list-group-item text-muted">None</li>
-                {% endif %}
-            </ul>
+        <!-- Sidebar pane: identity & contact at-a-glance -->
+        <div class="detail-aside">
+            <div class="detail-aside-sticky">
+                <!-- Contact Info -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-telephone"></i> Contact Info</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><span class="text-muted">Address:</span> {{ person.workAddress }}, {{ person.postalCode }}</li>
+                            <li class="list-group-item"><span class="text-muted">Email:</span> {{ person.email }}</li>
+                            <li class="list-group-item"><span class="text-muted">Phone:</span> {{ person.phone }}</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Languages -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h2 class="h4 mb-0"><i class="bi bi-translate"></i> {{ fluent(key="languages", lang=lang) }}</h2>
+                        {% if role == "operator" or role == "admin" %}
+                        <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/language/new">
+                            <i class="bi bi-plus-lg"></i> {{ fluent(key="add-language", lang=lang) }}
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% for lng in person.languageData %}
+                            <li class="list-group-item">
+                                {{ lng.languageName }}
+                                <span class="text-muted small d-block">
+                                    {{ fluent(key="reading", lang=lang) }}: {{ lng.reading | default(value="—") }} &middot;
+                                    {{ fluent(key="writing", lang=lang) }}: {{ lng.writing | default(value="—") }} &middot;
+                                    {{ fluent(key="speaking", lang=lang) }}: {{ lng.speaking | default(value="—") }}
+                                </span>
+                            </li>
+                            {% else %}
+                            <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Affiliations -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h2 class="h4 mb-0"><i class="bi bi-link-45deg"></i> {{ fluent(key="affiliation", lang=lang) }}</h2>
+                        {% if role == "operator" or role == "admin" %}
+                        <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/affiliation/new">
+                            <i class="bi bi-plus-lg"></i> {{ fluent(key="add-affiliation", lang=lang) }}
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% if person.affiliations %}
+                                {% for aff in person.affiliations %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <a href="/{{lang}}/organization/{{aff.organization.id}}">{{ aff.organization.nameEn }}</a> &mdash; {{ aff.affiliationRole }}
+                                    </span>
+                                    {% if role == "operator" or role == "admin" %}
+                                    <form method="post" action="/{{ lang }}/person/{{ person.id }}/affiliation/{{ aff.id }}/end" class="m-0">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="end-affiliation", lang=lang) }}</button>
+                                    </form>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            {% else %}
+                                <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Publications -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-journal-richtext"></i> Publications</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% if person.publications %}
+                                {% for pub in person.publications %}
+                                <li class="list-group-item">
+                                    <a href="/{{lang}}/publication/{{pub.id}}">{{ pub.title }}</a>
+                                    <span class="text-muted small d-block">{{ pub.subjectText }}</span>
+                                </li>
+                                {% endfor %}
+                            {% else %}
+                                <li class="list-group-item text-muted">None</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

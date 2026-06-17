@@ -43,220 +43,250 @@
         {% endif %}
     </div>
 
-    <!-- Assignment history: who has occupied this durable position, and when -->
-    {% if role_record.assignments %}
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-clock-history"></i> Assignment History</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for a in role_record.assignments %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <a href="/{{ lang }}/person/{{ a.person.id }}" class="fw-semibold">{{ a.person.givenName }} {{ a.person.familyName }}</a>
-                    <span class="text-muted small">
-                        {{ a.startDate }} &rarr; {{ a.endDate }}
-                        {% if a.isCurrent %}<span class="badge bg-success ms-2">Current</span>{% endif %}
-                    </span>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if role_record.person %}
-    <!-- Occupied Role -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-person-badge"></i> Incumbent</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item">
-                    <a href="/{{ lang }}/person/{{ role_record.person.id }}" class="fw-semibold">{{ role_record.person.givenName }} {{ role_record.person.familyName }}</a>
-                </li>
-                <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Current Effort:</span> {{ viz::effort_meter(value=role_record.effort) }}</li>
-                <li class="list-group-item"><span class="text-muted">Email:</span> {{ role_record.person.email }}</li>
-                <li class="list-group-item"><span class="text-muted">Phone:</span> {{ role_record.person.phone }}</li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Team -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-people"></i> Team</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item">
-                    <span class="text-muted">Name:</span>
-                    <a href="/{{lang}}/team/{{role_record.team.id}}">{{ role_record.team.nameEnglish }}</a>
-                </li>
-                <li class="list-group-item">
-                    <span class="text-muted">Owner:</span>
-                    <a href="/{{lang}}/person/{{role_record.team.owner.id}}">{{ role_record.team.owner.givenName }} {{ role_record.team.owner.familyName }}</a>
-                    &mdash; {{ role_record.team.owner.email }}
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Requirements -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0"><i class="bi bi-check2-square"></i> Requirements</h2>
-            {% if role == "operator" or role == "admin" %}
-            <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/new">
-                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-requirement", lang=lang) }}
-            </a>
-            {% endif %}
-        </div>
-        <div class="card-body p-0">
-            {% if role_record.requirements %}
-            <ul class="list-group list-group-flush">
-                {% for req in role_record.requirements %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span class="d-flex align-items-center gap-2 flex-wrap">
-                        {{ req.nameEn }}
-                        {{ viz::domain_chip(domain=req.domain) }}
-                        {{ viz::level_chip(level=req.requiredLevel, source="validated") }}
-                    </span>
-                    {% if role == "operator" or role == "admin" %}
-                    <div class="d-flex gap-1">
-                        <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/edit">
-                            <i class="bi bi-pencil"></i> Edit
-                        </a>
-                        <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/retire" class="m-0">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="retire-button", lang=lang) }}</button>
-                        </form>
-                    </div>
-                    {% endif %}
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <div class="p-4 text-muted">{{ fluent(key="none-label", lang=lang) }}</div>
-            {% endif %}
-        </div>
-        {% if requirement_match %}
-        <div class="card-body border-top">
-            <h3 class="h6 text-muted mb-2"><i class="bi bi-bar-chart-steps"></i> Incumbent fit — required vs held</h3>
-            {{ charts::chart(id="requirement-match", height="320px") }}
-            <script type="application/json" id="requirement-match-data">{{ requirement_match | safe }}</script>
-            <p class="small text-muted mb-0 mt-2">
-                Green bars meet or exceed the required level; red bars fall short.
-                Levels: Desired (1) → Specialist (5).
-            </p>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Work -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-kanban"></i> Work</h2>
-        </div>
-        <div class="card-body p-0">
-            {% if role_record.work %}
-            <ul class="list-group list-group-flush">
-                {% for work in role_record.work %}
-                <li class="list-group-item">
-                    <a href="/{{lang}}/work/{{work.id}}" class="fw-semibold">{{ work.workDescription }}</a>
-                    <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
-                        {{ viz::domain_chip(domain=work.domain) }}
-                        {{ viz::level_chip(level=work.capabilityLevel) }}
-                        {{ viz::status_chip(status=work.workStatus) }}
-                        {{ viz::effort_meter(value=work.effort) }}
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <div class="p-4 text-muted">No work assigned.</div>
-            {% endif %}
-        </div>
-    </div>
-
-    {% else %}
-    <!-- Vacant Role -->
-    <div class="card shadow-lg mb-4 border-warning">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-exclamation-circle"></i> VACANT</h2>
-        </div>
-        <div class="card-body p-0">
-            <div class="p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h3 class="h6 text-muted mb-0">Requirements</h3>
+    <div class="detail-layout">
+        <!-- Main pane: requirements, work & history -->
+        <div class="detail-main">
+            {% if role_record.person %}
+            <!-- Requirements -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h4 mb-0"><i class="bi bi-check2-square"></i> Requirements</h2>
                     {% if role == "operator" or role == "admin" %}
                     <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/new">
                         <i class="bi bi-plus-lg"></i> {{ fluent(key="add-requirement", lang=lang) }}
                     </a>
                     {% endif %}
                 </div>
-                {% if role_record.requirements %}
-                <ul class="list-group list-group-flush">
-                    {% for req in role_record.requirements %}
-                    <li class="list-group-item px-0 d-flex align-items-center gap-2 flex-wrap">
-                        {{ req.nameEn }}
-                        {{ viz::domain_chip(domain=req.domain) }}
-                        {{ viz::level_chip(level=req.requiredLevel, source="validated") }}
-                    </li>
+                <div class="card-body p-0">
+                    {% if role_record.requirements %}
+                    <ul class="list-group list-group-flush">
+                        {% for req in role_record.requirements %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="d-flex align-items-center gap-2 flex-wrap">
+                                {{ req.nameEn }}
+                                {{ viz::domain_chip(domain=req.domain) }}
+                                {{ viz::level_chip(level=req.requiredLevel, source="validated") }}
+                            </span>
+                            {% if role == "operator" or role == "admin" %}
+                            <div class="d-flex gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/edit">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/retire" class="m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="retire-button", lang=lang) }}</button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="p-4 text-muted">{{ fluent(key="none-label", lang=lang) }}</div>
+                    {% endif %}
+                </div>
+                {% if requirement_match %}
+                <div class="card-body border-top">
+                    <h3 class="h6 text-muted mb-2"><i class="bi bi-bar-chart-steps"></i> Incumbent fit — required vs held</h3>
+                    {{ charts::chart(id="requirement-match", height="320px") }}
+                    <script type="application/json" id="requirement-match-data">{{ requirement_match | safe }}</script>
+                    <p class="small text-muted mb-0 mt-2">
+                        Green bars meet or exceed the required level; red bars fall short.
+                        Levels: Desired (1) → Specialist (5).
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Work -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-kanban"></i> Work</h2>
+                </div>
+                <div class="card-body p-0">
+                    {% if role_record.work %}
+                    <ul class="list-group list-group-flush">
+                        {% for work in role_record.work %}
+                        <li class="list-group-item">
+                            <a href="/{{lang}}/work/{{work.id}}" class="fw-semibold">{{ work.workDescription }}</a>
+                            <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
+                                {{ viz::domain_chip(domain=work.domain) }}
+                                {{ viz::level_chip(level=work.capabilityLevel) }}
+                                {{ viz::status_chip(status=work.workStatus) }}
+                                {{ viz::effort_meter(value=work.effort) }}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="p-4 text-muted">No work assigned.</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <!-- Potential Matches -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-bullseye"></i> Potential Matches</h2>
+                </div>
+                <div class="card-body p-0">
+                    {% for person in role_record.findMatches %}
+                    <div class="p-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <a href="/{{lang}}/person/{{person.id}}" class="fw-semibold">{{ person.givenName }} {{ person.familyName }}</a>
+                            {% if role == "operator" or role == "admin" %}
+                            <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/assign" class="m-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="person_id" value="{{ person.id }}">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-person-plus"></i> Assign
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <ul class="list-group list-group-flush mt-2">
+                            <li class="list-group-item px-0 small"><span class="text-muted">Phone:</span> {{ person.phone }}</li>
+                            <li class="list-group-item px-0 small"><span class="text-muted">Email:</span> {{ person.email }}</li>
+                            <li class="list-group-item px-0 small">
+                                <span class="text-muted">Current Role:</span>
+                                {% for r in person.activeRoles %}
+                                    {{ r.titleEnglish }} &mdash; {{ r.militaryOccupation }}-{{ r.rank }}
+                                {% endfor %}
+                            </li>
+                        </ul>
+                        <h4 class="h6 text-muted mt-2 mb-1">Capabilities</h4>
+                        <ul class="list-group list-group-flush">
+                            {% for cap in person.capabilities %}
+                            <li class="list-group-item px-0 small d-flex align-items-center gap-2 flex-wrap">
+                                {{ cap.nameEn }}
+                                {{ viz::domain_chip(domain=cap.domain) }}
+                                {{ viz::level_chip(level=cap.validatedLevel, source="validated") }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-muted">No potential matches found.</div>
                     {% endfor %}
-                </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Assignment history: who has occupied this durable position, and when -->
+            {% if role_record.assignments %}
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-clock-history"></i> Assignment History</h2>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for a in role_record.assignments %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="/{{ lang }}/person/{{ a.person.id }}" class="fw-semibold">{{ a.person.givenName }} {{ a.person.familyName }}</a>
+                            <span class="text-muted small">
+                                {{ a.startDate }} &rarr; {{ a.endDate }}
+                                {% if a.isCurrent %}<span class="badge bg-success ms-2">Current</span>{% endif %}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar pane: incumbent, team, or vacancy summary -->
+        <div class="detail-aside">
+            <div class="detail-aside-sticky">
+                {% if role_record.person %}
+                <!-- Incumbent -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-person-badge"></i> Incumbent</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <a href="/{{ lang }}/person/{{ role_record.person.id }}" class="fw-semibold">{{ role_record.person.givenName }} {{ role_record.person.familyName }}</a>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Current Effort:</span> {{ viz::effort_meter(value=role_record.effort) }}</li>
+                            <li class="list-group-item"><span class="text-muted">Email:</span> {{ role_record.person.email }}</li>
+                            <li class="list-group-item"><span class="text-muted">Phone:</span> {{ role_record.person.phone }}</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Team -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-people"></i> Team</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <span class="text-muted">Name:</span>
+                                <a href="/{{lang}}/team/{{role_record.team.id}}">{{ role_record.team.nameEnglish }}</a>
+                            </li>
+                            <li class="list-group-item">
+                                <span class="text-muted">Owner:</span>
+                                <a href="/{{lang}}/person/{{role_record.team.owner.id}}">{{ role_record.team.owner.givenName }} {{ role_record.team.owner.familyName }}</a>
+                                &mdash; {{ role_record.team.owner.email }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
                 {% else %}
-                <p class="text-muted">No requirements specified.</p>
+                <!-- Vacant Role -->
+                <div class="card shadow-lg mb-4 border-warning">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h2 class="h4 mb-0"><i class="bi bi-exclamation-circle"></i> VACANT</h2>
+                        {% if role == "operator" or role == "admin" %}
+                        <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/new">
+                            <i class="bi bi-plus-lg"></i> {{ fluent(key="add-requirement", lang=lang) }}
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="px-3 py-2 text-muted small">Requirements</div>
+                        {% if role_record.requirements %}
+                        <ul class="list-group list-group-flush">
+                            {% for req in role_record.requirements %}
+                            <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
+                                {{ req.nameEn }}
+                                {{ viz::domain_chip(domain=req.domain) }}
+                                {{ viz::level_chip(level=req.requiredLevel, source="validated") }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="px-3 pb-3 text-muted">No requirements specified.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Team -->
+                {% if role_record.team %}
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-people"></i> Team</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <span class="text-muted">Name:</span>
+                                <a href="/{{lang}}/team/{{role_record.team.id}}">{{ role_record.team.nameEnglish }}</a>
+                            </li>
+                            <li class="list-group-item">
+                                <span class="text-muted">Owner:</span>
+                                <a href="/{{lang}}/person/{{role_record.team.owner.id}}">{{ role_record.team.owner.givenName }} {{ role_record.team.owner.familyName }}</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
                 {% endif %}
             </div>
         </div>
     </div>
-
-    <!-- Potential Matches -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-bullseye"></i> Potential Matches</h2>
-        </div>
-        <div class="card-body p-0">
-            {% for person in role_record.findMatches %}
-            <div class="p-3 border-bottom">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                    <a href="/{{lang}}/person/{{person.id}}" class="fw-semibold">{{ person.givenName }} {{ person.familyName }}</a>
-                    {% if role == "operator" or role == "admin" %}
-                    <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/assign" class="m-0">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <input type="hidden" name="person_id" value="{{ person.id }}">
-                        <button type="submit" class="btn btn-sm btn-success">
-                            <i class="bi bi-person-plus"></i> Assign
-                        </button>
-                    </form>
-                    {% endif %}
-                </div>
-                <ul class="list-group list-group-flush mt-2">
-                    <li class="list-group-item px-0 small"><span class="text-muted">Phone:</span> {{ person.phone }}</li>
-                    <li class="list-group-item px-0 small"><span class="text-muted">Email:</span> {{ person.email }}</li>
-                    <li class="list-group-item px-0 small">
-                        <span class="text-muted">Current Role:</span>
-                        {% for r in person.activeRoles %}
-                            {{ r.titleEnglish }} &mdash; {{ r.militaryOccupation }}-{{ r.rank }}
-                        {% endfor %}
-                    </li>
-                </ul>
-                <h4 class="h6 text-muted mt-2 mb-1">Capabilities</h4>
-                <ul class="list-group list-group-flush">
-                    {% for cap in person.capabilities %}
-                    <li class="list-group-item px-0 small d-flex align-items-center gap-2 flex-wrap">
-                        {{ cap.nameEn }}
-                        {{ viz::domain_chip(domain=cap.domain) }}
-                        {{ viz::level_chip(level=cap.validatedLevel, source="validated") }}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
 </div>
 {% endblock content %}

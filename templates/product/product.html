@@ -27,104 +27,114 @@
         {% endif %}
     </div>
 
-    <!-- Details -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
-        </div>
-        <div class="card-body">
-            <p>
-                {% if lang == "fr" %}{{ product.descriptionFr }}{% else %}{{ product.descriptionEn }}{% endif %}
-            </p>
-            <ul class="list-group list-group-flush">
-                {% if product.url %}
-                <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ product.url }}">{{ product.url }}</a></li>
-                {% endif %}
-                <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=product.primaryDomain) }}</li>
-                <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Status:</span> {{ viz::status_chip(status=product.productStatus) }}</li>
-                <li class="list-group-item d-flex align-items-center gap-2">
-                    <span class="text-muted">Total Effort:</span>
-                    {{ viz::effort_meter(value=product.effort) }}
-                    <span class="text-muted small">(sum of active work)</span>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Product Owner -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-person-badge"></i> {{ fluent(key="product-owner", lang=lang) }}</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% if product.productOwner.person %}
-                <li class="list-group-item">
-                    <a href="/{{ lang }}/person/{{ product.productOwner.person.id }}" class="fw-semibold">
-                        {{ product.productOwner.person.givenName }} {{ product.productOwner.person.familyName }}
+    <div class="detail-layout">
+        <!-- Main pane: tasks & vacant work -->
+        <div class="detail-main">
+            <!-- Tasks -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h4 mb-0"><i class="bi bi-list-task"></i> {{ fluent(key="tasks", lang=lang) }}</h2>
+                    {% if role == "operator" or role == "admin" %}
+                    <a class="btn btn-sm btn-primary" href="/{{ lang }}/product/{{ product.id }}/task/new">
+                        <i class="bi bi-plus-circle"></i> {{ fluent(key="create-task", lang=lang) }}
                     </a>
-                </li>
-                {% endif %}
-                <li class="list-group-item">
-                    <span class="text-muted">Role:</span>
-                    <a href="/{{ lang }}/role/{{ product.productOwner.id }}">{{ product.productOwner.titleEnglish }}</a>
-                    {% if product.productOwner.team %}
-                    &mdash; <a href="/{{ lang }}/team/{{ product.productOwner.team.id }}">{{ product.productOwner.team.nameEnglish }}</a>
                     {% endif %}
-                </li>
-            </ul>
-        </div>
-    </div>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for task in product.tasks %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="/{{ lang }}/task/{{ task.id }}">{{ task.title }}</a>
+                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                {{ viz::domain_chip(domain=task.domain) }}
+                                {{ viz::status_chip(status=task.taskStatus) }}
+                                {{ viz::effort_meter(value=task.effort) }}
+                            </div>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
 
-    <!-- Tasks -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0"><i class="bi bi-list-task"></i> {{ fluent(key="tasks", lang=lang) }}</h2>
-            {% if role == "operator" or role == "admin" %}
-            <a class="btn btn-sm btn-primary" href="/{{ lang }}/product/{{ product.id }}/task/new">
-                <i class="bi bi-plus-circle"></i> {{ fluent(key="create-task", lang=lang) }}
-            </a>
+            <!-- Vacant Work -->
+            {% if product.vacantWork %}
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-person-dash"></i> {{ fluent(key="vacant-work", lang=lang) }}</h2>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for work in product.vacantWork %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a>
+                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                {{ viz::domain_chip(domain=work.domain) }}
+                                {{ viz::level_chip(level=work.capabilityLevel) }}
+                                {{ viz::effort_meter(value=work.effort) }}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
             {% endif %}
         </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for task in product.tasks %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <a href="/{{ lang }}/task/{{ task.id }}">{{ task.title }}</a>
-                    <div class="d-flex align-items-center gap-1 flex-wrap">
-                        {{ viz::domain_chip(domain=task.domain) }}
-                        {{ viz::status_chip(status=task.taskStatus) }}
-                        {{ viz::effort_meter(value=task.effort) }}
-                    </div>
-                </li>
-                {% else %}
-                <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
 
-    <!-- Vacant Work -->
-    {% if product.vacantWork %}
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-person-dash"></i> {{ fluent(key="vacant-work", lang=lang) }}</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for work in product.vacantWork %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a>
-                    <div class="d-flex align-items-center gap-1 flex-wrap">
-                        {{ viz::domain_chip(domain=work.domain) }}
-                        {{ viz::level_chip(level=work.capabilityLevel) }}
-                        {{ viz::effort_meter(value=work.effort) }}
+        <!-- Sidebar pane: summary & owner -->
+        <div class="detail-aside">
+            <div class="detail-aside-sticky">
+                <!-- Details -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
                     </div>
-                </li>
-                {% endfor %}
-            </ul>
+                    <div class="card-body">
+                        <p>
+                            {% if lang == "fr" %}{{ product.descriptionFr }}{% else %}{{ product.descriptionEn }}{% endif %}
+                        </p>
+                        <ul class="list-group list-group-flush">
+                            {% if product.url %}
+                            <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ product.url }}">{{ product.url }}</a></li>
+                            {% endif %}
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=product.primaryDomain) }}</li>
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Status:</span> {{ viz::status_chip(status=product.productStatus) }}</li>
+                            <li class="list-group-item d-flex align-items-center gap-2">
+                                <span class="text-muted">Total Effort:</span>
+                                {{ viz::effort_meter(value=product.effort) }}
+                                <span class="text-muted small">(sum of active work)</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Product Owner -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-person-badge"></i> {{ fluent(key="product-owner", lang=lang) }}</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% if product.productOwner.person %}
+                            <li class="list-group-item">
+                                <a href="/{{ lang }}/person/{{ product.productOwner.person.id }}" class="fw-semibold">
+                                    {{ product.productOwner.person.givenName }} {{ product.productOwner.person.familyName }}
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li class="list-group-item">
+                                <span class="text-muted">Role:</span>
+                                <a href="/{{ lang }}/role/{{ product.productOwner.id }}">{{ product.productOwner.titleEnglish }}</a>
+                                {% if product.productOwner.team %}
+                                &mdash; <a href="/{{ lang }}/team/{{ product.productOwner.team.id }}">{{ product.productOwner.team.nameEnglish }}</a>
+                                {% endif %}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    {% endif %}
 </div>
 {% endblock content %}

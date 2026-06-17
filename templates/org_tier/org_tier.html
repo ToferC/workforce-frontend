@@ -43,69 +43,83 @@
         {% endif %}
     </div>
 
-    <!-- Details -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item"><span class="text-muted">Tier Level:</span> {{ org_tier.tierLevel }}</li>
-                <li class="list-group-item"><span class="text-muted">Primary Domain:</span> {{ org_tier.primaryDomain }}</li>
-                <li class="list-group-item">
-                    <span class="text-muted">Parent Organization Tier:</span>
-                    {% if org_tier.parentOrganizationTier %}
-                        <a href="/{{ lang }}/org_tier/{{ org_tier.parentOrganizationTier.id }}">{{ org_tier.parentOrganizationTier.nameEn }}</a>
-                    {% else %}
-                        None
+    <div class="detail-layout">
+        <!-- Main pane: teams & sub-structure -->
+        <div class="detail-main">
+            <!-- Teams -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h4 mb-0"><i class="bi bi-people"></i> Teams</h2>
+                    {% if role == "operator" or role == "admin" %}
+                    <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/team/new?organization={{ org_tier.organization.id }}&org_tier={{ org_tier.id }}">
+                        <i class="bi bi-plus-lg"></i> {{ fluent(key="add-team", lang=lang) }}
+                    </a>
                     {% endif %}
-                </li>
-                <li class="list-group-item">
-                    <span class="text-muted">Owner:</span>
-                    <a href="/{{lang}}/person/{{org_tier.owner.id}}">{{ org_tier.owner.givenName }} {{ org_tier.owner.familyName }}</a>
-                </li>
-                <li class="list-group-item"><span class="text-muted">Owner Email:</span> {{ org_tier.owner.email }}</li>
-            </ul>
-        </div>
-    </div>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for team in org_tier.teams %}
+                        <li class="list-group-item">
+                            <a href="/{{lang}}/team/{{team.id}}" class="fw-semibold">{{ team.nameEnglish }}</a>
+                            <span class="small text-muted ms-2">
+                                Owner: <a href="/{{lang}}/person/{{team.owner.id}}">{{ team.owner.givenName }} {{ team.owner.familyName }}</a>
+                            </span>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">No teams.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
 
-    <!-- Child Organization Tiers -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-diagram-2"></i> Child Organization Tiers</h2>
+            <!-- Child Organization Tiers -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-diagram-2"></i> Child Organization Tiers</h2>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for child in org_tier.childOrganizationTier %}
+                        <li class="list-group-item">
+                            <a href="/{{lang}}/org_tier/{{child.id}}">{{ child.nameEn }}</a>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">No child tiers.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
         </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for child in org_tier.childOrganizationTier %}
-                <li class="list-group-item">
-                    <a href="/{{lang}}/org_tier/{{child.id}}">{{ child.nameEn }}</a>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
 
-    <!-- Teams -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0"><i class="bi bi-people"></i> Teams</h2>
-            {% if role == "operator" or role == "admin" %}
-            <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/team/new?organization={{ org_tier.organization.id }}&org_tier={{ org_tier.id }}">
-                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-team", lang=lang) }}
-            </a>
-            {% endif %}
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                {% for team in org_tier.teams %}
-                <li class="list-group-item">
-                    <a href="/{{lang}}/team/{{team.id}}" class="fw-semibold">{{ team.nameEnglish }}</a>
-                    <span class="small text-muted ms-2">
-                        Owner: <a href="/{{lang}}/person/{{team.owner.id}}">{{ team.owner.givenName }} {{ team.owner.familyName }}</a>
-                    </span>
-                </li>
-                {% endfor %}
-            </ul>
+        <!-- Sidebar pane: summary -->
+        <div class="detail-aside">
+            <div class="detail-aside-sticky">
+                <!-- Details -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><span class="text-muted">Tier Level:</span> {{ org_tier.tierLevel }}</li>
+                            <li class="list-group-item"><span class="text-muted">Primary Domain:</span> {{ org_tier.primaryDomain }}</li>
+                            <li class="list-group-item">
+                                <span class="text-muted">Parent Organization Tier:</span>
+                                {% if org_tier.parentOrganizationTier %}
+                                    <a href="/{{ lang }}/org_tier/{{ org_tier.parentOrganizationTier.id }}">{{ org_tier.parentOrganizationTier.nameEn }}</a>
+                                {% else %}
+                                    None
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item">
+                                <span class="text-muted">Owner:</span>
+                                <a href="/{{lang}}/person/{{org_tier.owner.id}}">{{ org_tier.owner.givenName }} {{ org_tier.owner.familyName }}</a>
+                            </li>
+                            <li class="list-group-item"><span class="text-muted">Owner Email:</span> {{ org_tier.owner.email }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

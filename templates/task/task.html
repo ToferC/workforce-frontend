@@ -23,74 +23,86 @@
         {% endif %}
     </div>
 
-    <!-- Details -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ task.url }}">{{ task.url }}</a></li>
-                <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=task.domain) }}</li>
-                <li class="list-group-item"><span class="text-muted">Target Completion:</span> {{ task.targetCompletionDate }}</li>
-                <li class="list-group-item">
-                    <span class="text-muted">Assigned by:</span>
-                    <a href="/{{lang}}/person/{{task.createdBy.person.id}}">{{ task.createdBy.person.givenName }} {{ task.createdBy.person.familyName }}</a>
-                    &mdash;
-                    <a href="/{{lang}}/team/{{task.createdBy.team.id}}">{{ task.createdBy.team.nameEnglish }}</a>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Work Elements -->
-    <div class="card shadow-lg mb-4">
-        <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-list-task"></i> Work Elements</h2>
-        </div>
-        <div class="card-body p-0">
-            {% for work in task.work %}
-            <div class="p-3 border-bottom">
-                <div class="fw-semibold mb-1">{{ work.workDescription }}</div>
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item px-0 small d-flex align-items-center gap-1">
-                        <span class="text-muted">Domain:</span>
-                        {{ viz::domain_chip(domain=work.domain) }}
-                        {{ viz::level_chip(level=work.capabilityLevel) }}
-                    </li>
-                    {% if work.url %}
-                    <li class="list-group-item px-0 small"><span class="text-muted">Website:</span> <a href="{{ work.url }}">{{ work.url }}</a></li>
-                    {% endif %}
-                </ul>
-                {% if work.role.person %}
-                <h3 class="h6 text-muted mt-2 mb-1">Assigned To</h3>
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item px-0 small">
-                        <a href="/{{lang}}/person/{{work.role.person.id}}">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
-                    </li>
-                    <li class="list-group-item px-0 small">
-                        <span class="text-muted">Role:</span>
-                        <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }} &mdash; {{ work.role.militaryOccupation }}-{{ work.role.rank }}</a>
-                    </li>
-                    <li class="list-group-item px-0 small">
-                        <span class="text-muted">Organization:</span>
-                        <a href="/{{ lang }}/organization/{{ work.role.person.organization.id }}">{{ work.role.person.organization.nameEn }}</a>
-                    </li>
-                    <li class="list-group-item px-0 small"><span class="text-muted">Email:</span> {{ work.role.person.email }}</li>
-                    <li class="list-group-item px-0 small"><span class="text-muted">Phone:</span> {{ work.role.person.phone }}</li>
-                </ul>
-                {% else %}
-                <p class="text-muted small mt-2 mb-0">
-                    Not assigned.
-                    {% if role == "operator" or role == "admin" %}
-                    <a href="/{{ lang }}/work/{{ work.id }}/assign" class="ms-2 btn btn-sm btn-outline-success">
-                        <i class="bi bi-person-plus"></i> Assign
-                    </a>
-                    {% endif %}
-                </p>
-                {% endif %}
+    <div class="detail-layout">
+        <!-- Main pane: work elements -->
+        <div class="detail-main">
+            <!-- Work Elements -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-list-task"></i> Work Elements</h2>
+                </div>
+                <div class="card-body p-0">
+                    {% for work in task.work %}
+                    <div class="p-3 border-bottom">
+                        <div class="fw-semibold mb-1">{{ work.workDescription }}</div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item px-0 small d-flex align-items-center gap-1">
+                                <span class="text-muted">Domain:</span>
+                                {{ viz::domain_chip(domain=work.domain) }}
+                                {{ viz::level_chip(level=work.capabilityLevel) }}
+                            </li>
+                            {% if work.url %}
+                            <li class="list-group-item px-0 small"><span class="text-muted">Website:</span> <a href="{{ work.url }}">{{ work.url }}</a></li>
+                            {% endif %}
+                        </ul>
+                        {% if work.role.person %}
+                        <h3 class="h6 text-muted mt-2 mb-1">Assigned To</h3>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item px-0 small">
+                                <a href="/{{lang}}/person/{{work.role.person.id}}">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
+                            </li>
+                            <li class="list-group-item px-0 small">
+                                <span class="text-muted">Role:</span>
+                                <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }} &mdash; {{ work.role.militaryOccupation }}-{{ work.role.rank }}</a>
+                            </li>
+                            <li class="list-group-item px-0 small">
+                                <span class="text-muted">Organization:</span>
+                                <a href="/{{ lang }}/organization/{{ work.role.person.organization.id }}">{{ work.role.person.organization.nameEn }}</a>
+                            </li>
+                            <li class="list-group-item px-0 small"><span class="text-muted">Email:</span> {{ work.role.person.email }}</li>
+                            <li class="list-group-item px-0 small"><span class="text-muted">Phone:</span> {{ work.role.person.phone }}</li>
+                        </ul>
+                        {% else %}
+                        <p class="text-muted small mt-2 mb-0">
+                            Not assigned.
+                            {% if role == "operator" or role == "admin" %}
+                            <a href="/{{ lang }}/work/{{ work.id }}/assign" class="ms-2 btn btn-sm btn-outline-success">
+                                <i class="bi bi-person-plus"></i> Assign
+                            </a>
+                            {% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-muted">No work elements.</div>
+                    {% endfor %}
+                </div>
             </div>
-            {% endfor %}
+        </div>
+
+        <!-- Sidebar pane: summary -->
+        <div class="detail-aside">
+            <div class="detail-aside-sticky">
+                <!-- Details -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ task.url }}">{{ task.url }}</a></li>
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=task.domain) }}</li>
+                            <li class="list-group-item"><span class="text-muted">Target Completion:</span> {{ task.targetCompletionDate }}</li>
+                            <li class="list-group-item">
+                                <span class="text-muted">Assigned by:</span>
+                                <a href="/{{lang}}/person/{{task.createdBy.person.id}}">{{ task.createdBy.person.givenName }} {{ task.createdBy.person.familyName }}</a>
+                                &mdash;
+                                <a href="/{{lang}}/team/{{task.createdBy.team.id}}">{{ task.createdBy.team.nameEnglish }}</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
