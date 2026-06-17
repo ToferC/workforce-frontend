@@ -136,9 +136,12 @@
                             <a href="/{{lang}}/person/{{person.id}}" class="fw-semibold">{{ person.givenName }} {{ person.familyName }}</a>
                             {% if role == "operator" or role == "admin" %}
                             {% if person.activeRoles | length > 0 %}
-                            <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#transfer-modal-{{ loop.index }}">
+                            <a class="btn btn-sm btn-success"
+                               href="/{{ lang }}/role/{{ role_record.id }}/transfer-preview?person_id={{ person.id }}"
+                               hx-get="/{{ lang }}/role/{{ role_record.id }}/transfer-preview?person_id={{ person.id }}"
+                               hx-target="#transfer-modal-container" hx-swap="innerHTML">
                                 <i class="bi bi-person-plus"></i> Assign
-                            </button>
+                            </a>
                             {% else %}
                             <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/assign" class="m-0">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -297,96 +300,6 @@
     </div>
 </div>
 
-{# Transfer confirmation modals — rendered outside the layout so CSS transforms
-   on cards don't break Bootstrap 4's fixed-position modal backdrop. #}
-{% if not role_record.person %}
-{% for person in role_record.findMatches %}
-{% if role == "operator" or role == "admin" %}
-{% if person.activeRoles | length > 0 %}
-{% set modal_id = "transfer-modal-" ~ loop.index %}
-<div class="modal fade" id="{{ modal_id }}" tabindex="-1" role="dialog" aria-labelledby="{{ modal_id }}-label" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header bg-warning text-dark">
-        <h5 class="modal-title" id="{{ modal_id }}-label">
-          <i class="bi bi-arrow-left-right"></i> Confirm Transfer
-        </h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-      </div>
-      <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/assign">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <input type="hidden" name="person_id" value="{{ person.id }}">
-        <div class="modal-body">
-          <p class="mb-3">
-            You are about to assign <strong>{{ person.givenName }} {{ person.familyName }}</strong> to
-            <strong>{% if lang == "fr" %}{{ role_record.titleFrench }}{% else %}{{ role_record.titleEnglish }}{% endif %}</strong>.
-          </p>
-
-          {% for ar in person.activeRoles %}
-          <div class="card border-warning mb-3">
-            <div class="card-header bg-warning text-dark d-flex align-items-center gap-2 flex-wrap">
-              <i class="bi bi-exclamation-triangle"></i>
-              <strong>Role being vacated:</strong>
-              {{ ar.titleEnglish }}
-              <span class="text-muted small">({{ ar.militaryOccupation }}-{{ ar.rank }})</span>
-            </div>
-            <div class="card-body p-0">
-              {% if ar.team %}
-              <div class="px-3 py-2 border-bottom">
-                <span class="text-muted">Team:</span> {{ ar.team.nameEnglish }}
-              </div>
-              {% endif %}
-
-              {% if ar.work and ar.work | length > 0 %}
-              <div class="px-3 py-2">
-                <span class="text-danger font-weight-bold">
-                  <i class="bi bi-kanban"></i> {{ ar.work | length }} work item(s) will be orphaned:
-                </span>
-              </div>
-              <ul class="list-group list-group-flush">
-                {% for w in ar.work %}
-                <li class="list-group-item">
-                  <span class="font-weight-bold">{{ w.workDescription }}</span>
-                  <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
-                    {{ viz::domain_chip(domain=w.domain) }}
-                    {{ viz::status_chip(status=w.workStatus) }}
-                    {{ viz::effort_meter(value=w.effort) }}
-                  </div>
-                </li>
-                {% endfor %}
-              </ul>
-
-              <div class="px-3 py-3 border-top bg-light">
-                <div class="custom-control custom-checkbox mb-2">
-                  <input class="custom-control-input" type="checkbox" id="{{ modal_id }}-reassign-check"
-                         onchange="document.getElementById('{{ modal_id }}-reassign-val').value = this.checked ? '{{ role_record.id }}' : '';">
-                  <label class="custom-control-label" for="{{ modal_id }}-reassign-check">
-                    Reassign work to the new role ({{ role_record.titleEnglish }})
-                  </label>
-                </div>
-                <input type="hidden" id="{{ modal_id }}-reassign-val" name="reassign_work_to" value="">
-              </div>
-              {% else %}
-              <div class="px-3 py-2 text-muted">
-                <i class="bi bi-check-circle text-success"></i> No work currently assigned to this role.
-              </div>
-              {% endif %}
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-success">
-            <i class="bi bi-check-lg"></i> Confirm Transfer
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-{% endif %}
-{% endif %}
-{% endfor %}
-{% endif %}
+{# HTMX swaps the transfer-confirmation modal fragment in here on Assign. #}
+<div id="transfer-modal-container"></div>
 {% endblock content %}

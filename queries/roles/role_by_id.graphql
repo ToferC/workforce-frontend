@@ -72,19 +72,6 @@ query RoleById($id:UUID!) {
         militaryOccupation
         rank
         titleEnglish
-        effort
-        team {
-          id
-          nameEnglish
-        }
-        work {
-          id
-          workDescription
-          domain
-          capabilityLevel
-          workStatus
-          effort
-        }
       }
       capabilities {
         nameEn

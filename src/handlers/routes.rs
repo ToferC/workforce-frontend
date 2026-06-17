@@ -47,6 +47,7 @@ use crate::handlers::{
     end_role_form,
     end_role_post,
     assign_role_post,
+    transfer_preview,
     vacate_role_post,
     create_requirement_form,
     create_requirement_post,
@@ -194,6 +195,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(end_role_form);
     config.service(end_role_post);
     config.service(assign_role_post);
+    config.service(transfer_preview);
     config.service(vacate_role_post);
     config.service(role_index);
     config.service(create_requirement_form);
