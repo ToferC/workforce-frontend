@@ -8,7 +8,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang, level_weight, chart_json};
-use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement};
+use crate::graphql::{get_role_by_id, all_roles, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement, get_person_by_id, update_work};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
@@ -617,6 +617,8 @@ pub async fn end_role_post(
 pub struct AssignRoleForm {
     pub csrf_token: String,
     pub person_id: String,
+    #[serde(default)]
+    pub reassign_work_to: String,
 }
 
 /// Assign a person to a vacant role. Driven by the "Assign" buttons on the
@@ -648,13 +650,53 @@ pub async fn assign_role_post(
         return redirect_to(format!("/{}/role/{}", &lang, &role_id));
     }
 
-    match assign_person_to_role(form.person_id.clone(), role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    let reassign_target = form.reassign_work_to.trim().to_string();
+    let mut work_ids_to_reassign: Vec<String> = Vec::new();
+
+    if !reassign_target.is_empty() {
+        if let Ok(person) = get_person_by_id(form.person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+            for ar in &person.person_by_id.active_roles {
+                for w in &ar.work {
+                    work_ids_to_reassign.push(w.id.clone());
+                }
+            }
+        }
+    }
+
+    match assign_person_to_role(form.person_id.clone(), role_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => {
-            security::add_flash(&session, "success", by_lang(
-                &lang,
-                "Person assigned to role. Any role they previously held has been vacated and recorded in their history.",
-                "Personne affectée au rôle. Tout rôle qu'elle occupait auparavant a été libéré et inscrit dans son historique.",
-            ));
+            let mut reassign_count = 0;
+            for work_id in &work_ids_to_reassign {
+                let work_data = update_work::WorkData {
+                    id: work_id.clone(),
+                    task_id: None,
+                    role_id: Some(reassign_target.clone()),
+                    skill_id: None,
+                    work_description: None,
+                    url: None,
+                    domain: None,
+                    capability_level: None,
+                    effort: None,
+                    work_status: None,
+                };
+                if update_work(work_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.is_ok() {
+                    reassign_count += 1;
+                }
+            }
+
+            if reassign_count > 0 {
+                security::add_flash(&session, "success", by_lang(
+                    &lang,
+                    &format!("Person assigned to role. {} work item(s) reassigned. Any role they previously held has been vacated and recorded in their history.", reassign_count),
+                    &format!("Personne affectée au rôle. {} élément(s) de travail réaffecté(s). Tout rôle qu'elle occupait auparavant a été libéré et inscrit dans son historique.", reassign_count),
+                ));
+            } else {
+                security::add_flash(&session, "success", by_lang(
+                    &lang,
+                    "Person assigned to role. Any role they previously held has been vacated and recorded in their history.",
+                    "Personne affectée au rôle. Tout rôle qu'elle occupait auparavant a été libéré et inscrit dans son historique.",
+                ));
+            }
         },
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
