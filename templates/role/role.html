@@ -12,7 +12,7 @@
     <div class="hero-section mb-4">
         <h1 class="display-4 mb-2"><i class="bi bi-briefcase"></i>
             {% if lang == "fr" %}{{ role_record.titleFrench }}{% else %}{{ role_record.titleEnglish }}{% endif %}
-            {% if role_record.active != "true" %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="role-ended", lang=lang) }}</span>{% endif %}
+            {% if role_record.active == "false" %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="role-ended", lang=lang) }}</span>{% endif %}
         </h1>
         <p class="lead text-muted">{{ role_record.militaryOccupation }}-{{ role_record.rank }}</p>
 

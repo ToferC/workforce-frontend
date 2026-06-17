@@ -362,7 +362,7 @@ pub async fn create_role_form(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("role_form", &json!({
-        "titleEnglish": "", "titleFrench": "", "effort": 1.0,
+        "titleEnglish": "", "titleFrench": "", "effort": 10.0,
         "militaryOccupation": "", "rank": "", "personName": "",
         "occupationalGroup": "", "occupationalLevel": "",
         "startDate": chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string(),
