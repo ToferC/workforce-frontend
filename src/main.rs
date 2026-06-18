@@ -53,6 +53,8 @@ async fn main() -> std::io::Result<()> {
         String::from("http://127.0.0.1:8080/graphql")
     };
 
+    let secure_cookies = environment == "production";
+
     let cookie_secret = env::var("COOKIE_SECRET_KEY").expect("Unable to find cookie secret key");
 
     let cookie_secret_key: Key = Key::from(&cookie_secret.as_bytes());
@@ -97,7 +99,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(
                 SessionMiddleware::builder(
                     CookieSessionStore::default(), cookie_secret_key.clone())
-                    .cookie_secure(true)
+                    .cookie_secure(secure_cookies)
                     .cookie_same_site(actix_web::cookie::SameSite::Lax)
                     .build()
                 )
