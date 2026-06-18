@@ -101,6 +101,50 @@ pub async fn team_by_id(
         .collect();
     ctx.insert("domain_summary", &domain_summary);
 
+    // Delivery at a glance: distinct products and tasks this team's members
+    // contribute to, plus the active work underway. Traverses each occupied
+    // role's work -> task -> product so the team page links out to delivery.
+    let mut products: std::collections::BTreeMap<String, serde_json::Value> = std::collections::BTreeMap::new();
+    let mut tasks: std::collections::BTreeMap<String, serde_json::Value> = std::collections::BTreeMap::new();
+    let mut active_work: Vec<serde_json::Value> = Vec::new();
+    let mut work_count = 0;
+
+    for role in &team.occupied_roles {
+        let person_name = role.person.as_ref()
+            .map(|p| format!("{} {}", p.given_name, p.family_name))
+            .unwrap_or_default();
+        for w in &role.work {
+            work_count += 1;
+            let status = serde_json::to_value(&w.work_status).unwrap_or(json!(""));
+            let t = &w.task;
+            let task_status = serde_json::to_value(&t.task_status).unwrap_or(json!(""));
+            tasks.entry(t.id.clone()).or_insert_with(|| json!({
+                "id": t.id, "title": t.title, "status": task_status,
+            }));
+            if let Some(p) = &t.product {
+                products.entry(p.id.clone()).or_insert_with(|| json!({
+                    "id": p.id, "nameEn": p.name_en, "nameFr": p.name_fr,
+                }));
+            }
+            if status.as_str() == Some("IN_PROGRESS") {
+                active_work.push(json!({
+                    "id": w.id,
+                    "description": w.work_description,
+                    "status": status,
+                    "effort": w.effort,
+                    "person": person_name,
+                }));
+            }
+        }
+    }
+
+    let products: Vec<serde_json::Value> = products.into_values().collect();
+    let tasks: Vec<serde_json::Value> = tasks.into_values().collect();
+    ctx.insert("products", &products);
+    ctx.insert("tasks", &tasks);
+    ctx.insert("active_work", &active_work);
+    ctx.insert("work_count", &work_count);
+
     let rendered = data.tmpl.render("team/team.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }
