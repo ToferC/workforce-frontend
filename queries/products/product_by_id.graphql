@@ -11,6 +11,14 @@ query ProductById($id: UUID!) {
     priority
     retiredAt
     effort
+    skillDemand {
+      name
+      skillName
+      domain
+      level
+      workCount
+      totalEffort
+    }
     organization {
       id
       nameEn

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
 
 {% block title %}
     <title>{{ fluent(key="org_tier", lang=lang )}}</title>
@@ -89,6 +90,116 @@
                     </ul>
                 </div>
             </div>
+
+            <!-- Analytics Summary -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-primary">{{ org_tier.headcount }}</div>
+                            <div class="small text-muted">Headcount</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-info">{{ org_tier.totalEffort }}</div>
+                            <div class="small text-muted">Total Effort</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-secondary">{{ org_tier.teams | length }}</div>
+                            <div class="small text-muted">Teams</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-secondary">{{ org_tier.capabilityCounts | length }}</div>
+                            <div class="small text-muted">Capability Types</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Capability Heatmap -->
+            {% if org_tier.capabilityHeatmap %}
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-grid-3x3-gap"></i> Capability Coverage by Team</h2>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Team</th>
+                                    <th class="text-center">People</th>
+                                    <th>Top Domains</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in org_tier.capabilityHeatmap %}
+                                <tr>
+                                    <td><a href="/{{ lang }}/team/{{ row.teamId }}">{{ row.teamName }}</a></td>
+                                    <td class="text-center">
+                                        {% set max_people = 0 %}
+                                        {% for cell in row.cells %}
+                                            {% if cell.peopleCount > max_people %}{% set_global max_people = cell.peopleCount %}{% endif %}
+                                        {% endfor %}
+                                        {{ max_people }}
+                                    </td>
+                                    <td>
+                                        {% for cell in row.cells %}
+                                            {% if cell.depth > 0.0 %}
+                                            <span class="me-1">{{ viz::domain_chip(domain=cell.domain) }} <small class="text-muted">{{ cell.depth | round(precision=1) }}</small></span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Capability Breakdown -->
+            {% if org_tier.capabilityCounts %}
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps"></i> Capability Breakdown</h2>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Capability</th>
+                                <th>Domain</th>
+                                <th>Level</th>
+                                <th class="text-end">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cap in org_tier.capabilityCounts %}
+                            <tr>
+                                <td>{{ cap.name }}</td>
+                                <td>{{ viz::domain_chip(domain=cap.domain) }}</td>
+                                <td>{{ viz::level_chip(level=cap.level) }}</td>
+                                <td class="text-end fw-bold">{{ cap.counts }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Sidebar pane: summary -->

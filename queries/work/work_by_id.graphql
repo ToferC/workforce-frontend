@@ -13,6 +13,11 @@ query WorkById($id:UUID!) {
       title
       domain
       targetCompletionDate
+      product {
+        id
+        nameEn
+        nameFr
+      }
       createdBy {
         id
         titleEnglish
