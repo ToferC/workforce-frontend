@@ -14,6 +14,7 @@ pub mod requirement;
 pub mod validation;
 pub mod language;
 pub mod product;
+pub mod analytics;
 
 pub use client::*;
 pub use log_in_mutation::*;
@@ -31,3 +32,4 @@ pub use requirement::*;
 pub use validation::*;
 pub use language::*;
 pub use product::*;
+pub use analytics::*;

@@ -1,0 +1,11 @@
+query CapabilitySupplyDemand($bucket: TimeBucket!, $from: NaiveDateTime, $to: NaiveDateTime, $orgTierId: UUID) {
+  capabilitySupplyDemand(bucket: $bucket, from: $from, to: $to, orgTierId: $orgTierId) {
+    domain
+    points {
+      periodStart
+      bucket
+      supply
+      demand
+    }
+  }
+}

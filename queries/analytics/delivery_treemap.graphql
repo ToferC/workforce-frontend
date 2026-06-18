@@ -8,17 +8,20 @@ query DeliveryTreemap {
     effort
     primaryDomain
     productStatus
+    priority
     tasks {
       id
       title
       effort
       domain
       taskStatus
+      priority
       work {
         id
         workDescription
         effort
         workStatus
+        priority
         domain
       }
     }

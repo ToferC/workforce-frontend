@@ -834,6 +834,7 @@ pub async fn assign_role_post(
                     capability_level: None,
                     effort: None,
                     work_status: None,
+                    priority: None,
                 };
                 if update_work(work_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.is_ok() {
                     reassign_count += 1;

@@ -4,6 +4,7 @@ query AllProducts {
     nameEn
     nameFr
     productStatus
+    priority
     primaryDomain
     effort
     organization {

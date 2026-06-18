@@ -61,8 +61,11 @@
                     <div class="col-md-6">
                         {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, selected=product.primaryDomain) }}
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         {{ forms::select(name="product_status", label=label_status, options=work_statuses, selected=product.productStatus) }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ forms::select(name="priority", label="Priority", options=priorities, selected=product.priority) }}
                     </div>
                 </div>
 
