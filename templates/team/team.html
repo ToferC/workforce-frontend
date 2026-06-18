@@ -101,64 +101,42 @@
                 </div>
             </div>
 
-            <!-- Capability Coverage -->
+            <!-- What This Team Can Do -->
             {% if team.capabilityHeatmap %}
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-grid-3x3-gap"></i> Capability Coverage</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-lightning-charge"></i> What This Team Can Do</h2>
                 </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm table-hover mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th>Domain</th>
-                                <th class="text-center">Depth</th>
-                                <th class="text-center">People</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for cell in team.capabilityHeatmap %}
-                            {% if cell.depth > 0.0 %}
-                            <tr>
-                                <td>{{ viz::domain_chip(domain=cell.domain) }}</td>
-                                <td class="text-center fw-bold">{{ cell.depth | round(precision=1) }}</td>
-                                <td class="text-center">{{ cell.peopleCount }}</td>
-                            </tr>
-                            {% endif %}
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="card-body">
+                    {% set max_depth = 0.0 %}
+                    {% for cell in team.capabilityHeatmap %}
+                        {% if cell.depth > max_depth %}{% set_global max_depth = cell.depth %}{% endif %}
+                    {% endfor %}
+                    {% for cell in team.capabilityHeatmap %}
+                    {% if cell.depth > 0.0 %}
+                    {% set pct = (cell.depth * 100.0 / max_depth) | round(precision=0) %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="min-width:180px" class="me-3">
+                            {{ viz::domain_chip(domain=cell.domain) }}
+                        </div>
+                        <div class="flex-grow-1 me-3">
+                            <div class="progress" style="height:20px">
+                                <div class="progress-bar {% if cell.depth >= 3.0 %}bg-success{% elif cell.depth >= 1.5 %}bg-info{% else %}bg-warning{% endif %}"
+                                     role="progressbar" style="width:{{ pct }}%"
+                                     title="Depth: {{ cell.depth | round(precision=1) }}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end" style="min-width:100px">
+                            <span class="fw-bold">{{ cell.peopleCount }}</span>
+                            <span class="text-muted small">{% if cell.peopleCount == 1 %}person{% else %}people{% endif %}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
                 </div>
-            </div>
-            {% endif %}
-
-            <!-- Capability Breakdown -->
-            {% if team.capabilityCounts %}
-            <div class="card shadow-lg mb-4">
-                <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps"></i> Capability Breakdown</h2>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm table-hover mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th>Capability</th>
-                                <th>Domain</th>
-                                <th>Level</th>
-                                <th class="text-end">Count</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for cap in team.capabilityCounts %}
-                            <tr>
-                                <td>{{ cap.name }}</td>
-                                <td>{{ viz::domain_chip(domain=cap.domain) }}</td>
-                                <td>{{ viz::level_chip(level=cap.level) }}</td>
-                                <td class="text-end fw-bold">{{ cap.counts }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="card-footer small text-muted">
+                    Bar length shows capability depth (weighted skill level). Green = strong, blue = moderate, amber = emerging.
                 </div>
             </div>
             {% endif %}
