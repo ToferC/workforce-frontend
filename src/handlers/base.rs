@@ -1,4 +1,4 @@
-use actix_session::SessionExt;
+use actix_session::{Session, SessionExt};
 use actix_web::{web, get, Responder, HttpResponse, HttpRequest};
 use actix_identity::Identity;
 
@@ -11,7 +11,10 @@ pub async fn raw_index() -> impl Responder {
     return HttpResponse::Found().header("Location", "/en").finish()
 }
 
-#[get("/{lang}")]
+// The language segment is constrained to en|fr so that requests like
+// /favicon.ico or /robots.txt do not get swallowed by this handler (which
+// would clear the session and break the login CSRF token).
+#[get("/{lang:en|fr}")]
 pub async fn index(
     data: web::Data<AppData>,
     params: web::Path<String>,
@@ -40,7 +43,10 @@ pub async fn index(
                 || err_msg.contains("Access denied")
                 || bearer_is_empty_or_missing(&session)
             {
-                session.clear();
+                // Drop the auth credentials but keep the CSRF token and any
+                // flash messages, otherwise the login form we redirect to
+                // would render with a token that no longer matches the session.
+                clear_auth_keys(&session);
                 security::add_flash(
                     &session,
                     "warning",
@@ -58,9 +64,19 @@ pub async fn index(
     HttpResponse::Ok().body(rendered)
 }
 
-fn bearer_is_empty_or_missing(session: &actix_session::Session) -> bool {
+fn bearer_is_empty_or_missing(session: &Session) -> bool {
     match session.get::<String>("bearer") {
         Ok(Some(b)) => b.is_empty(),
         _ => true,
     }
+}
+
+/// Remove authentication-related session keys while leaving non-auth state
+/// (CSRF token, flash messages) intact.
+fn clear_auth_keys(session: &Session) {
+    session.remove("bearer");
+    session.remove("role");
+    session.remove("user_id");
+    session.remove("session_user");
+    session.remove("expires_at");
 }
