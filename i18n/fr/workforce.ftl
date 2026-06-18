@@ -1,187 +1,187 @@
-hello-world = Hello World
-welcome-to = Welcome to the Armed Forces Workforce Analytics MVP
+hello-world = Bonjour le monde
+welcome-to = Bienvenue dans le MVP d'analytique de la main-d'œuvre des Forces armées
 
 ## General Section
 
-epicenter = Workforce Analytics
--app-name = Workforce Analytics
-app-description = { -app-name } is a learning project and experiment in workforce analytics.
-app-mvp = Workforce Analytics MVP
+epicenter = Analytique de la main-d'œuvre
+-app-name = Analytique de la main-d'œuvre
+app-description = { -app-name } est un projet d'apprentissage et d'expérimentation en analytique de la main-d'œuvre.
+app-mvp = MVP d'analytique de la main-d'œuvre
 -user-support-email = usersupport@intersectional-data.ca
 
 ## Organization
-organization = Organization
+organization = Organisation
 organizations = Organisations
-org_tier = Organization Tier
-team = Team
-work = Work
+org_tier = Niveau organisationnel
+team = Équipe
+work = Travail
 affiliation = Affiliation
-person = Person
+person = Personne
 publication = Publication
-role = Role
-task = Task
+role = Rôle
+task = Tâche
 
 ## Base & Navbar
-button-explore-demo-data = Explore demonstration data
-about = About the Project
-language-toggle = Français
-profile = Profile
-logout = Logout
-user-index = User Index
-login = Log in
-register = Register
+button-explore-demo-data = Explorer les données de démonstration
+about = À propos du projet
+language-toggle = English
+profile = Profil
+logout = Déconnexion
+user-index = Index des utilisateurs
+login = Connexion
+register = S'inscrire
 
 ## Footer
-footer-1 = Please note that this work is a learning project and experiment in developing actionable workforce analytics.
-available-licence = The Public Health Workforce Analytics project is available on GitHub under an MIT licence here:
-developed-by = Developed by ToferC 2023
+footer-1 = Veuillez noter que ce travail est un projet d'apprentissage et d'expérimentation dans le développement d'analytique exploitable de la main-d'œuvre.
+available-licence = Le projet d'analytique de la main-d'œuvre en santé publique est disponible sur GitHub sous licence MIT ici :
+developed-by = Développé par ToferC 2023
 
 ## Login Page
-email-address = Email address
-email-address-helper = Enter the email address you used to register.
-email-placeholder = yourname@domain.com
-password = Password
-password-placeholder = Your password...
-password-helper = Your password (at least 12 characters long).
-forgot-password = I forgot my password
+email-address = Adresse courriel
+email-address-helper = Entrez l'adresse courriel que vous avez utilisée pour vous inscrire.
+email-placeholder = votrenom@domaine.com
+password = Mot de passe
+password-placeholder = Votre mot de passe...
+password-helper = Votre mot de passe (au moins 12 caractères).
+forgot-password = J'ai oublié mon mot de passe
 
 ## Register Page
-register-to-app = Register to { -app-name }
-why-register = You need to register an account to create and manage documents.
-register-email-helper = Enter the email address you want to use to log in.
-user-name = User name
-user-name-placeholder = Firstname Lastname
-user-name-helper = The name you'd like to be called when using Data Docs.
-email-coming-notice = After registering you will receive a code by email to verify your email address. Check your email and then enter the code on the next page.
+register-to-app = S'inscrire à { -app-name }
+why-register = Vous devez créer un compte pour créer et gérer des documents.
+register-email-helper = Entrez l'adresse courriel que vous souhaitez utiliser pour vous connecter.
+user-name = Nom d'utilisateur
+user-name-placeholder = Prénom Nom
+user-name-helper = Le nom que vous aimeriez qu'on utilise lorsque vous utilisez Data Docs.
+email-coming-notice = Après votre inscription, vous recevrez un code par courriel pour vérifier votre adresse. Vérifiez votre courriel puis entrez le code sur la page suivante.
 
 ## Registration Error
-registration-error = Registration Error
-problem-with-registration = There was a problem with your registration. You may have already registered with this email address or there may be a problem with the information you entered.
-you-can-login = You can log in
-here = here
-or-try-register = or try to register again.
+registration-error = Erreur d'inscription
+problem-with-registration = Un problème est survenu lors de votre inscription. Vous vous êtes peut-être déjà inscrit avec cette adresse courriel ou il y a un problème avec les informations saisies.
+you-can-login = Vous pouvez vous connecter
+here = ici
+or-try-register = ou réessayer de vous inscrire.
 
 ## Password Reset Sent
-password-reset-sent = Password Reset Email Sent
-password-reset-details = An email has been sent to you containing a link to reset your password. Clicking the link will bring to to a page where you can reset your password.
+password-reset-sent = Courriel de réinitialisation du mot de passe envoyé
+password-reset-details = Un courriel contenant un lien pour réinitialiser votre mot de passe vous a été envoyé. Cliquez sur le lien pour accéder à la page de réinitialisation.
 
 ## Change Password
-change-password-title = Change Password for { $useremail }
-enter-new-password-below = Enter your new password below.
-new-password = New Password
-update-password = Update Password
+change-password-title = Changer le mot de passe pour { $useremail }
+enter-new-password-below = Entrez votre nouveau mot de passe ci-dessous.
+new-password = Nouveau mot de passe
+update-password = Mettre à jour le mot de passe
 
 ## Email Verification
-verify-email = Verify your email
-enter-key = Please enter the code you received at { $useremail } to complete your registration.
+verify-email = Vérifiez votre courriel
+enter-key = Veuillez entrer le code que vous avez reçu à { $useremail } pour compléter votre inscription.
 code = Code
-code-helper = Enter the five digit code you received at the email you used to register.
-verify = Verify
+code-helper = Entrez le code à cinq chiffres que vous avez reçu à l'adresse courriel utilisée pour vous inscrire.
+verify = Vérifier
 
 ## Request Password Reset
-request-password-reset = Request password reset
-reset-instructions = Enter the email address you used to register below. If you have an account, we will send you an email with a link to reset your password.
-send-reset-email = Send Password Reset Email
+request-password-reset = Demande de réinitialisation du mot de passe
+reset-instructions = Entrez ci-dessous l'adresse courriel que vous avez utilisée pour vous inscrire. Si vous avez un compte, nous vous enverrons un courriel avec un lien pour réinitialiser votre mot de passe.
+send-reset-email = Envoyer le courriel de réinitialisation
 
 ## User
 
 ## User Page
-user-profile-for = User profile for:
-user-details = User details and account management.
-account-options = Account Options
-edit-as-admin = Edit User as Admin
-change-username-email = Change username or email address
-reset-password = Reset Password
-your-managed-communities = Your managed communities
-community = Community
-community-colon = Community:
-private = Private
-open = Open
-created = Created:
-data-use = Data Use:
-experiences = Experiences
-avg-inclusivity = Avg. Inclusivity
-details-button = Details
-graph-button = Graph
-edit-button = Edit
-add-community-button = Add Community
-must-verify = You need to verify your account before you can create communities.
-send-email-verification = Send email verification
+user-profile-for = Profil utilisateur pour :
+user-details = Détails du compte et gestion du profil.
+account-options = Options du compte
+edit-as-admin = Modifier l'utilisateur en tant qu'admin
+change-username-email = Changer le nom d'utilisateur ou l'adresse courriel
+reset-password = Réinitialiser le mot de passe
+your-managed-communities = Vos communautés gérées
+community = Communauté
+community-colon = Communauté :
+private = Privé
+open = Ouvert
+created = Créé :
+data-use = Utilisation des données :
+experiences = Expériences
+avg-inclusivity = Inclusivité moy.
+details-button = Détails
+graph-button = Graphique
+edit-button = Modifier
+add-community-button = Ajouter une communauté
+must-verify = Vous devez vérifier votre compte avant de pouvoir créer des communautés.
+send-email-verification = Envoyer la vérification par courriel
 
 ## Edit User
-edit-user-title = Edit User { $user }
-edit-user-explain = Update and edit your account details here.
-email-change-notice = If you update your email address, you will receive a code by email to verify your new email address. Check your email and then enter the code on the next page.
+edit-user-title = Modifier l'utilisateur { $user }
+edit-user-explain = Mettez à jour et modifiez les détails de votre compte ici.
+email-change-notice = Si vous mettez à jour votre adresse courriel, vous recevrez un code par courriel pour vérifier votre nouvelle adresse. Vérifiez votre courriel puis entrez le code sur la page suivante.
 
 ## Admin Edit User
-edit-user-admin-title = Edit User { $user } as admin
-edit-user-admin-explain = Update and edit the user's account details here.
-role-helper = Choose role and privileges for this user.
+edit-user-admin-title = Modifier l'utilisateur { $user } en tant qu'admin
+edit-user-admin-explain = Mettez à jour et modifiez les détails du compte de l'utilisateur ici.
+role-helper = Choisissez le rôle et les privilèges de cet utilisateur.
 admin = Admin
-validated = Validated
-true = True
-false = False
-validated-helper = Choose to validate or invalidate the user.
-update-button = Update
+validated = Validé
+true = Vrai
+false = Faux
+validated-helper = Choisissez de valider ou d'invalider l'utilisateur.
+update-button = Mettre à jour
 
 ## Delete User
-delete-user = Delete user
-delete-user-explain = Continue here to delete your user profile.
-delete-user-colon = Delete User:
-delete-user-placeholder = User to delete...
-delete-user-helper = Enter the user name of the user you would like to delete. This action is permanent.
-delete-user-communities-explain = When this profile is deleted, all owned communities will also be deleted.
-    Any experiences associated with the profile will become part of the global community, but will no longer be associated with the deleted communities or each other.
-return-button = Return
-communities = Communities
+delete-user = Supprimer l'utilisateur
+delete-user-explain = Continuez ici pour supprimer votre profil utilisateur.
+delete-user-colon = Supprimer l'utilisateur :
+delete-user-placeholder = Utilisateur à supprimer...
+delete-user-helper = Entrez le nom de l'utilisateur que vous souhaitez supprimer. Cette action est permanente.
+delete-user-communities-explain = Lorsque ce profil sera supprimé, toutes les communautés dont il est propriétaire seront également supprimées.
+    Les expériences associées au profil feront partie de la communauté globale, mais ne seront plus associées aux communautés supprimées ni entre elles.
+return-button = Retour
+communities = Communautés
 
 ## User Index
-user = User
-active-users = Active users on { -app-name }
-email = Email
-link = Link
+user = Utilisateur
+active-users = Utilisateurs actifs sur { -app-name }
+email = Courriel
+link = Lien
 
 ## Email Verification
-email-registered-with = Your email address has been registered with
-registered-in-error = If you think this is an error, please contact { -user-support-email }.
-register-instructions = If this is you, and you would like to verify your account, please enter the code below on
-verification-page = the verification page
-your-code = Your code is:
-time-limit = You have 60 minutes to enter this code to verify your account. If you need to, you can
-request-another-code = request another code
-thank-you = Thank you,
+email-registered-with = Votre adresse courriel a été enregistrée avec
+registered-in-error = Si vous pensez qu'il s'agit d'une erreur, veuillez contacter { -user-support-email }.
+register-instructions = Si c'est bien vous et que vous souhaitez vérifier votre compte, veuillez entrer le code ci-dessous sur
+verification-page = la page de vérification
+your-code = Votre code est :
+time-limit = Vous avez 60 minutes pour entrer ce code afin de vérifier votre compte. Si nécessaire, vous pouvez
+request-another-code = demander un autre code
+thank-you = Merci,
 
 ## Password reset request
-password-reset-received = We received a request to reset your password on { -app-name }. If you think this is an error, please contact { -user-support-email }.
-if-you-instructions = If this was you, You can reset your password through the following link.
-from-login-screen = from the log in screen.
+password-reset-received = Nous avons reçu une demande de réinitialisation de votre mot de passe sur { -app-name }. Si vous pensez qu'il s'agit d'une erreur, veuillez contacter { -user-support-email }.
+if-you-instructions = Si c'était bien vous, vous pouvez réinitialiser votre mot de passe en suivant le lien ci-dessous.
+from-login-screen = depuis l'écran de connexion.
 
 ## Person
-person-index = People
-person-by-name = Person by Name
+person-index = Personnes
+person-by-name = Personne par nom
 
 ## Errors
 
 ## 404
-page-not-found = Page Not Found: 404
-you-requested = You requested:
-does-not-exist = which doesn't exist in this application.
-wrong-turn = Looks like you took a wrong turn.
-go-home = Go back home?
+page-not-found = Page non trouvée : 404
+you-requested = Vous avez demandé :
+does-not-exist = qui n'existe pas dans cette application.
+wrong-turn = Il semble que vous ayez pris un mauvais chemin.
+go-home = Retourner à l'accueil?
 
 ## Internal Server Error
-internal-server-error = Internal Server Error
-having-problems = Looks like we're having a bit of a problem.
+internal-server-error = Erreur interne du serveur
+having-problems = Il semble que nous ayons un petit problème.
 
 ## Not Authorized
-not-authorized = Not Authorized
-not-authorized-explain = You're not authorized to complete this action.
-go-back-or = You can go back or
-return-main-page = return to the main page
+not-authorized = Non autorisé
+not-authorized-explain = Vous n'êtes pas autorisé à effectuer cette action.
+go-back-or = Vous pouvez revenir en arrière ou
+return-main-page = retourner à la page principale
 
 ## Record not found
-record-not-found = Record not found
-record-not-found-explain = The Record you are searching for is not available.
+record-not-found = Enregistrement non trouvé
+record-not-found-explain = L'enregistrement que vous recherchez n'est pas disponible.
 ## Organization Forms
 create-organization = Créer une organisation
 edit-organization = Modifier l'organisation
