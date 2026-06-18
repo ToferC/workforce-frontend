@@ -7,7 +7,6 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_capability_by_name_and_level, get_skill_by_id, get_person_by_id, create_capability, update_capability, create_validation, get_user_by_email};
 use crate::security::{self, MinimumRole};
-use super::person::resolve_person_by_name;
 
 /// CapabilityLevel enum values, kept in sync with the API schema.
 pub const CAPABILITY_LEVELS: [&str; 5] = ["DESIRED", "NOVICE", "EXPERIENCED", "EXPERT", "SPECIALIST"];
@@ -273,28 +272,22 @@ pub async fn validate_capability_post(
         },
     };
 
-    let user_name = match get_user_by_email(session_email, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
-        Ok(r) => r.user_by_email.name,
+    let validator_id = match get_user_by_email(session_email, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.user_by_email.id,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
             return redirect_to(format!("/{}/person/{}", &lang, &person_id));
         },
     };
 
-    match resolve_person_by_name(&user_name, &auth.bearer, &lang, &data).await {
-        Ok(Some(validator_id)) => {
-            let new_validation = create_validation::NewValidation {
-                validator_id,
-                capability_id: capability_id.clone(),
-                validated_level: serde_json::from_value(json!(form.validated_level)).expect("CapabilityLevel deserialization is infallible"),
-            };
-            match create_validation(new_validation, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
-                Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Validation recorded.", "Validation enregistrée.")),
-                Err(e) => security::add_flash(&session, "danger", &e.to_string()),
-            };
-        },
-        Ok(None) => security::add_flash(&session, "danger", by_lang(&lang, "Your account is not linked to a person record.", "Votre compte n'est pas lié à une fiche de personne.")),
-        Err(message) => security::add_flash(&session, "danger", &message),
+    let new_validation = create_validation::NewValidation {
+        validator_id,
+        capability_id: capability_id.clone(),
+        validated_level: serde_json::from_value(json!(form.validated_level)).expect("CapabilityLevel deserialization is infallible"),
+    };
+    match create_validation(new_validation, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Validation recorded.", "Validation enregistrée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))

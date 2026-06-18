@@ -114,7 +114,7 @@
                                 </span>
                                 <small class="text-muted">
                                     {% if cap.validatedBy %}
-                                    {% set validator_name = cap.validatedBy.givenName ~ " " ~ cap.validatedBy.familyName %}
+                                    {% set validator_name = cap.validatedBy.name %}
                                     {% set validated_on = cap.validatedAt | default(value="") | truncate(length=10, end="") %}
                                     <i class="bi bi-patch-check"></i> {{ fluent(key="validated-by", name=validator_name, date=validated_on, lang=lang) }}
                                     {% else %}

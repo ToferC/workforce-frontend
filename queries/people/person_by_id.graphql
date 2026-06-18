@@ -35,8 +35,7 @@ query PersonById($id:UUID!) {
       validatedAt
       validatedBy {
         id
-        givenName
-        familyName
+        name
       }
     }
     activeRoles {
