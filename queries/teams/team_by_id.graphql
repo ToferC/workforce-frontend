@@ -22,20 +22,32 @@ query TeamById($id:UUID!) {
       level
       counts
     }
-    capabilityHeatmap {
-      domain
-      depth
-      peopleCount
-    }
     occupiedRoles {
       titleEnglish
       id
       rank
       militaryOccupation
+      effort
       person {
         givenName
         familyName
         id
+      }
+      work {
+        id
+        workDescription
+        workStatus
+        effort
+        task {
+          id
+          title
+          taskStatus
+          product {
+            id
+            nameEn
+            nameFr
+          }
+        }
       }
     }
     vacantRoles {

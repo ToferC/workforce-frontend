@@ -112,8 +112,8 @@
                 <div class="col-6 col-md-3">
                     <div class="card shadow-sm h-100 text-center">
                         <div class="card-body py-3">
-                            <div class="fs-2 fw-bold text-secondary">{{ total_teams }}</div>
-                            <div class="small text-muted">Total Teams</div>
+                            <div class="fs-2 fw-bold text-secondary">{{ org_tier.teams | length }}</div>
+                            <div class="small text-muted">Teams</div>
                         </div>
                     </div>
                 </div>
@@ -126,43 +126,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Capability Heatmap -->
-            {% if org_tier.capabilityHeatmap %}
-            <div class="card shadow-lg mb-4">
-                <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-grid-3x3-gap"></i> Capability Coverage by Team</h2>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0 align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Team</th>
-                                    <th class="text-center">People</th>
-                                    <th>Top Domains</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in org_tier.capabilityHeatmap %}
-                                <tr>
-                                    <td><a href="/{{ lang }}/team/{{ row.teamId }}">{{ row.teamName }}</a></td>
-                                    <td class="text-center">{{ team_people[row.teamId] | default(value=0) }}</td>
-                                    <td>
-                                        {% for cell in row.cells %}
-                                            {% if cell.depth > 0.0 %}
-                                            <span class="me-1">{{ viz::domain_chip(domain=cell.domain) }} <small class="text-muted">{{ cell.depth | round(precision=1) }}</small></span>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
 
             <!-- Capabilities by Domain -->
             {% if domain_summary %}

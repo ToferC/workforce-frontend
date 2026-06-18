@@ -32,15 +32,6 @@ query OrgTierById($id:UUID!) {
       level
       counts
     }
-    capabilityHeatmap {
-      teamId
-      teamName
-      cells {
-        domain
-        depth
-        peopleCount
-      }
-    }
     teams {
       nameEnglish
       id
