@@ -88,7 +88,18 @@ pub async fn team_by_id(
         .await
         .expect("Unable to get team");
 
-    ctx.insert("team", &r.team_by_id);
+    let team = &r.team_by_id;
+    ctx.insert("team", team);
+
+    let mut domain_totals: std::collections::BTreeMap<String, i64> = std::collections::BTreeMap::new();
+    for cap in &team.capability_counts {
+        *domain_totals.entry(format!("{:?}", cap.domain)).or_insert(0) += cap.counts;
+    }
+    let domain_summary: Vec<serde_json::Value> = domain_totals
+        .iter()
+        .map(|(domain, count)| json!({"domain": domain, "count": count}))
+        .collect();
+    ctx.insert("domain_summary", &domain_summary);
 
     let rendered = data.tmpl.render("team/team.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
