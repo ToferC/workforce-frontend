@@ -51,7 +51,7 @@
                     <div class="col-md-4">{{ forms::select(name="work_status", label=label_status, options=work_statuses, selected=work.workStatus) }}</div>
                     <div class="col-md-4">{{ forms::select(name="priority", label="Priority", options=priorities, selected=work.priority) }}</div>
                 </div>
-                {{ forms::select(name="skill_id", label="Specific Skill (optional)", options=skill_options, selected=skill_id, required=false, blank_label="— None —") }}
+                {{ forms::select(name="skill_id", label="Required Skill", options=skill_options, selected=skill_id, required=true) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>
         </div>
