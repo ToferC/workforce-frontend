@@ -162,10 +162,15 @@ pub async fn create_work_post(
         return redirect_to(format!("/{}/role/{}/work/new", &lang, &role_id));
     }
 
+    if form.skill_id.is_empty() {
+        security::add_flash(&session, "danger", by_lang(&lang, "Please select a skill for this work.", "Veuillez sélectionner une compétence pour ce travail."));
+        return redirect_to(format!("/{}/role/{}/work/new", &lang, &role_id));
+    }
+
     let new_work = create_work::NewWork {
         task_id: form.task_id.clone(),
         role_id: Some(role_id.clone()),
-        skill_id: if form.skill_id.is_empty() { None } else { Some(form.skill_id.clone()) },
+        skill_id: form.skill_id.clone(),
         work_description: form.work_description.trim().to_string(),
         url: if form.url.trim().is_empty() { None } else { Some(form.url.trim().to_string()) },
         domain: serde_json::from_value(json!(form.domain)).expect("SkillDomain deserialization is infallible"),
@@ -258,10 +263,15 @@ pub async fn create_vacant_work_post(
         return redirect_to(format!("/{}/task/{}/work/new", &lang, &task_id));
     }
 
+    if form.skill_id.is_empty() {
+        security::add_flash(&session, "danger", by_lang(&lang, "Please select a skill for this work.", "Veuillez sélectionner une compétence pour ce travail."));
+        return redirect_to(format!("/{}/task/{}/work/new", &lang, &task_id));
+    }
+
     let new_work = create_work::NewWork {
         task_id: task_id.clone(),
         role_id: None,
-        skill_id: if form.skill_id.is_empty() { None } else { Some(form.skill_id.clone()) },
+        skill_id: form.skill_id.clone(),
         work_description: form.work_description.trim().to_string(),
         url: if form.url.trim().is_empty() { None } else { Some(form.url.trim().to_string()) },
         domain: serde_json::from_value(json!(form.domain)).expect("SkillDomain deserialization is infallible"),
@@ -318,7 +328,7 @@ pub async fn edit_work_form(
         },
     };
 
-    let current_skill_id = r.work_by_id.skill.as_ref().map(|s| s.id.clone()).unwrap_or_default();
+    let current_skill_id = r.work_by_id.skill.id.clone();
     let skills = skill_options(&auth.bearer, &data).await;
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
@@ -417,7 +427,7 @@ pub async fn assign_work_form(
     };
 
     let current_role_id = work.role.as_ref().map(|r| r.id.clone()).unwrap_or_default();
-    let current_skill_id = work.skill.as_ref().map(|s| s.id.clone()).unwrap_or_default();
+    let current_skill_id = work.skill.id.clone();
     let role_opts = role_options(&auth.bearer, &data).await;
     let skill_opts = skill_options(&auth.bearer, &data).await;
 

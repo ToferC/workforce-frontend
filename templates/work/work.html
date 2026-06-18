@@ -80,7 +80,7 @@
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h2 class="h4 mb-0"><i class="bi bi-people"></i> Qualified People</h2>
-                    <span class="text-muted small">Validated at or above {{ work.capabilityLevel }}{% if work.skill %} in {{ work.skill.nameEn }}{% else %} in {{ work.domain }}{% endif %}</span>
+                    <span class="text-muted small">Validated at or above {{ work.capabilityLevel }} in {{ work.skill.nameEn }}</span>
                 </div>
                 <div class="card-body p-0">
                     {% if work.capabilityMatches | length > 0 %}
@@ -106,7 +106,7 @@
                                             <form method="post" action="/{{ lang }}/work/{{ work.id }}/assign" class="d-inline">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                                 <input type="hidden" name="role_id" value="{{ r.id }}">
-                                                <input type="hidden" name="skill_id" value="{% if work.skill %}{{ work.skill.id }}{% endif %}">
+                                                <input type="hidden" name="skill_id" value="{{ work.skill.id }}">
                                                 <button type="submit" class="btn btn-sm btn-outline-success">
                                                     <i class="bi bi-person-plus"></i> Assign as {{ r.titleEnglish }}
                                                 </button>
@@ -153,9 +153,7 @@
                                 <span class="text-muted">Priority:</span>
                                 {{ viz::priority_chip(priority=work.priority) }}
                             </li>
-                            {% if work.skill %}
                             <li class="list-group-item"><span class="text-muted">Required Skill:</span> {{ work.skill.nameEn }}</li>
-                            {% endif %}
                             <li class="list-group-item">
                                 <span class="text-muted">Task:</span>
                                 <a href="/{{lang}}/task/{{work.task.id}}">{{ work.task.title }}</a>

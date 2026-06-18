@@ -30,7 +30,7 @@
         <div class="card-body p-0">
             <ul class="list-group list-group-flush small">
                 <li class="list-group-item"><span class="text-muted">Domain:</span> {{ work.domain }} &rarr; {{ work.capabilityLevel }}</li>
-                {% if work.skill %}<li class="list-group-item"><span class="text-muted">Required Skill:</span> {{ work.skill.nameEn }}</li>{% endif %}
+                <li class="list-group-item"><span class="text-muted">Required Skill:</span> {{ work.skill.nameEn }}</li>
                 <li class="list-group-item"><span class="text-muted">Effort:</span> {{ work.effort }}</li>
                 <li class="list-group-item"><span class="text-muted">Status:</span> {{ work.workStatus }}</li>
             </ul>
@@ -44,7 +44,7 @@
             <form method="post" action="/{{ lang }}/work/{{ work.id }}/assign">
                 {{ forms::csrf(token=csrf_token) }}
                 {{ forms::select(name="role_id", label="Assign to Role", options=role_options, selected=current_role_id, blank_label="— Select a role —") }}
-                {{ forms::select(name="skill_id", label="Required Skill (optional — overrides domain matching)", options=skill_options, selected=current_skill_id, required=false, blank_label="— None —") }}
+                {{ forms::select(name="skill_id", label="Required Skill", options=skill_options, selected=current_skill_id, required=true) }}
                 {{ forms::submit_row(label="Assign", cancel_url="/" ~ lang ~ "/work/" ~ work.id, cancel_label="Cancel") }}
             </form>
         </div>
