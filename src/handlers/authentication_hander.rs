@@ -52,6 +52,18 @@ pub async fn login_form_input(
             .finish()
     };
 
+    // Validate CSRF token before processing the login
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        return back_to_login(
+            "danger",
+            by_lang(
+                &lang,
+                "Invalid form token. Please try again.",
+                "Jeton de formulaire invalide. Veuillez réessayer.",
+            ),
+        );
+    }
+
     // validate form has data or re-load form
     if form.email.is_empty() || form.password.is_empty() {
         return back_to_login(
@@ -132,7 +144,6 @@ pub async fn login_form_input(
 
     return HttpResponse::Found()
         .append_header(("Location", "/"))
-        .append_header(("Bearer", login_data.bearer))
         .finish()
 }
 

@@ -97,7 +97,8 @@ async fn main() -> std::io::Result<()> {
             .wrap(
                 SessionMiddleware::builder(
                     CookieSessionStore::default(), cookie_secret_key.clone())
-                    .cookie_secure(false)
+                    .cookie_secure(true)
+                    .cookie_same_site(actix_web::cookie::SameSite::Lax)
                     .build()
                 )
     })
