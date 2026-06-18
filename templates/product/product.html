@@ -80,6 +80,39 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Skill Demand Analysis -->
+            {% if product.skillDemand %}
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps"></i> Skill Demand</h2>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Skill</th>
+                                <th>Domain</th>
+                                <th>Level</th>
+                                <th class="text-end">Work Items</th>
+                                <th class="text-end">Total Effort</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sd in product.skillDemand %}
+                            <tr>
+                                <td>{% if sd.skillName %}{{ sd.skillName }}{% else %}{{ sd.name }}{% endif %}</td>
+                                <td>{{ viz::domain_chip(domain=sd.domain) }}</td>
+                                <td>{{ viz::level_chip(level=sd.level) }}</td>
+                                <td class="text-end fw-bold">{{ sd.workCount }}</td>
+                                <td class="text-end">{{ sd.totalEffort }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Sidebar pane: summary & owner -->
@@ -100,6 +133,7 @@
                             {% endif %}
                             <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=product.primaryDomain) }}</li>
                             <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Status:</span> {{ viz::status_chip(status=product.productStatus) }}</li>
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Priority:</span> {{ viz::priority_chip(priority=product.priority) }}</li>
                             <li class="list-group-item d-flex align-items-center gap-2">
                                 <span class="text-muted">Total Effort:</span>
                                 {{ viz::effort_meter(value=product.effort) }}

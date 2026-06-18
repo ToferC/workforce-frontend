@@ -145,6 +145,14 @@
                                 {{ viz::domain_chip(domain=work.domain) }}
                                 {{ viz::level_chip(level=work.capabilityLevel) }}
                             </li>
+                            <li class="list-group-item d-flex align-items-center gap-2">
+                                <span class="text-muted">Effort:</span>
+                                {{ viz::effort_meter(value=work.effort) }}
+                            </li>
+                            <li class="list-group-item d-flex align-items-center gap-2">
+                                <span class="text-muted">Priority:</span>
+                                {{ viz::priority_chip(priority=work.priority) }}
+                            </li>
                             {% if work.skill %}
                             <li class="list-group-item"><span class="text-muted">Required Skill:</span> {{ work.skill.nameEn }}</li>
                             {% endif %}
@@ -152,6 +160,12 @@
                                 <span class="text-muted">Task:</span>
                                 <a href="/{{lang}}/task/{{work.task.id}}">{{ work.task.title }}</a>
                             </li>
+                            {% if work.task.product %}
+                            <li class="list-group-item">
+                                <span class="text-muted">Product:</span>
+                                <a href="/{{ lang }}/product/{{ work.task.product.id }}">{% if lang == "fr" %}{{ work.task.product.nameFr }}{% else %}{{ work.task.product.nameEn }}{% endif %}</a>
+                            </li>
+                            {% endif %}
                             <li class="list-group-item"><span class="text-muted">Target Completion:</span> {{ work.task.targetCompletionDate }}</li>
                             <li class="list-group-item">
                                 <span class="text-muted">Assigned by:</span>

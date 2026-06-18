@@ -14,6 +14,19 @@ query TeamById($id:UUID!) {
       id
       nameEn
     }
+    headcount
+    totalEffort
+    capabilityCounts {
+      name
+      domain
+      level
+      counts
+    }
+    capabilityHeatmap {
+      domain
+      depth
+      peopleCount
+    }
     occupiedRoles {
       titleEnglish
       id

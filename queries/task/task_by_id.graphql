@@ -13,6 +13,11 @@ query TaskById($id:UUID!) {
     priority
     completedDate
     effort
+    product {
+      id
+      nameEn
+      nameFr
+    }
     work {
       id
       workDescription
@@ -20,6 +25,7 @@ query TaskById($id:UUID!) {
       domain
       capabilityLevel
       effort
+      priority
       workStatus
       role {
         id

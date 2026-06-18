@@ -24,6 +24,23 @@ query OrgTierById($id:UUID!) {
       nameEn
       id
     }
+    headcount
+    totalEffort
+    capabilityCounts {
+      name
+      domain
+      level
+      counts
+    }
+    capabilityHeatmap {
+      teamId
+      teamName
+      cells {
+        domain
+        depth
+        peopleCount
+      }
+    }
     teams {
       nameEnglish
       id

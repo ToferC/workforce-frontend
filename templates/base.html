@@ -78,7 +78,13 @@
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="/{{ lang }}/vacancies">{{ fluent(key="vacancies", lang=lang) }}</a>
                         <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="/{{ lang }}/analytics">{{ fluent(key="analytics", lang=lang) }}</a>
+                        <h6 class="dropdown-header"><i class="bi bi-bar-chart-line"></i> Analytics</h6>
+                        <a class="dropdown-item" href="/{{ lang }}/analytics"><i class="bi bi-speedometer2"></i> Dashboard</a>
+                        <a class="dropdown-item" href="/{{ lang }}/analytics/coverage"><i class="bi bi-grid-3x3-gap"></i> Capability Coverage</a>
+                        <a class="dropdown-item" href="/{{ lang }}/analytics/delivery"><i class="bi bi-diagram-2"></i> Delivery Map</a>
+                        <a class="dropdown-item" href="/{{ lang }}/analytics/mobility"><i class="bi bi-arrow-left-right"></i> Talent Mobility</a>
+                        <a class="dropdown-item" href="/{{ lang }}/analytics/growth"><i class="bi bi-graph-up"></i> Capability Growth</a>
+                        <a class="dropdown-item" href="/{{ lang }}/analytics/supply-demand"><i class="bi bi-bar-chart-line"></i> Supply vs Demand</a>
                     </div>
                 </li>
                 {% endif %}

@@ -9,8 +9,13 @@
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
         <h1 class="display-4 mb-2"><i class="bi bi-kanban"></i> {{ task.title }}
-            <span class="align-middle">{{ viz::status_chip(status=task.taskStatus) }}</span>
+            <span class="align-middle">{{ viz::status_chip(status=task.taskStatus) }}</span> {{ viz::priority_chip(priority=task.priority) }}
         </h1>
+        {% if task.product %}
+        <p class="lead text-muted">
+            <i class="bi bi-box-seam"></i> Product: <a href="/{{ lang }}/product/{{ task.product.id }}">{% if lang == "fr" %}{{ task.product.nameFr }}{% else %}{{ task.product.nameEn }}{% endif %}</a>
+        </p>
+        {% endif %}
         {% if role == "operator" or role == "admin" %}
         <div class="mb-2">
             <a class="btn btn-primary" href="/{{ lang }}/task/{{ task.id }}/edit">
@@ -26,6 +31,36 @@
     <div class="detail-layout">
         <!-- Main pane: work elements -->
         <div class="detail-main">
+            <!-- Task Summary -->
+            <div class="row g-3 mb-4">
+                <div class="col-4">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-primary">{{ task.work | length }}</div>
+                            <div class="small text-muted">Work Items</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-info">{{ task.effort }}</div>
+                            <div class="small text-muted">Total Effort</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            {% set assigned_count = 0 %}
+                            {% for work in task.work %}{% if work.role %}{% set_global assigned_count = assigned_count + 1 %}{% endif %}{% endfor %}
+                            <div class="fs-2 fw-bold {% if assigned_count == task.work | length %}text-success{% else %}text-warning{% endif %}">{{ assigned_count }}/{{ task.work | length }}</div>
+                            <div class="small text-muted">Assigned</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Work Elements -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
@@ -40,6 +75,8 @@
                                 <span class="text-muted">Domain:</span>
                                 {{ viz::domain_chip(domain=work.domain) }}
                                 {{ viz::level_chip(level=work.capabilityLevel) }}
+                                {{ viz::effort_meter(value=work.effort) }}
+                                {% if work.priority %}{{ viz::priority_chip(priority=work.priority) }}{% endif %}
                             </li>
                             {% if work.url %}
                             <li class="list-group-item px-0 small"><span class="text-muted">Website:</span> <a href="{{ work.url }}">{{ work.url }}</a></li>
@@ -93,6 +130,12 @@
                             <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ task.url }}">{{ task.url }}</a></li>
                             <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=task.domain) }}</li>
                             <li class="list-group-item"><span class="text-muted">Target Completion:</span> {{ task.targetCompletionDate }}</li>
+                            {% if task.product %}
+                            <li class="list-group-item">
+                                <span class="text-muted">Product:</span>
+                                <a href="/{{ lang }}/product/{{ task.product.id }}">{% if lang == "fr" %}{{ task.product.nameFr }}{% else %}{{ task.product.nameEn }}{% endif %}</a>
+                            </li>
+                            {% endif %}
                             <li class="list-group-item">
                                 <span class="text-muted">Assigned by:</span>
                                 <a href="/{{lang}}/person/{{task.createdBy.person.id}}">{{ task.createdBy.person.givenName }} {{ task.createdBy.person.familyName }}</a>
