@@ -1,0 +1,11 @@
+query TeamCapabilityMatrix($orgTierId: UUID) {
+  teamCapabilityMatrix(orgTierId: $orgTierId) {
+    teamId
+    teamName
+    cells {
+      domain
+      depth
+      peopleCount
+    }
+  }
+}

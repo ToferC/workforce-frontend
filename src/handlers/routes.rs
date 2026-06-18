@@ -158,6 +158,8 @@ use crate::handlers::{
     analytics_coverage,
     analytics_delivery,
     analytics_mobility_view,
+    analytics_growth,
+    analytics_supply_demand,
 
 };
 
@@ -313,6 +315,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(analytics_coverage);
     config.service(analytics_delivery);
     config.service(analytics_mobility_view);
+    config.service(analytics_growth);
+    config.service(analytics_supply_demand);
     config.service(analytics_dashboard);
 
     //config.service(about);

@@ -10,6 +10,7 @@ query TaskById($id:UUID!) {
     startDatestamp
     targetCompletionDate
     taskStatus
+    priority
     completedDate
     effort
     work {

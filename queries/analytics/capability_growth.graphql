@@ -1,0 +1,10 @@
+query CapabilityGrowth($bucket: TimeBucket!, $from: NaiveDateTime, $to: NaiveDateTime, $orgTierId: UUID) {
+  capabilityGrowth(bucket: $bucket, from: $from, to: $to, orgTierId: $orgTierId) {
+    key
+    points {
+      periodStart
+      bucket
+      value
+    }
+  }
+}

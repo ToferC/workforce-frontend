@@ -7,6 +7,7 @@ query WorkById($id:UUID!) {
     capabilityLevel
     effort
     workStatus
+    priority
     task {
       id
       title

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% import "macros/charts.html" as charts %}
+{% import "macros/viz.html" as viz %}
+
+{% block title %}<title>Supply vs Demand</title>{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/{{ lang }}/analytics">Analytics</a></li>
+            <li class="breadcrumb-item active">Supply vs Demand</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="bi bi-bar-chart-line"></i> Capability Supply vs Demand</h1>
+        <span class="text-muted small">Per-domain capability availability vs role/work requirements</span>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-primary">{{ summary.total_domains }}</div>
+                    <div class="small text-muted">Domains Tracked</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-success">{{ summary.surplus_count }}</div>
+                    <div class="small text-muted">Domains with Surplus</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-danger">{{ summary.deficit_count }}</div>
+                    <div class="small text-muted">Domains with Deficit</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Domain Charts Grid -->
+    <div class="row g-4">
+        {% for dc in domain_charts %}
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">{{ viz::domain_chip(domain=dc.domain_key) }} {{ dc.domain }}</h6>
+                    <span class="badge {% if dc.has_surplus %}bg-success{% else %}bg-danger{% endif %}">
+                        Gap: {% if dc.gap > 0 %}+{% endif %}{{ dc.gap }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    {{ charts::chart(id="sd-" ~ loop.index, height="280px") }}
+                    <script type="application/json" id="sd-{{ loop.index }}-data">{{ dc.chart_option | safe }}</script>
+                </div>
+                <div class="card-footer small text-muted d-flex justify-content-between">
+                    <span><strong>Supply:</strong> {{ dc.latest_supply }}</span>
+                    <span><strong>Demand:</strong> {{ dc.latest_demand }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if domain_charts | length == 0 %}
+    <div class="text-muted text-center p-4">
+        <i class="bi bi-info-circle"></i> No supply/demand data available.
+    </div>
+    {% endif %}
+</div>
+{% endblock content %}

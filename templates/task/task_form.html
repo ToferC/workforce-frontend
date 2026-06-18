@@ -57,7 +57,10 @@
                     <div class="col-md-4">{{ forms::date_input(name="target_completion_date", label=label_target, value=task.targetCompletionDate, required=true) }}</div>
                     {% if edit %}<div class="col-md-4">{{ forms::date_input(name="completed_date", label=label_completed, value=task.completedDate) }}</div>{% endif %}
                 </div>
-                {{ forms::select(name="task_status", label=label_status, options=work_statuses, selected=task.taskStatus) }}
+                <div class="row">
+                    <div class="col-md-6">{{ forms::select(name="task_status", label=label_status, options=work_statuses, selected=task.taskStatus) }}</div>
+                    <div class="col-md-6">{{ forms::select(name="priority", label="Priority", options=priorities, selected=task.priority) }}</div>
+                </div>
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>
         </div>

@@ -101,6 +101,25 @@
 {% endmacro domain_chip %}
 
 
+{# ── priority_chip ────────────────────────────────────────────────────────────
+   priority : Priority string (LOW | MEDIUM | HIGH | CRITICAL)
+   Renders a color-coded Bootstrap badge.
+#}
+{% macro priority_chip(priority) %}
+{%- if priority == "CRITICAL" -%}
+<span class="badge bg-danger">{{ priority }}</span>
+{%- elif priority == "HIGH" -%}
+<span class="badge bg-warning text-dark">{{ priority }}</span>
+{%- elif priority == "MEDIUM" -%}
+<span class="badge bg-info text-dark">{{ priority }}</span>
+{%- elif priority == "LOW" -%}
+<span class="badge bg-secondary">{{ priority }}</span>
+{%- else -%}
+<span class="badge bg-light text-dark border">{{ priority }}</span>
+{%- endif -%}
+{% endmacro priority_chip %}
+
+
 {# ── level_chip ───────────────────────────────────────────────────────────────
    level  : CapabilityLevel string
    source : "validated" | "self" (controls badge color)

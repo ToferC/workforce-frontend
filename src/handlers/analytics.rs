@@ -5,11 +5,12 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::{AppData, generate_basic_context, status_color, chart_json};
-use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap, analytics_mobility};
+use crate::{AppData, generate_basic_context, status_color, chart_json, domain_short_label};
+use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap,
+    team_capability_matrix, talent_movements, capability_growth, capability_supply_demand};
+
 use crate::security::{self, MinimumRole};
 
-/// All 16 SkillDomain variants in canonical display order: (key, short label).
 const SKILL_DOMAINS: &[(&str, &str)] = &[
     ("COMBAT",                                "Combat"),
     ("INTELLIGENCE",                          "Intelligence"),
@@ -29,7 +30,6 @@ const SKILL_DOMAINS: &[(&str, &str)] = &[
     ("CORPORATE_SERVICES",                    "Corporate Svcs"),
 ];
 
-use crate::level_weight;
 
 #[get("/{lang}/analytics")]
 pub async fn analytics_dashboard(
@@ -48,7 +48,6 @@ pub async fn analytics_dashboard(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    // Fetch all four data sources; tolerate individual failures gracefully.
     let work_list = all_work(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))
         .await
         .map(|r| r.all_work)
@@ -133,7 +132,6 @@ pub async fn analytics_dashboard(
     });
 
     // ── 3. Capability gap analysis ──────────────────────────────────────────
-    // Required: count by (domain, level) from role requirements
     let mut required: BTreeMap<String, BTreeMap<String, i64>> = BTreeMap::new();
     for role in &roles_list {
         for req in &role.requirements {
@@ -149,7 +147,6 @@ pub async fn analytics_dashboard(
         }
     }
 
-    // Available: count by (domain, validated_level) from person capabilities
     let mut available: BTreeMap<String, BTreeMap<String, i64>> = BTreeMap::new();
     for person in &active_people {
         for cap in &person.capabilities {
@@ -157,7 +154,6 @@ pub async fn analytics_dashboard(
                 .ok()
                 .and_then(|v| v.as_str().map(String::from))
                 .unwrap_or_else(|| "UNKNOWN".to_string());
-            // Use validated level; fall back to self-identified if not yet validated
             let level_val = cap.validated_level.as_ref().or(Some(&cap.self_identified_level));
             if let Some(lvl) = level_val {
                 let level = serde_json::to_value(lvl)
@@ -169,7 +165,6 @@ pub async fn analytics_dashboard(
         }
     }
 
-    // Build domain gap table — all domains that appear in either required or available
     let all_domains: std::collections::BTreeSet<String> = required.keys()
         .chain(available.keys())
         .cloned()
@@ -209,7 +204,6 @@ pub async fn analytics_dashboard(
         })
     }).collect();
 
-    // Sort: shortfalls first, then by gap descending
     domain_gaps.sort_by(|a, b| {
         let a_gap = a["net_gap"].as_i64().unwrap_or(0);
         let b_gap = b["net_gap"].as_i64().unwrap_or(0);
@@ -233,7 +227,6 @@ pub async fn analytics_dashboard(
         b["effort"].as_i64().unwrap_or(0).cmp(&a["effort"].as_i64().unwrap_or(0))
     });
 
-    // ── Assemble summary KPIs ───────────────────────────────────────────────
     let summary = json!({
         "total_work": total_work,
         "vacant_work": vacant_work_count,
@@ -271,69 +264,48 @@ pub async fn analytics_coverage(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let people_list = analytics_people(auth.bearer, &data.api_url, Arc::clone(&data.client))
+    let matrix = team_capability_matrix(None, auth.bearer, &data.api_url, Arc::clone(&data.client))
         .await
-        .map(|r| r.all_people)
+        .map(|r| r.team_capability_matrix)
         .unwrap_or_default();
 
-    let active_people: Vec<_> = people_list.iter()
-        .filter(|p| p.retired_at.is_none())
-        .collect();
-
-    // team_name → domain_key → weighted depth score (sum of level weights per person)
-    let mut depth_map: BTreeMap<String, BTreeMap<String, i64>> = BTreeMap::new();
+    // Build depth_map from API response
+    let mut depth_map: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
     let mut team_ids: BTreeMap<String, String> = BTreeMap::new();
 
-    for person in &active_people {
-        if let Some(role) = person.active_roles.first() {
-            let team_name = role.team.name_english.clone();
-            team_ids.entry(team_name.clone()).or_insert_with(|| role.team.id.to_string());
-
-            for cap in &person.capabilities {
-                let domain = serde_json::to_value(&cap.domain)
-                    .ok()
-                    .and_then(|v| v.as_str().map(String::from))
-                    .unwrap_or_else(|| "UNKNOWN".to_string());
-                let level_val = cap.validated_level.as_ref().or(Some(&cap.self_identified_level));
-                if let Some(lvl) = level_val {
-                    let level_str = serde_json::to_value(lvl)
-                        .ok()
-                        .and_then(|v| v.as_str().map(String::from))
-                        .unwrap_or_else(|| "UNKNOWN".to_string());
-                    *depth_map
-                        .entry(team_name.clone())
-                        .or_default()
-                        .entry(domain)
-                        .or_insert(0) += level_weight(&level_str);
-                }
-            }
+    for row in &matrix {
+        let team_name = row.team_name.clone();
+        team_ids.insert(team_name.clone(), row.team_id.clone());
+        for cell in &row.cells {
+            *depth_map
+                .entry(team_name.clone())
+                .or_default()
+                .entry(cell.domain.clone())
+                .or_insert(0.0) += cell.depth;
         }
     }
 
-    // Only include domains where at least one team has non-zero depth
     let active_domains: Vec<(&str, &str)> = SKILL_DOMAINS.iter()
-        .filter(|(key, _)| depth_map.values().any(|m| m.get(*key).copied().unwrap_or(0) > 0))
+        .filter(|(key, _)| depth_map.values().any(|m| m.get(*key).copied().unwrap_or(0.0) > 0.0))
         .copied()
         .collect();
 
     let domain_labels: Vec<&str> = active_domains.iter().map(|(_, label)| *label).collect();
     let team_names: Vec<&str> = depth_map.keys().map(String::as_str).collect();
 
-    let max_depth: i64 = depth_map.values()
+    let max_depth: f64 = depth_map.values()
         .flat_map(|m| m.values())
         .copied()
-        .max()
-        .unwrap_or(1);
+        .fold(1.0_f64, f64::max);
 
-    // ECharts heatmap series data: [domain_idx, team_idx, depth]
     let mut heatmap_data: Vec<serde_json::Value> = Vec::new();
     for (t_idx, team_name) in team_names.iter().enumerate() {
         for (d_idx, (domain_key, _)) in active_domains.iter().enumerate() {
             let depth = depth_map.get(*team_name)
                 .and_then(|m| m.get(*domain_key))
                 .copied()
-                .unwrap_or(0);
-            heatmap_data.push(json!([d_idx, t_idx, depth]));
+                .unwrap_or(0.0);
+            heatmap_data.push(json!([d_idx, t_idx, (depth * 10.0).round() / 10.0]));
         }
     }
 
@@ -363,26 +335,24 @@ pub async fn analytics_coverage(
         }]
     });
 
-    // CSS fallback table — opacity pre-computed as float for Tera
     let table_rows: Vec<serde_json::Value> = depth_map.iter().map(|(team, domains)| {
         let team_id = team_ids.get(team).cloned().unwrap_or_default();
         let cells: Vec<serde_json::Value> = active_domains.iter().map(|(key, _)| {
-            let depth = domains.get(*key).copied().unwrap_or(0);
-            let opacity = if max_depth > 0 { depth as f64 / max_depth as f64 } else { 0.0 };
-            json!({ "depth": depth, "opacity": opacity })
+            let depth = domains.get(*key).copied().unwrap_or(0.0);
+            let opacity = if max_depth > 0.0 { depth / max_depth } else { 0.0 };
+            json!({ "depth": (depth * 10.0).round() / 10.0, "opacity": opacity })
         }).collect();
         json!({ "team": team, "team_id": team_id, "cells": cells })
     }).collect();
 
-    // Domain strength totals for the ranking sidebar
     let mut domain_totals: Vec<serde_json::Value> = active_domains.iter().map(|(key, label)| {
-        let total: i64 = depth_map.values()
-            .map(|m| m.get(*key).copied().unwrap_or(0))
+        let total: f64 = depth_map.values()
+            .map(|m| m.get(*key).copied().unwrap_or(0.0))
             .sum();
-        json!({ "domain": label, "key": key, "total": total })
+        json!({ "domain": label, "key": key, "total": (total * 10.0).round() / 10.0 })
     }).collect();
     domain_totals.sort_by(|a, b| {
-        b["total"].as_i64().unwrap_or(0).cmp(&a["total"].as_i64().unwrap_or(0))
+        b["total"].as_f64().unwrap_or(0.0).partial_cmp(&a["total"].as_f64().unwrap_or(0.0)).unwrap()
     });
 
     let chart_height = format!("{}px", std::cmp::max(400, team_names.len() as i64 * 52 + 260));
@@ -395,7 +365,7 @@ pub async fn analytics_coverage(
     ctx.insert("summary", &json!({
         "total_teams": team_names.len() as i64,
         "active_domains": active_domains.len() as i64,
-        "max_depth": max_depth,
+        "max_depth": (max_depth * 10.0).round() / 10.0,
     }));
 
     let rendered = data.tmpl.render("analytics/coverage.html", &ctx).unwrap();
@@ -424,8 +394,6 @@ pub async fn analytics_delivery(
         .map(|r| r.all_products)
         .unwrap_or_default();
 
-    // Build the nested treemap data (Product → Task → Work), pre-computing
-    // every node's value so ECharts sizes rectangles correctly.
     let mut tree: Vec<serde_json::Value> = Vec::new();
     let mut total_tasks: i64 = 0;
     let mut total_work: i64 = 0;
@@ -463,7 +431,6 @@ pub async fn analytics_delivery(
                 }));
             }
 
-            // Tasks with no work still get a slot sized by their own effort
             if task_value == 0 {
                 task_value = std::cmp::max(task.effort, 1);
             }
@@ -494,7 +461,6 @@ pub async fn analytics_delivery(
             "work_count": product_work_count,
         }));
 
-        // Skip empty products in the treemap to keep it legible
         if !task_nodes.is_empty() {
             tree.push(json!({
                 "name": product.name_en,
@@ -527,7 +493,6 @@ pub async fn analytics_delivery(
         }]
     });
 
-    // Status legend in canonical order
     let status_order = ["PLANNING", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"];
     let status_legend: Vec<serde_json::Value> = status_order.iter()
         .filter(|s| status_effort.contains_key(**s))
@@ -570,42 +535,28 @@ pub async fn analytics_mobility_view(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let people = analytics_mobility(auth.bearer, &data.api_url, Arc::clone(&data.client))
+    let movements = talent_movements(None, None, None, auth.bearer, &data.api_url, Arc::clone(&data.client))
         .await
-        .map(|r| r.all_people)
+        .map(|r| r.talent_movements)
         .unwrap_or_default();
 
-    // Bipartite "previous team (was) → current team (now)" transitions.
-    // For each person we take the team of their most recent prior role and
-    // the team of their current role; a move is recorded when they differ.
-    // The (was)/(now) split keeps the sankey acyclic by construction.
+    // Build sankey from API-provided movement events
     let mut links: BTreeMap<(String, String), i64> = BTreeMap::new();
-    let mut movers: i64 = 0;
     let mut teams_seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut kind_counts: BTreeMap<String, i64> = BTreeMap::new();
 
-    for person in &people {
-        // Current team: the open (current) tenure's role team.
-        let dest = person.role_assignments.iter()
-            .find(|a| a.is_current)
-            .map(|a| a.role.team.name_english.clone());
+    for m in &movements {
+        *kind_counts.entry(m.kind.clone()).or_insert(0) += 1;
 
-        // Previous team: the most recently closed tenure's role team.
-        let origin = person.role_assignments.iter()
-            .filter(|a| !a.is_current)
-            .max_by(|a, b| a.end_date.cmp(&b.end_date))
-            .map(|a| a.role.team.name_english.clone());
-
-        if let (Some(o), Some(d)) = (origin, dest) {
-            if o != d {
-                teams_seen.insert(o.clone());
-                teams_seen.insert(d.clone());
-                *links.entry((o, d)).or_insert(0) += 1;
-                movers += 1;
-            }
+        let from = m.from_team_id.clone().unwrap_or_else(|| "External".to_string());
+        let to = m.to_team_id.clone().unwrap_or_else(|| "External".to_string());
+        if from != to {
+            teams_seen.insert(from.clone());
+            teams_seen.insert(to.clone());
+            *links.entry((from, to)).or_insert(0) += 1;
         }
     }
 
-    // Sankey nodes: origins labelled "(was)", destinations "(now)".
     let mut node_names: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     for (o, d) in links.keys() {
         node_names.insert(format!("{} (was)", o));
@@ -623,7 +574,8 @@ pub async fn analytics_mobility_view(
         }))
         .collect();
 
-    let total_moves: i64 = links.values().sum();
+    let total_moves: i64 = movements.len() as i64;
+    let has_moves = !links.is_empty();
 
     let chart_option = json!({
         "tooltip": {"trigger": "item", "triggerOn": "mousemove"},
@@ -639,7 +591,6 @@ pub async fn analytics_mobility_view(
         }]
     });
 
-    // Fallback / detail table, sorted by volume
     let mut table_rows: Vec<serde_json::Value> = links.iter()
         .map(|((o, d), count)| json!({"from": o, "to": d, "count": count}))
         .collect();
@@ -647,16 +598,195 @@ pub async fn analytics_mobility_view(
         b["count"].as_i64().unwrap_or(0).cmp(&a["count"].as_i64().unwrap_or(0))
     });
 
+    let promotions = kind_counts.get("PROMOTION").copied().unwrap_or(0);
+    let laterals = kind_counts.get("LATERAL").copied().unwrap_or(0);
+    let inflows = kind_counts.get("INFLOW").copied().unwrap_or(0);
+    let outflows = kind_counts.get("OUTFLOW").copied().unwrap_or(0);
+
     ctx.insert("chart_option", &chart_json(&chart_option));
     ctx.insert("table_rows", &table_rows);
-    ctx.insert("has_moves", &(!links.is_empty()));
+    ctx.insert("has_moves", &has_moves);
     ctx.insert("summary", &json!({
         "total_moves": total_moves,
-        "movers": movers,
+        "promotions": promotions,
+        "laterals": laterals,
+        "inflows": inflows,
+        "outflows": outflows,
         "teams_involved": teams_seen.len() as i64,
-        "total_people": people.len() as i64,
     }));
 
     let rendered = data.tmpl.render("analytics/mobility.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[get("/{lang}/analytics/growth")]
+pub async fn analytics_growth(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    use crate::graphql::capability_growth::TimeBucket;
+
+    let series = capability_growth(TimeBucket::QUARTER, None, None, None, auth.bearer, &data.api_url, Arc::clone(&data.client))
+        .await
+        .map(|r| r.capability_growth)
+        .unwrap_or_default();
+
+    let domain_colors = [
+        "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4",
+        "#42d4f4", "#f032e6", "#bfef45", "#fabed4", "#469990",
+        "#dcbeff", "#9A6324", "#800000", "#aaffc3", "#808000",
+        "#000075",
+    ];
+
+    let mut echarts_series: Vec<serde_json::Value> = Vec::new();
+    let mut legend_data: Vec<String> = Vec::new();
+
+    for (i, s) in series.iter().enumerate() {
+        let label = domain_short_label(&s.key);
+        legend_data.push(label.to_string());
+
+        let data_points: Vec<serde_json::Value> = s.points.iter()
+            .map(|p| json!([&p.period_start, p.value]))
+            .collect();
+
+        echarts_series.push(json!({
+            "name": label,
+            "type": "line",
+            "smooth": true,
+            "symbol": "circle",
+            "symbolSize": 6,
+            "data": data_points,
+            "itemStyle": { "color": domain_colors.get(i % domain_colors.len()).unwrap_or(&"#333") },
+        }));
+    }
+
+    let chart_option = json!({
+        "tooltip": { "trigger": "axis" },
+        "legend": { "data": legend_data, "bottom": "0%", "type": "scroll" },
+        "grid": { "top": "8%", "left": "8%", "right": "5%", "bottom": "18%" },
+        "xAxis": { "type": "time" },
+        "yAxis": { "type": "value", "name": "Capability Depth" },
+        "series": echarts_series,
+    });
+
+    let total_domains = series.len() as i64;
+    let latest_total: f64 = series.iter()
+        .filter_map(|s| s.points.last().map(|p| p.value))
+        .sum();
+
+    ctx.insert("chart_option", &chart_json(&chart_option));
+    ctx.insert("summary", &json!({
+        "total_domains": total_domains,
+        "latest_total": (latest_total * 10.0).round() / 10.0,
+    }));
+
+    let rendered = data.tmpl.render("analytics/growth.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[get("/{lang}/analytics/supply-demand")]
+pub async fn analytics_supply_demand(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    use crate::graphql::capability_supply_demand::TimeBucket;
+
+    let series = capability_supply_demand(TimeBucket::QUARTER, None, None, None, auth.bearer, &data.api_url, Arc::clone(&data.client))
+        .await
+        .map(|r| r.capability_supply_demand)
+        .unwrap_or_default();
+
+    // One sub-chart per domain, rendered as a grid of small multiples
+    let mut domain_charts: Vec<serde_json::Value> = Vec::new();
+
+    for s in &series {
+        let label = domain_short_label(&s.domain);
+
+        let supply_data: Vec<serde_json::Value> = s.points.iter()
+            .map(|p| json!([&p.period_start, p.supply]))
+            .collect();
+        let demand_data: Vec<serde_json::Value> = s.points.iter()
+            .map(|p| json!([&p.period_start, p.demand]))
+            .collect();
+
+        let latest_supply = s.points.last().map(|p| p.supply).unwrap_or(0.0);
+        let latest_demand = s.points.last().map(|p| p.demand).unwrap_or(0.0);
+        let gap = latest_supply - latest_demand;
+
+        let chart_opt = json!({
+            "tooltip": { "trigger": "axis" },
+            "legend": { "data": ["Supply", "Demand"], "bottom": "0%" },
+            "grid": { "top": "12%", "left": "12%", "right": "5%", "bottom": "18%" },
+            "xAxis": { "type": "time", "axisLabel": { "fontSize": 10 } },
+            "yAxis": { "type": "value" },
+            "series": [
+                {
+                    "name": "Supply",
+                    "type": "line",
+                    "smooth": true,
+                    "data": supply_data,
+                    "areaStyle": { "opacity": 0.15 },
+                    "itemStyle": { "color": "#3cb44b" },
+                },
+                {
+                    "name": "Demand",
+                    "type": "line",
+                    "smooth": true,
+                    "data": demand_data,
+                    "lineStyle": { "type": "dashed" },
+                    "itemStyle": { "color": "#e6194b" },
+                }
+            ]
+        });
+
+        domain_charts.push(json!({
+            "domain": label,
+            "domain_key": s.domain,
+            "chart_option": chart_json(&chart_opt),
+            "latest_supply": (latest_supply * 10.0).round() / 10.0,
+            "latest_demand": (latest_demand * 10.0).round() / 10.0,
+            "gap": (gap * 10.0).round() / 10.0,
+            "has_surplus": gap >= 0.0,
+        }));
+    }
+
+    let total_domains = series.len() as i64;
+    let surplus_count = domain_charts.iter()
+        .filter(|d| d["has_surplus"].as_bool().unwrap_or(false))
+        .count() as i64;
+    let deficit_count = total_domains - surplus_count;
+
+    ctx.insert("domain_charts", &domain_charts);
+    ctx.insert("summary", &json!({
+        "total_domains": total_domains,
+        "surplus_count": surplus_count,
+        "deficit_count": deficit_count,
+    }));
+
+    let rendered = data.tmpl.render("analytics/supply_demand.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }

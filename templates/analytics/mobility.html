@@ -21,35 +21,51 @@
 
     <!-- KPI Cards -->
     <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-primary">{{ summary.total_moves }}</div>
-                    <div class="small text-muted">Recorded Moves</div>
+                    <div class="small text-muted">Total Moves</div>
                 </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-info">{{ summary.movers }}</div>
-                    <div class="small text-muted">People Who Moved</div>
+                    <div class="fs-2 fw-bold text-success">{{ summary.promotions }}</div>
+                    <div class="small text-muted">Promotions</div>
                 </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-info">{{ summary.laterals }}</div>
+                    <div class="small text-muted">Lateral Moves</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-warning">{{ summary.inflows }}</div>
+                    <div class="small text-muted">Inflows</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-danger">{{ summary.outflows }}</div>
+                    <div class="small text-muted">Outflows</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-secondary">{{ summary.teams_involved }}</div>
                     <div class="small text-muted">Teams Involved</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card shadow-sm h-100 text-center">
-                <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-success">{{ summary.total_people }}</div>
-                    <div class="small text-muted">Total People</div>
                 </div>
             </div>
         </div>

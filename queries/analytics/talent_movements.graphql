@@ -1,0 +1,11 @@
+query TalentMovements($from: NaiveDateTime, $to: NaiveDateTime, $orgTierId: UUID) {
+  talentMovements(from: $from, to: $to, orgTierId: $orgTierId) {
+    personId
+    at
+    fromTeamId
+    toTeamId
+    fromLevel
+    toLevel
+    kind
+  }
+}

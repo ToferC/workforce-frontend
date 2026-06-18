@@ -9,7 +9,7 @@ use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
-use super::task::work_status_options;
+use super::task::{work_status_options, priority_options};
 use super::capability::CAPABILITY_LEVELS;
 use super::product::role_options;
 
@@ -38,6 +38,7 @@ pub struct WorkForm {
     pub capability_level: String,
     pub effort: i64,
     pub work_status: String,
+    pub priority: String,
     #[serde(default)]
     pub skill_id: String,
 }
@@ -72,6 +73,7 @@ fn work_from_form(form: &WorkForm, id: Option<&str>) -> serde_json::Value {
         "capabilityLevel": form.capability_level,
         "effort": form.effort,
         "workStatus": form.work_status,
+        "priority": form.priority,
     })
 }
 
@@ -127,12 +129,13 @@ pub async fn create_work_form(
     ctx.insert("vacant", &false);
     ctx.insert("role_id", &role_id);
     ctx.insert("skill_id", &"");
-    ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING"}));
+    ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING", "priority": "MEDIUM"}));
     ctx.insert("task_options", &tasks);
     ctx.insert("skill_options", &skills);
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("capability_levels", &capability_level_options());
     ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("priorities", &priority_options());
 
     let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -169,6 +172,7 @@ pub async fn create_work_post(
         capability_level: serde_json::from_value(json!(form.capability_level)).expect("CapabilityLevel deserialization is infallible"),
         effort: form.effort,
         work_status: serde_json::from_value(json!(form.work_status)).expect("WorkStatus deserialization is infallible"),
+        priority: serde_json::from_value(json!(form.priority)).expect("Priority deserialization is infallible"),
     };
 
     match create_work(new_work, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
@@ -222,11 +226,12 @@ pub async fn create_vacant_work_form(
     ctx.insert("vacant", &true);
     ctx.insert("task_id", &task_id);
     ctx.insert("skill_id", &"");
-    ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING"}));
+    ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING", "priority": "MEDIUM"}));
     ctx.insert("skill_options", &skills);
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("capability_levels", &capability_level_options());
     ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("priorities", &priority_options());
 
     let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -263,6 +268,7 @@ pub async fn create_vacant_work_post(
         capability_level: serde_json::from_value(json!(form.capability_level)).expect("CapabilityLevel deserialization is infallible"),
         effort: form.effort,
         work_status: serde_json::from_value(json!(form.work_status)).expect("WorkStatus deserialization is infallible"),
+        priority: serde_json::from_value(json!(form.priority)).expect("Priority deserialization is infallible"),
     };
 
     match create_work(new_work, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
@@ -323,6 +329,7 @@ pub async fn edit_work_form(
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("capability_levels", &capability_level_options());
     ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("priorities", &priority_options());
 
     let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -360,6 +367,7 @@ pub async fn edit_work_post(
         capability_level: Some(serde_json::from_value(json!(form.capability_level)).expect("CapabilityLevel deserialization is infallible")),
         effort: Some(form.effort),
         work_status: Some(serde_json::from_value(json!(form.work_status)).expect("WorkStatus deserialization is infallible")),
+        priority: Some(serde_json::from_value(json!(form.priority)).expect("Priority deserialization is infallible")),
     };
 
     match update_work(work_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
@@ -456,6 +464,7 @@ pub async fn assign_work_post(
         capability_level: None,
         effort: None,
         work_status: None,
+        priority: None,
     };
 
     match update_work(work_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {

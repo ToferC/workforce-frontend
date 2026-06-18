@@ -12,7 +12,7 @@ use crate::graphql::{
 };
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
-use super::task::work_status_options;
+use super::task::{work_status_options, priority_options};
 
 fn redirect_to(location: String) -> HttpResponse {
     HttpResponse::Found().append_header(("Location", location)).finish()
@@ -66,6 +66,7 @@ pub struct ProductForm {
     #[serde(default)]
     pub url: String,
     pub product_status: String,
+    pub priority: String,
 }
 
 fn product_from_form(form: &ProductForm, id: Option<&str>) -> serde_json::Value {
@@ -78,6 +79,7 @@ fn product_from_form(form: &ProductForm, id: Option<&str>) -> serde_json::Value 
         "primaryDomain": form.primary_domain,
         "url": form.url,
         "productStatus": form.product_status,
+        "priority": form.priority,
         "organization": {"id": form.organization_id},
         "productOwner": {"id": form.product_owner_role_id},
     })
@@ -153,13 +155,14 @@ pub async fn create_product_form(
     ctx.insert("edit", &false);
     ctx.insert("product", &json!({
         "nameEn": "", "nameFr": "", "descriptionEn": "", "descriptionFr": "",
-        "primaryDomain": "", "url": "", "productStatus": "PLANNING",
+        "primaryDomain": "", "url": "", "productStatus": "PLANNING", "priority": "MEDIUM",
         "organization": {"id": ""}, "productOwner": {"id": ""},
     }));
     ctx.insert("organization_options", &organization_options_json(&auth.bearer, &data).await);
     ctx.insert("role_options", &role_options(&auth.bearer, &data).await);
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("priorities", &priority_options());
 
     let rendered = data.tmpl.render("product/product_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -211,6 +214,8 @@ pub async fn create_product_post(
         url: if form.url.trim().is_empty() { None } else { Some(form.url.trim().to_string()) },
         product_status: serde_json::from_value(json!(form.product_status))
             .expect("WorkStatus deserialization is infallible"),
+        priority: serde_json::from_value(json!(form.priority))
+            .expect("Priority deserialization is infallible"),
     };
 
     match create_product(new_product, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
@@ -255,6 +260,7 @@ pub async fn edit_product_form(
     ctx.insert("role_options", &role_options(&auth.bearer, &data).await);
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("priorities", &priority_options());
 
     let rendered = data.tmpl.render("product/product_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -293,6 +299,8 @@ pub async fn edit_product_post(
         url: if form.url.trim().is_empty() { None } else { Some(form.url.trim().to_string()) },
         product_status: Some(serde_json::from_value(json!(form.product_status))
             .expect("WorkStatus deserialization is infallible")),
+        priority: Some(serde_json::from_value(json!(form.priority))
+            .expect("Priority deserialization is infallible")),
     };
 
     match update_product(product_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {

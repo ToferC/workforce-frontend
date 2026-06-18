@@ -19,6 +19,12 @@ pub fn work_status_options() -> serde_json::Value {
     json!(WORK_STATUSES.iter().map(|s| json!({"value": s, "label": humanize(s)})).collect::<Vec<serde_json::Value>>())
 }
 
+pub const PRIORITIES: [&str; 4] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+
+pub fn priority_options() -> serde_json::Value {
+    json!(PRIORITIES.iter().map(|s| json!({"value": s, "label": humanize(s)})).collect::<Vec<serde_json::Value>>())
+}
+
 pub fn parse_date(value: &str) -> Option<NaiveDateTime> {
     NaiveDate::parse_from_str(value.trim(), "%Y-%m-%d").ok().and_then(|d| d.and_hms_opt(0, 0, 0))
 }
@@ -44,6 +50,7 @@ pub struct TaskForm {
     pub start_date: String,
     pub target_completion_date: String,
     pub task_status: String,
+    pub priority: String,
     #[serde(default)]
     pub completed_date: String,
     #[serde(default)]
@@ -62,6 +69,7 @@ fn task_from_form(form: &TaskForm, id: Option<&str>) -> serde_json::Value {
         "startDatestamp": form.start_date,
         "targetCompletionDate": form.target_completion_date,
         "taskStatus": form.task_status,
+        "priority": form.priority,
         "completedDate": form.completed_date,
         "productId": form.product_id,
     })
@@ -139,10 +147,11 @@ pub async fn create_task_form(
     ctx.insert("role_id", &role_id);
     ctx.insert("task", &json!({
         "title": "", "domain": "", "intendedOutcome": "", "finalOutcome": "", "approvalTier": 1,
-        "url": "", "startDatestamp": today, "targetCompletionDate": today, "taskStatus": "PLANNING", "completedDate": "", "productId": "",
+        "url": "", "startDatestamp": today, "targetCompletionDate": today, "taskStatus": "PLANNING", "priority": "MEDIUM", "completedDate": "", "productId": "",
     }));
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("priorities", &priority_options());
     ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
 
     let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
@@ -180,6 +189,7 @@ pub async fn create_task_post(
         start_datestamp: parse_date(&form.start_date).unwrap_or_else(|| chrono::Utc::now().naive_utc()),
         target_completion_date: parse_date(&form.target_completion_date).unwrap_or_else(|| chrono::Utc::now().naive_utc()),
         task_status: serde_json::from_value(json!(form.task_status)).expect("WorkStatus deserialization is infallible"),
+        priority: serde_json::from_value(json!(form.priority)).expect("Priority deserialization is infallible"),
         product_id: if form.product_id.trim().is_empty() { None } else { Some(form.product_id.clone()) },
     };
 
@@ -231,6 +241,7 @@ pub async fn edit_task_form(
     ctx.insert("task", &r.task_by_id);
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("priorities", &priority_options());
     ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
 
     let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
@@ -269,6 +280,7 @@ pub async fn edit_task_post(
         start_datestamp: parse_date(&form.start_date),
         target_completion_date: parse_date(&form.target_completion_date),
         task_status: Some(serde_json::from_value(json!(form.task_status)).expect("WorkStatus deserialization is infallible")),
+        priority: Some(serde_json::from_value(json!(form.priority)).expect("Priority deserialization is infallible")),
         completed_date: parse_date(&form.completed_date),
         product_id: if form.product_id.trim().is_empty() { None } else { Some(form.product_id.clone()) },
     };
@@ -328,11 +340,12 @@ pub async fn create_product_task_form(
     ctx.insert("cancel_url", &format!("/{}/product/{}", &lang, &product_id));
     ctx.insert("task", &json!({
         "title": "", "domain": "", "intendedOutcome": "", "finalOutcome": "", "approvalTier": 1,
-        "url": "", "startDatestamp": today, "targetCompletionDate": today, "taskStatus": "PLANNING",
+        "url": "", "startDatestamp": today, "targetCompletionDate": today, "taskStatus": "PLANNING", "priority": "MEDIUM",
         "completedDate": "", "productId": product_id,
     }));
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("priorities", &priority_options());
     ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
 
     let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
