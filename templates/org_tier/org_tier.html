@@ -112,8 +112,8 @@
                 <div class="col-6 col-md-3">
                     <div class="card shadow-sm h-100 text-center">
                         <div class="card-body py-3">
-                            <div class="fs-2 fw-bold text-secondary">{{ org_tier.teams | length }}</div>
-                            <div class="small text-muted">Teams</div>
+                            <div class="fs-2 fw-bold text-secondary">{{ total_teams }}</div>
+                            <div class="small text-muted">Total Teams</div>
                         </div>
                     </div>
                 </div>
@@ -147,13 +147,7 @@
                                 {% for row in org_tier.capabilityHeatmap %}
                                 <tr>
                                     <td><a href="/{{ lang }}/team/{{ row.teamId }}">{{ row.teamName }}</a></td>
-                                    <td class="text-center">
-                                        {% set max_people = 0 %}
-                                        {% for cell in row.cells %}
-                                            {% if cell.peopleCount > max_people %}{% set_global max_people = cell.peopleCount %}{% endif %}
-                                        {% endfor %}
-                                        {{ max_people }}
-                                    </td>
+                                    <td class="text-center">{{ team_people[row.teamId] | default(value=0) }}</td>
                                     <td>
                                         {% for cell in row.cells %}
                                             {% if cell.depth > 0.0 %}
@@ -170,29 +164,25 @@
             </div>
             {% endif %}
 
-            <!-- Capability Breakdown -->
-            {% if org_tier.capabilityCounts %}
+            <!-- Capabilities by Domain -->
+            {% if domain_summary %}
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps"></i> Capability Breakdown</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps"></i> Capabilities by Domain</h2>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm table-hover mb-0 align-middle">
                         <thead>
                             <tr>
-                                <th>Capability</th>
                                 <th>Domain</th>
-                                <th>Level</th>
-                                <th class="text-end">Count</th>
+                                <th class="text-end">Total Capabilities</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for cap in org_tier.capabilityCounts %}
+                            {% for item in domain_summary %}
                             <tr>
-                                <td>{{ cap.name }}</td>
-                                <td>{{ viz::domain_chip(domain=cap.domain) }}</td>
-                                <td>{{ viz::level_chip(level=cap.level) }}</td>
-                                <td class="text-end fw-bold">{{ cap.counts }}</td>
+                                <td>{{ viz::domain_chip(domain=item.domain) }}</td>
+                                <td class="text-end fw-bold">{{ item.count }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

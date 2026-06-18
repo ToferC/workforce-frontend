@@ -203,7 +203,28 @@ pub async fn org_tier_by_id(
         .await
         .expect("Unable to get org tier");
 
-    ctx.insert("org_tier", &r.org_tier_by_id);
+    let tier = &r.org_tier_by_id;
+    ctx.insert("org_tier", tier);
+
+    let mut team_people: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+    for row in &tier.capability_heatmap {
+        let max_p = row.cells.iter().map(|c| c.people_count).max().unwrap_or(0);
+        team_people.insert(row.team_id.clone(), max_p);
+    }
+    ctx.insert("team_people", &team_people);
+
+    let total_teams = tier.capability_heatmap.len();
+    ctx.insert("total_teams", &total_teams);
+
+    let mut domain_totals: std::collections::BTreeMap<String, i64> = std::collections::BTreeMap::new();
+    for cap in &tier.capability_counts {
+        *domain_totals.entry(format!("{:?}", cap.domain)).or_insert(0) += cap.counts;
+    }
+    let domain_summary: Vec<serde_json::Value> = domain_totals
+        .iter()
+        .map(|(domain, count)| json!({"domain": domain, "count": count}))
+        .collect();
+    ctx.insert("domain_summary", &domain_summary);
 
     let rendered = data.tmpl.render("org_tier/org_tier.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
