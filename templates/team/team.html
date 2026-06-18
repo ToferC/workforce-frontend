@@ -171,33 +171,6 @@
                     {% endif %}
                 </div>
             </div>
-
-            <!-- Capabilities by Domain -->
-            {% if domain_summary %}
-            <div class="card shadow-lg mb-4">
-                <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps"></i> Capabilities by Domain</h2>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm table-hover mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th>Domain</th>
-                                <th class="text-end">Total Capabilities</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in domain_summary %}
-                            <tr>
-                                <td>{{ viz::domain_chip(domain=item.domain) }}</td>
-                                <td class="text-end fw-bold">{{ item.count }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% endif %}
         </div>
 
         <!-- Sidebar pane: summary -->
@@ -225,6 +198,33 @@
                             </li>
                         </ul>
                     </div>
+                    </div>
+                         <!-- Capabilities by Domain -->
+            {% if domain_summary %}
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps"></i> Capabilities by Domain</h2>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Domain</th>
+                                <th class="text-end">Total Capabilities</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in domain_summary %}
+                            <tr>
+                                <td>{{ viz::domain_chip(domain=item.domain) }}</td>
+                                <td class="text-end fw-bold">{{ item.count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
                 </div>
             </div>
         </div>
