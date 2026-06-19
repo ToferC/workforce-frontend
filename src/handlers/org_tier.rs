@@ -8,7 +8,6 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{all_org_tiers, get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership, get_org_ownership_by_tier_id, update_org_ownership, restore_org_tier};
 use crate::security::{self, MinimumRole};
-use super::person::resolve_person_by_name;
 
 /// SkillDomain enum values, kept in sync with the API schema. Used to
 /// populate the primary domain select on tier forms.
@@ -526,7 +525,9 @@ pub async fn retire_org_tier_post(
 #[derive(Deserialize, Debug)]
 pub struct OwnerForm {
     pub csrf_token: String,
-    pub person_name: String,
+    /// Id of the manager Role that owns this tier/team. Ownership now attaches
+    /// to a position (Role), not directly to a Person.
+    pub owner_role_id: String,
 }
 
 #[get("/{lang}/org_tier/{org_tier_id}/owner")]
@@ -544,7 +545,7 @@ pub async fn assign_org_owner_form(
         Err(response) => return response,
     };
 
-    let r = match get_org_tier_by_id(org_tier_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    let r = match get_org_tier_by_id(org_tier_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -552,8 +553,11 @@ pub async fn assign_org_owner_form(
         },
     };
 
+    let role_options = super::product::role_options(&auth.bearer, &data).await;
+
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("org_tier", &r.org_tier_by_id);
+    ctx.insert("role_options", &role_options);
 
     let rendered = data.tmpl.render("org_tier/assign_owner.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -580,31 +584,31 @@ pub async fn assign_org_owner_post(
         return redirect_to(format!("/{}/org_tier/{}/owner", &lang, &org_tier_id));
     }
 
-    match resolve_person_by_name(&form.person_name, &auth.bearer, &lang, &data).await {
-        Ok(Some(person_id)) => {
-            // Reassign if the tier already has an ownership record;
-            // otherwise create one (tiers from createOrgTier have none).
-            let existing = get_org_ownership_by_tier_id(org_tier_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.ok();
-            let result = if let Some(existing) = existing {
-                update_org_ownership(update_org_ownership::OrgOwnershipData {
-                    id: existing.org_ownership_by_tier_id.id,
-                    owner_id: Some(person_id),
-                    org_tier_id: None,
-                    retired_at: None,
-                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
-            } else {
-                create_org_ownership(create_org_ownership::NewOrgOwnership {
-                    owner_id: person_id,
-                    org_tier_id: org_tier_id.clone(),
-                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
-            };
-            match result {
-                Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
-                Err(e) => security::add_flash(&session, "danger", &e.to_string()),
-            };
-        },
-        Ok(None) => security::add_flash(&session, "danger", by_lang(&lang, "Enter the owner's name.", "Entrez le nom du responsable.")),
-        Err(message) => security::add_flash(&session, "danger", &message),
+    if form.owner_role_id.trim().is_empty() {
+        security::add_flash(&session, "danger", by_lang(&lang, "Select an owning role.", "Sélectionnez un rôle responsable."));
+        return redirect_to(format!("/{}/org_tier/{}/owner", &lang, &org_tier_id));
+    }
+    let owner_role_id = form.owner_role_id.clone();
+
+    // Reassign if the tier already has an ownership record;
+    // otherwise create one (tiers from createOrgTier have none).
+    let existing = get_org_ownership_by_tier_id(org_tier_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.ok();
+    let result = if let Some(existing) = existing {
+        update_org_ownership(update_org_ownership::OrgOwnershipData {
+            id: existing.org_ownership_by_tier_id.id,
+            owner_role_id: Some(owner_role_id),
+            org_tier_id: None,
+            retired_at: None,
+        }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
+    } else {
+        create_org_ownership(create_org_ownership::NewOrgOwnership {
+            owner_role_id,
+            org_tier_id: org_tier_id.clone(),
+        }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
+    };
+    match result {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
     redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id))

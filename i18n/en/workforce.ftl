@@ -295,8 +295,8 @@ assign-person-helper = Full given and family name of an existing person. Leave b
 
 ## Link Entities (ownership, affiliation)
 assign-owner = Assign owner
-owner-name = Owner's name
-owner-name-helper = Full given and family name of an existing person.
+owner-name = Owning role
+owner-name-helper = The manager position that owns this. Authority follows the position, not the person who currently holds it.
 add-affiliation = Add affiliation
 end-affiliation = End
 affiliated-organization = Affiliated organization

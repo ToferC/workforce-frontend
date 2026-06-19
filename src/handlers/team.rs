@@ -9,7 +9,7 @@ use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_team_by_id, all_teams, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership, restore_team};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{parent_tier_options, skill_domain_options, OwnerForm};
-use super::person::resolve_person_by_name;
+use super::product::role_options;
 
 #[derive(Deserialize, Debug)]
 pub struct TeamForm {
@@ -458,7 +458,7 @@ pub async fn assign_team_owner_form(
         Err(response) => return response,
     };
 
-    let r = match get_team_by_id(team_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    let r = match get_team_by_id(team_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -466,8 +466,11 @@ pub async fn assign_team_owner_form(
         },
     };
 
+    let role_options = role_options(&auth.bearer, &data).await;
+
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("team", &r.team_by_id);
+    ctx.insert("role_options", &role_options);
 
     let rendered = data.tmpl.render("team/assign_owner.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -494,34 +497,34 @@ pub async fn assign_team_owner_post(
         return redirect_to(format!("/{}/team/{}/owner", &lang, &team_id));
     }
 
-    match resolve_person_by_name(&form.person_name, &auth.bearer, &lang, &data).await {
-        Ok(Some(person_id)) => {
-            // Reassign if the team already has an ownership record;
-            // otherwise create one.
-            let existing = get_team_ownership_by_team_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.ok();
-            let result = if let Some(existing) = existing {
-                update_team_ownership(update_team_ownership::TeamOwnershipData {
-                    id: existing.team_ownership_by_team_id.id,
-                    person_id: Some(person_id),
-                    team_id: None,
-                    start_datestamp: None,
-                    end_date: None,
-                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
-            } else {
-                create_team_ownership(create_team_ownership::NewTeamOwnership {
-                    person_id,
-                    team_id: team_id.clone(),
-                    start_datestamp: chrono::Utc::now().naive_utc(),
-                    end_date: None,
-                }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
-            };
-            match result {
-                Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
-                Err(e) => security::add_flash(&session, "danger", &e.to_string()),
-            };
-        },
-        Ok(None) => security::add_flash(&session, "danger", by_lang(&lang, "Enter the owner's name.", "Entrez le nom du responsable.")),
-        Err(message) => security::add_flash(&session, "danger", &message),
+    if form.owner_role_id.trim().is_empty() {
+        security::add_flash(&session, "danger", by_lang(&lang, "Select an owning role.", "Sélectionnez un rôle responsable."));
+        return redirect_to(format!("/{}/team/{}/owner", &lang, &team_id));
+    }
+    let owner_role_id = form.owner_role_id.clone();
+
+    // Reassign if the team already has an ownership record;
+    // otherwise create one.
+    let existing = get_team_ownership_by_team_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.ok();
+    let result = if let Some(existing) = existing {
+        update_team_ownership(update_team_ownership::TeamOwnershipData {
+            id: existing.team_ownership_by_team_id.id,
+            owner_role_id: Some(owner_role_id),
+            team_id: None,
+            start_datestamp: None,
+            end_date: None,
+        }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
+    } else {
+        create_team_ownership(create_team_ownership::NewTeamOwnership {
+            owner_role_id,
+            team_id: team_id.clone(),
+            start_datestamp: chrono::Utc::now().naive_utc(),
+            end_date: None,
+        }, auth.bearer, &data.api_url, Arc::clone(&data.client)).await.map(|_| ())
+    };
+    match result {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
     redirect_to(format!("/{}/team/{}", &lang, &team_id))

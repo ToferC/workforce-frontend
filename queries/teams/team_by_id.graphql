@@ -57,10 +57,13 @@ query TeamById($id:UUID!) {
       militaryOccupation
     }
     owner {
-      givenName
-      familyName
-      email
       id
+      person {
+        id
+        givenName
+        familyName
+        email
+      }
     }
   }
 }

@@ -59,7 +59,10 @@
                                     <div class="small text-muted mt-1">Primary Domain: {{ ot.primaryDomain }}</div>
                                 </div>
                                 <span class="text-muted small">
-                                    Owner: <a href="/{{lang}}/person/{{ot.owner.id}}">{{ ot.owner.givenName }} {{ ot.owner.familyName }}</a>
+                                    Owner:
+                                    {% if ot.owner.person %}
+                                    <a href="/{{lang}}/person/{{ot.owner.person.id}}">{{ ot.owner.person.givenName }} {{ ot.owner.person.familyName }}</a>
+                                    {% else %}Vacant{% endif %}
                                 </span>
                             </div>
                         </li>

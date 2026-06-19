@@ -14,9 +14,12 @@ query OrganizationById($id:UUID!) {
       primaryDomain
       owner {
         id
-        givenName
-        familyName
-        email
+        person {
+          id
+          givenName
+          familyName
+          email
+        }
       }
     }
     capabilityCounts {

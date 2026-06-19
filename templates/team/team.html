@@ -193,8 +193,12 @@
                             </li>
                             <li class="list-group-item">
                                 <span class="text-muted">Owner:</span>
-                                <a href="/{{lang}}/person/{{team.owner.id}}">{{ team.owner.givenName }} {{ team.owner.familyName }}</a>
-                                &mdash; {{ team.owner.email }}
+                                {% if team.owner.person %}
+                                <a href="/{{lang}}/person/{{team.owner.person.id}}">{{ team.owner.person.givenName }} {{ team.owner.person.familyName }}</a>
+                                &mdash; {{ team.owner.person.email }}
+                                {% else %}
+                                <span class="text-muted">Vacant</span>
+                                {% endif %}
                             </li>
                         </ul>
                     </div>

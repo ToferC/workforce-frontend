@@ -1,6 +1,6 @@
 query TeamOwnershipByTeamId($teamId: UUID!) {
   teamOwnershipByTeamId(teamId: $teamId) {
     id
-    personId
+    ownerRoleId
   }
 }

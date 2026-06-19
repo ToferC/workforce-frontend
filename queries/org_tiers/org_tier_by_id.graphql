@@ -16,9 +16,12 @@ query OrgTierById($id:UUID!) {
     }
     owner {
       id
-      givenName
-      familyName
-      email
+      person {
+        id
+        givenName
+        familyName
+        email
+      }
     }
     childOrganizationTier {
       nameEn
@@ -36,9 +39,12 @@ query OrgTierById($id:UUID!) {
       nameEnglish
       id
       owner {
-        familyName
-        givenName
         id
+        person {
+          id
+          givenName
+          familyName
+        }
       }
     }
   }
