@@ -24,7 +24,7 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/org_tier/{{ org_tier.id }}/owner">
                 {{ forms::csrf(token=csrf_token) }}
-                {{ forms::text_input(name="person_name", label=label_person, help=help_person) }}
+                {{ forms::select(name="owner_role_id", label=label_person, options=role_options, blank_label=help_person) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>
         </div>

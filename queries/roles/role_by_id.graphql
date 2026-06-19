@@ -30,9 +30,12 @@ query RoleById($id:UUID!) {
       }
       owner {
         id
-        givenName
-        familyName
-        email
+        person {
+          id
+          givenName
+          familyName
+          email
+        }
       }
     }
     effort

@@ -64,8 +64,12 @@
                         </li>
                         <li class="list-group-item">
                             <span class="text-muted">Team Owner:</span>
-                            <a href="/{{lang}}/person/{{role.team.owner.id}}">{{ role.team.owner.givenName }} {{ role.team.owner.familyName }}</a>
-                            &mdash; {{ role.team.owner.email }}
+                            {% if role.team.owner.person %}
+                            <a href="/{{lang}}/person/{{role.team.owner.person.id}}">{{ role.team.owner.person.givenName }} {{ role.team.owner.person.familyName }}</a>
+                            &mdash; {{ role.team.owner.person.email }}
+                            {% else %}
+                            <span class="text-muted">Vacant</span>
+                            {% endif %}
                         </li>
                     </ul>
 

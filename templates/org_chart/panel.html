@@ -21,7 +21,11 @@
             </li>
             <li class="list-group-item">
                 <span class="text-muted">{{ fluent(key="owner", lang=lang) }}:</span>
-                <a href="/{{ lang }}/person/{{ org_tier.owner.id }}">{{ org_tier.owner.givenName }} {{ org_tier.owner.familyName }}</a>
+                {% if org_tier.owner.person %}
+                <a href="/{{ lang }}/person/{{ org_tier.owner.person.id }}">{{ org_tier.owner.person.givenName }} {{ org_tier.owner.person.familyName }}</a>
+                {% else %}
+                <span class="text-muted">Vacant</span>
+                {% endif %}
             </li>
             <li class="list-group-item">
                 <span class="text-muted">{{ fluent(key="child-tiers", lang=lang) }}:</span> {{ org_tier.childOrganizationTier | length }}

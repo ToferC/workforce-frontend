@@ -295,8 +295,8 @@ assign-person-helper = Prénom et nom complets d'une personne existante. Laissez
 
 ## Link Entities (ownership, affiliation)
 assign-owner = Assigner un responsable
-owner-name = Nom du responsable
-owner-name-helper = Prénom et nom complets d'une personne existante.
+owner-name = Rôle responsable
+owner-name-helper = Le poste de gestionnaire qui en est responsable. L'autorité suit le poste, et non la personne qui l'occupe actuellement.
 add-affiliation = Ajouter une affiliation
 end-affiliation = Terminer
 affiliated-organization = Organisation affiliée

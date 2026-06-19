@@ -16,8 +16,11 @@ query OrgTiersByOrgId($id:UUID!) {
     }
     owner {
       id
-      givenName
-      familyName
+      person {
+        id
+        givenName
+        familyName
+      }
     }
     teams {
       nameEnglish

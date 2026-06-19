@@ -230,8 +230,12 @@
                             </li>
                             <li class="list-group-item">
                                 <span class="text-muted">Owner:</span>
-                                <a href="/{{lang}}/person/{{role_record.team.owner.id}}">{{ role_record.team.owner.givenName }} {{ role_record.team.owner.familyName }}</a>
-                                &mdash; {{ role_record.team.owner.email }}
+                                {% if role_record.team.owner.person %}
+                                <a href="/{{lang}}/person/{{role_record.team.owner.person.id}}">{{ role_record.team.owner.person.givenName }} {{ role_record.team.owner.person.familyName }}</a>
+                                &mdash; {{ role_record.team.owner.person.email }}
+                                {% else %}
+                                <span class="text-muted">Vacant</span>
+                                {% endif %}
                             </li>
                         </ul>
                     </div>
@@ -279,7 +283,11 @@
                             </li>
                             <li class="list-group-item">
                                 <span class="text-muted">Owner:</span>
-                                <a href="/{{lang}}/person/{{role_record.team.owner.id}}">{{ role_record.team.owner.givenName }} {{ role_record.team.owner.familyName }}</a>
+                                {% if role_record.team.owner.person %}
+                                <a href="/{{lang}}/person/{{role_record.team.owner.person.id}}">{{ role_record.team.owner.person.givenName }} {{ role_record.team.owner.person.familyName }}</a>
+                                {% else %}
+                                <span class="text-muted">Vacant</span>
+                                {% endif %}
                             </li>
                         </ul>
                     </div>

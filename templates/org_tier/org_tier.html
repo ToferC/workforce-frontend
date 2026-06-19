@@ -63,7 +63,10 @@
                         <li class="list-group-item">
                             <a href="/{{lang}}/team/{{team.id}}" class="fw-semibold">{{ team.nameEnglish }}</a>
                             <span class="small text-muted ms-2">
-                                Owner: <a href="/{{lang}}/person/{{team.owner.id}}">{{ team.owner.givenName }} {{ team.owner.familyName }}</a>
+                                Owner:
+                                {% if team.owner.person %}
+                                <a href="/{{lang}}/person/{{team.owner.person.id}}">{{ team.owner.person.givenName }} {{ team.owner.person.familyName }}</a>
+                                {% else %}Vacant{% endif %}
                             </span>
                         </li>
                         {% else %}
@@ -177,9 +180,13 @@
                             </li>
                             <li class="list-group-item">
                                 <span class="text-muted">Owner:</span>
-                                <a href="/{{lang}}/person/{{org_tier.owner.id}}">{{ org_tier.owner.givenName }} {{ org_tier.owner.familyName }}</a>
+                                {% if org_tier.owner.person %}
+                                <a href="/{{lang}}/person/{{org_tier.owner.person.id}}">{{ org_tier.owner.person.givenName }} {{ org_tier.owner.person.familyName }}</a>
+                                {% else %}<span class="text-muted">Vacant</span>{% endif %}
                             </li>
-                            <li class="list-group-item"><span class="text-muted">Owner Email:</span> {{ org_tier.owner.email }}</li>
+                            {% if org_tier.owner.person %}
+                            <li class="list-group-item"><span class="text-muted">Owner Email:</span> {{ org_tier.owner.person.email }}</li>
+                            {% endif %}
                         </ul>
                     </div>
                 </div>
