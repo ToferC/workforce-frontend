@@ -1,0 +1,31 @@
+# Workforce frontend — standalone web UI.
+#
+# Talks to a running GraphQL API (the workforce_analytics service). Point it at
+# your API with GRAPHQL_API_TARGET. Secrets/tunables come from .env (see
+# .env.example).
+#
+#   cp .env.example .env   # set COOKIE_SECRET_KEY (>= 64 bytes)
+#   docker compose up --build
+#
+# Production mode sets Secure cookies, so serve this behind an HTTPS-terminating
+# reverse proxy in real deployments. For plain-HTTP local testing, front it with
+# a proxy or run the binary directly with ENVIRONMENT=test.
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    environment:
+      ENVIRONMENT: production
+      HOST: 0.0.0.0
+      PORT: "8088"
+      # Override to your API. `host.docker.internal` reaches the host from the
+      # container on Docker Desktop; on Linux add an extra_hosts mapping or use
+      # the API's service/network address.
+      GRAPHQL_API_TARGET: ${GRAPHQL_API_TARGET:-http://host.docker.internal:8080/graphql}
+    ports:
+      - "8088:8088"
