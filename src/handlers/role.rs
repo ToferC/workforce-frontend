@@ -264,8 +264,11 @@ pub async fn role_by_id(
             Arc::clone(&data.client),
         ).await {
             Ok(resp) => {
-                ctx.insert("match_full", &resp.role_by_id.fuzzy_matches.full_matches);
-                ctx.insert("match_partial", &resp.role_by_id.fuzzy_matches.partial_matches);
+                let m = resp.role_by_id.fuzzy_matches;
+                ctx.insert("match_managed_full", &m.managed_full_matches);
+                ctx.insert("match_managed_partial", &m.managed_partial_matches);
+                ctx.insert("match_external_full", &m.external_full_matches);
+                ctx.insert("match_external_partial", &m.external_partial_matches);
             },
             // Don't blow up the whole page if matching fails; the panel just
             // renders empty with the error noted in the template fallback.
@@ -323,8 +326,11 @@ pub async fn role_matches(
         Arc::clone(&data.client),
     ).await {
         Ok(resp) => {
-            ctx.insert("match_full", &resp.role_by_id.fuzzy_matches.full_matches);
-            ctx.insert("match_partial", &resp.role_by_id.fuzzy_matches.partial_matches);
+            let m = resp.role_by_id.fuzzy_matches;
+            ctx.insert("match_managed_full", &m.managed_full_matches);
+            ctx.insert("match_managed_partial", &m.managed_partial_matches);
+            ctx.insert("match_external_full", &m.external_full_matches);
+            ctx.insert("match_external_partial", &m.external_partial_matches);
         },
         Err(e) => ctx.insert("match_error", &e.to_string()),
     }

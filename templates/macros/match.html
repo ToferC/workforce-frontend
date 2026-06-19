@@ -73,5 +73,17 @@
         {% for r in c.person.activeRoles %}{{ r.titleEnglish }}{% if r.militaryOccupation %} &mdash; {{ r.militaryOccupation }}-{{ r.rank }}{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}
     </div>
     {% endif %}
+
+    {# Out-of-area candidate: surface their manager so a transfer can be arranged #}
+    {% if c.manager %}
+    <div class="small mt-2 p-2 rounded bg-body-secondary border">
+        <i class="bi bi-person-badge"></i>
+        <span class="text-muted">Contact manager to request transfer:</span>
+        {% if c.manager.name %}<span class="fw-semibold">{{ c.manager.name }}</span>{% else %}<span class="text-muted">Vacant</span>{% endif %}
+        <span class="text-muted">&mdash; {{ c.manager.ownerRoleTitle }} ({{ c.manager.teamName }})</span>
+        {% if c.manager.email %}&middot; <a href="mailto:{{ c.manager.email }}">{{ c.manager.email }}</a>{% endif %}
+        {% if c.manager.phone %}&middot; <span>{{ c.manager.phone }}</span>{% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endmacro candidate_card %}

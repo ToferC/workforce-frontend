@@ -5,10 +5,17 @@ query RoleFuzzyMatches($id: UUID!, $minCoverage: Float!, $maxGapPerReq: Int!, $l
     titleFrench
     fuzzyMatches(minCoverage: $minCoverage, maxGapPerReq: $maxGapPerReq, limit: $limit) {
       roleId
-      fullMatches {
+      managedOrgTierId
+      managedFullMatches {
         ...matchScoreFields
       }
-      partialMatches {
+      managedPartialMatches {
+        ...matchScoreFields
+      }
+      externalFullMatches {
+        ...matchScoreFields
+      }
+      externalPartialMatches {
         ...matchScoreFields
       }
     }
@@ -21,6 +28,14 @@ fragment matchScoreFields on PersonMatchScore {
   requirementsMet
   requirementsTotal
   totalGap
+  inManagedScope
+  manager {
+    ownerRoleTitle
+    teamName
+    name
+    email
+    phone
+  }
   requirementGaps {
     skillName
     requiredLevel

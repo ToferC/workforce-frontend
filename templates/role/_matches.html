@@ -2,41 +2,85 @@
 {#
   Vacant-role candidate panel. Rendered server-side inside role.html on first
   load and swapped in by HTMX when the tuning sliders change (see role_matches
-  handler). Expects: match_full, match_partial (PersonMatchScore lists),
+  handler). Expects: match_managed_full, match_managed_partial,
+  match_external_full, match_external_partial (PersonMatchScore lists),
   match_role_id, min_coverage_pct, max_gap_per_req, and optionally match_error.
+
+  Candidates are split by whether they sit under the OrgTier this role's owner
+  is responsible for. Managed candidates can be reassigned directly; external
+  candidates carry their manager's contact details so a transfer can be
+  negotiated.
 #}
 {% if match_error %}
 <div class="p-4 text-danger"><i class="bi bi-exclamation-octagon"></i> Could not load matches: {{ match_error }}</div>
 {% else %}
 
-{# ── Full matches: everyone who meets every requirement ───────────────────── #}
-<div class="px-3 pt-3 pb-2 d-flex align-items-center gap-2">
-    <h3 class="h6 mb-0 text-success"><i class="bi bi-check-circle-fill"></i> Full matches</h3>
-    <span class="badge bg-success">{{ match_full | length }}</span>
+{# ══ In the owner's area ══════════════════════════════════════════════════════ #}
+<div class="px-3 pt-3 pb-1 d-flex align-items-center gap-2">
+    <h3 class="h6 mb-0"><i class="bi bi-diagram-3-fill text-primary"></i> In your area</h3>
+    <span class="small text-muted">Under the org tier this role's owner manages — reassign directly.</span>
+</div>
+
+{# Full matches #}
+<div class="px-3 pt-2 pb-2 d-flex align-items-center gap-2">
+    <h4 class="small fw-semibold mb-0 text-success"><i class="bi bi-check-circle-fill"></i> Full matches</h4>
+    <span class="badge bg-success">{{ match_managed_full | length }}</span>
     <span class="small text-muted">Meet every requirement at or above the required level.</span>
 </div>
-{% if match_full %}
-{% for c in match_full %}
+{% if match_managed_full %}
+{% for c in match_managed_full %}
 {{ match::candidate_card(c=c, lang=lang, role=role, csrf_token=csrf_token, role_id=match_role_id, is_full=true) }}
 {% endfor %}
 {% else %}
-<div class="px-3 pb-3 text-muted">No one currently meets every requirement.</div>
+<div class="px-3 pb-3 text-muted">No one in your area meets every requirement.</div>
 {% endif %}
 
-{# ── Close matches: partial coverage, controlled by the sliders ───────────── #}
-<div class="px-3 pt-3 pb-2 border-top d-flex align-items-center gap-2">
-    <h3 class="h6 mb-0 text-warning"><i class="bi bi-bullseye"></i> Close matches</h3>
-    <span class="badge bg-warning text-dark">{{ match_partial | length }}</span>
+{# Close matches #}
+<div class="px-3 pt-2 pb-2 d-flex align-items-center gap-2">
+    <h4 class="small fw-semibold mb-0 text-warning"><i class="bi bi-bullseye"></i> Close matches</h4>
+    <span class="badge bg-warning text-dark">{{ match_managed_partial | length }}</span>
     <span class="small text-muted">
         &ge; {{ min_coverage_pct }}% of requirements met, no single skill short by more than {{ max_gap_per_req }} level{% if max_gap_per_req != 1 %}s{% endif %}.
     </span>
 </div>
-{% if match_partial %}
-{% for c in match_partial %}
+{% if match_managed_partial %}
+{% for c in match_managed_partial %}
 {{ match::candidate_card(c=c, lang=lang, role=role, csrf_token=csrf_token, role_id=match_role_id, is_full=false) }}
 {% endfor %}
 {% else %}
-<div class="px-3 pb-3 text-muted">No close matches at this threshold. Try lowering the minimum match or raising the allowed gap.</div>
+<div class="px-3 pb-3 text-muted">No close matches in your area at this threshold.</div>
+{% endif %}
+
+{# ══ Elsewhere in the organization ════════════════════════════════════════════ #}
+<div class="px-3 pt-3 pb-1 border-top d-flex align-items-center gap-2">
+    <h3 class="h6 mb-0"><i class="bi bi-people-fill text-secondary"></i> Elsewhere in the organization</h3>
+    <span class="small text-muted">Outside your area — contact the person's manager to arrange a move.</span>
+</div>
+
+{# Full matches #}
+<div class="px-3 pt-2 pb-2 d-flex align-items-center gap-2">
+    <h4 class="small fw-semibold mb-0 text-success"><i class="bi bi-check-circle"></i> Full matches</h4>
+    <span class="badge bg-success">{{ match_external_full | length }}</span>
+</div>
+{% if match_external_full %}
+{% for c in match_external_full %}
+{{ match::candidate_card(c=c, lang=lang, role=role, csrf_token=csrf_token, role_id=match_role_id, is_full=true) }}
+{% endfor %}
+{% else %}
+<div class="px-3 pb-3 text-muted">No full matches elsewhere.</div>
+{% endif %}
+
+{# Close matches #}
+<div class="px-3 pt-2 pb-2 d-flex align-items-center gap-2">
+    <h4 class="small fw-semibold mb-0 text-warning"><i class="bi bi-bullseye"></i> Close matches</h4>
+    <span class="badge bg-warning text-dark">{{ match_external_partial | length }}</span>
+</div>
+{% if match_external_partial %}
+{% for c in match_external_partial %}
+{{ match::candidate_card(c=c, lang=lang, role=role, csrf_token=csrf_token, role_id=match_role_id, is_full=false) }}
+{% endfor %}
+{% else %}
+<div class="px-3 pb-3 text-muted">No close matches elsewhere at this threshold.</div>
 {% endif %}
 
 {% endif %}
