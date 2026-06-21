@@ -6,12 +6,11 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles};
+use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles, all_roles, get_me};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::task::{work_status_options, priority_options};
 use super::capability::CAPABILITY_LEVELS;
-use super::product::role_options;
 
 fn capability_level_options() -> serde_json::Value {
     json!(CAPABILITY_LEVELS.iter().map(|l| json!({"value": l, "label": humanize(l)})).collect::<Vec<serde_json::Value>>())
@@ -428,13 +427,46 @@ pub async fn assign_work_form(
 
     let current_role_id = work.role.as_ref().map(|r| r.id.clone()).unwrap_or_default();
     let current_skill_id = work.skill.id.clone();
-    let role_opts = role_options(&auth.bearer, &data).await;
     let skill_opts = skill_options(&auth.bearer, &data).await;
+
+    // The operator/admin's own team(s) — roles here are surfaced first so the
+    // default action is to assign work to a role on their own team.
+    let my_team_ids: std::collections::HashSet<String> =
+        match get_me(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+            Ok(r) => r.me.person
+                .map(|p| p.active_roles.iter().map(|ar| ar.team.id.clone()).collect())
+                .unwrap_or_default(),
+            Err(_) => std::collections::HashSet::new(),
+        };
+
+    // Build role options once, split into "your team" and "all roles".
+    let (team_role_opts, role_opts) = match all_roles(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => {
+            let mut team: Vec<serde_json::Value> = Vec::new();
+            let mut all: Vec<serde_json::Value> = Vec::new();
+            for role in &r.all_roles {
+                let person_prefix = role.person.as_ref()
+                    .map(|p| format!("{} {} \u{2014} ", p.given_name, p.family_name))
+                    .unwrap_or_else(|| "Vacant \u{2014} ".to_string());
+                let opt = json!({
+                    "value": role.id,
+                    "label": format!("{}{} ({})", person_prefix, role.title_english, role.team.name_english),
+                });
+                if my_team_ids.contains(&role.team.id) {
+                    team.push(opt.clone());
+                }
+                all.push(opt);
+            }
+            (json!(team), json!(all))
+        },
+        Err(_) => (json!([]), json!([])),
+    };
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("work", &work);
     ctx.insert("current_role_id", &current_role_id);
     ctx.insert("current_skill_id", &current_skill_id);
+    ctx.insert("team_role_options", &team_role_opts);
     ctx.insert("role_options", &role_opts);
     ctx.insert("skill_options", &skill_opts);
 

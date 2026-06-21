@@ -43,7 +43,24 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/work/{{ work.id }}/assign">
                 {{ forms::csrf(token=csrf_token) }}
-                {{ forms::select(name="role_id", label="Assign to Role", options=role_options, selected=current_role_id, blank_label="— Select a role —") }}
+                <div class="mb-3">
+                    <label class="form-label" for="role_id">{{ fluent(key="assign-to-role", lang=lang) }}</label>
+                    <select class="form-select" id="role_id" name="role_id">
+                        <option value="">{{ fluent(key="select-a-role", lang=lang) }}</option>
+                        {% if team_role_options %}
+                        <optgroup label="{{ fluent(key='your-team', lang=lang) }}">
+                            {% for o in team_role_options %}
+                            <option value="{{ o.value }}"{% if o.value == current_role_id %} selected{% endif %}>{{ o.label }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+                        <optgroup label="{{ fluent(key='all-roles', lang=lang) }}">
+                            {% for o in role_options %}
+                            <option value="{{ o.value }}"{% if o.value == current_role_id %} selected{% endif %}>{{ o.label }}</option>
+                            {% endfor %}
+                        </optgroup>
+                    </select>
+                </div>
                 {{ forms::select(name="skill_id", label="Required Skill", options=skill_options, selected=current_skill_id, required=true) }}
                 {{ forms::submit_row(label="Assign", cancel_url="/" ~ lang ~ "/work/" ~ work.id, cancel_label="Cancel") }}
             </form>
