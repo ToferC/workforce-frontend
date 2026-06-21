@@ -433,3 +433,9 @@ enable-user = Activer
 disable-user = Désactiver
 actions = Actions
 name = Nom
+
+# Assign work
+assign-to-role = Assigner à un rôle
+select-a-role = — Sélectionner un rôle —
+your-team = Votre équipe
+all-roles = Tous les rôles

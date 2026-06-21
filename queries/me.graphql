@@ -12,6 +12,10 @@ query Me {
       province
       postalCode
       country
+      activeRoles {
+        id
+        team { id nameEnglish }
+      }
     }
   }
 }

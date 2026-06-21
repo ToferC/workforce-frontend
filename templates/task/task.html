@@ -69,7 +69,9 @@
                 <div class="card-body p-0">
                     {% for work in task.work %}
                     <div class="p-3 border-bottom">
-                        <div class="fw-semibold mb-1">{{ work.workDescription }}</div>
+                        <div class="fw-semibold mb-1">
+                            <a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a>
+                        </div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item px-0 small d-flex align-items-center gap-1">
                                 <span class="text-muted">Domain:</span>
