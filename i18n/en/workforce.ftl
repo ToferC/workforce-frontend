@@ -25,11 +25,14 @@ task = Task
 button-explore-demo-data = Explore demonstration data
 about = About the Project
 language-toggle = Français
+main-navigation = Main navigation
+skip-to-content = Skip to main content
 profile = Profile
 logout = Logout
 user-index = User Index
 login = Log in
 register = Register
+source-code = Source code
 
 ## Footer
 footer-1 = Please note that this work is a learning project and experiment in developing actionable workforce analytics.

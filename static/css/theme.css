@@ -185,12 +185,14 @@ a:focus {
     border-color: var(--border-color);
 }
 
-/* Theme Toggle Button */
+/* Theme Toggle Button
+   Sits on the page background (below the GCDS header), so it reads from theme
+   variables rather than the white-on-dark navbar styling it used to have. */
 #theme-toggle {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    color: rgba(255, 255, 255, 0.9);
-    padding: 0.5rem 1rem;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.4rem 0.9rem;
     border-radius: var(--radius-md);
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -198,16 +200,15 @@ a:focus {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    font-size: 1.2rem;
-    margin-left: var(--spacing-md);
+    font-size: 1.1rem;
     min-width: 48px;
     min-height: 38px;
     vertical-align: middle;
 }
 
 #theme-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.8);
+    background-color: var(--bg-tertiary);
+    border-color: var(--color-primary);
     transform: scale(1.05);
 }
 
@@ -215,8 +216,8 @@ a:focus {
     transform: scale(0.95);
 }
 
-#theme-toggle:focus {
-    outline: 2px solid rgba(255, 255, 255, 0.8);
+#theme-toggle:focus-visible {
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
 }
 

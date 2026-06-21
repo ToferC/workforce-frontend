@@ -1,0 +1,17 @@
+/*
+  Replace path/to/file with the correct path to
+  the gcds-noto-sans-mono font files in your project
+*/
+@font-face {
+  font-family: "Noto Sans Mono";
+  src: url("./gcds-noto-sans-mono.woff2") format("woff2"),
+    url("./gcds-noto-sans-mono.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Set "Noto Sans Mono" + fallback as the code font */
+code {
+  font-family: "Noto Sans Mono", monospace;
+  font-weight: 400;
+}

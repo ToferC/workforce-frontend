@@ -1,0 +1,30 @@
+/*
+  Replace path/to/file with the correct path to
+  the gcds-lato font files in your project
+*/
+@font-face {
+  font-family: "Lato";
+  src: url("./gcds-lato.woff2") format("woff2"),
+    url("./gcds-lato.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Lato";
+  src: url("./gcds-lato-italic.woff2") format("woff2"),
+    url("./gcds-lato-italic.woff") format("woff");
+  font-weight: 700;
+  font-style: italic;
+}
+
+/* Set "Lato" + fallback as the heading font */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Lato", sans-serif;
+  font-weight: 700;
+}

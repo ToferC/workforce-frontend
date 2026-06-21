@@ -6,20 +6,31 @@
     <meta name="description" content={{ fluent(key="app-description", lang=lang )}}>
     <meta name="author" content="ToferC">
     <meta property="og:title" content={{ fluent(key="app-mvp", lang=lang )}}>
-    
+
     {% block title %}
         <title>{{ fluent(key="app-mvp", lang=lang )}}</title>
     {% endblock title %}
 
     {% block preload %}
-        <!-- Bootstrap core CSS -->
+        <!-- GC Design System fonts (vendored locally for CSP / offline use) -->
+        <link href="/static/gcds/fonts/lato/gcds-lato.css" rel="stylesheet">
+        <link href="/static/gcds/fonts/noto-sans/gcds-noto-sans.css" rel="stylesheet">
+        <link href="/static/gcds/fonts/noto-sans-mono/gcds-noto-sans-mono.css" rel="stylesheet">
+        <!-- Bootstrap core CSS (being phased out in favour of GCDS) -->
         <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-        <!-- Bootstrap Icons -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+        <!-- GC Design System core stylesheet (design tokens + component styles) -->
+        <link href="/static/gcds/gcds.css" rel="stylesheet">
+        <!-- GC Design System utility classes -->
+        <link href="/static/gcds/gcds-utility.min.css" rel="stylesheet">
+        <!-- Bootstrap Icons (vendored locally) -->
+        <link rel="stylesheet" href="/static/bootstrap-icons/bootstrap-icons.css">
         <!-- JqueryUI -->
         <link href="/static/jquery-ui/jquery-ui.min.css" rel="stylesheet">
         <!-- Custom Theme CSS with Dark Mode -->
         <link href="/static/css/theme.css" rel="stylesheet">
+
+        <!-- GC Design System web components loader -->
+        <script type="module" src="/static/gcds/gcds.esm.js"></script>
 
         <!-- JQuery -->
         <script type="text/javascript" src="/static/jquery/js/jquery.min.js"></script>
@@ -29,10 +40,10 @@
         <script type="text/javascript" src="/static/bootstrap/js/bootstrap.bundle.min.js"></script>
         <!-- HTMX for progressive enhancement of forms and partial page updates -->
         <script type="text/javascript" src="/static/htmx/htmx.min.js"></script>
-        <!-- ECharts for data visualization (vendor to /static/echarts/ for offline use) -->
-        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+        <!-- ECharts for data visualization (vendored locally) -->
+        <script type="text/javascript" src="/static/echarts/echarts.min.js"></script>
     {% endblock preload %}
-        
+
     {% block style %}
     <!-- Custom page-specific styles can be added here -->
     {% endblock style %}
@@ -44,95 +55,62 @@
 </head>
 
 <body>
-    <br>
-    <div class="container-fluid">
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark" id="main-navbar">
-            <a class="navbar-brand" href="/{{ lang }}">{{ fluent(key="epicenter", lang=lang )}}</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-              <span class="navbar-toggler-icon"></span>
-            </button>
+    <!-- GC Design System global header: Government of Canada signature,
+         official-languages toggle, skip-to-content link, and primary navigation.
+         Plain links keep working if the web components fail to upgrade. -->
+    <gcds-header lang-href="/toggle_language{{ path }}" skip-to-href="#main-content">
+        <gcds-top-nav slot="menu" label="{{ fluent(key='main-navigation', lang=lang) }}" alignment="end">
+            <gcds-nav-link slot="home" href="/{{ lang }}">{{ fluent(key="epicenter", lang=lang) }}</gcds-nav-link>
 
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-              <ul class="navbar-nav mr-auto">
+            <gcds-nav-link href="/{{ lang }}/about">{{ fluent(key="about", lang=lang) }}</gcds-nav-link>
 
-                <li class="nav-item active">
-                    <a class="nav-link" href="/{{ lang }}/about">{{ fluent(key="about", lang=lang )}}<span class="sr-only">(current)</span></a>
-                </li>
-                {% if session_user != "" %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle active" href="#" id="exploreNavbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        {{ fluent(key="explore", lang=lang) }}
-                    </a>
-                    <div class="dropdown-menu" aria-labelledby="exploreNavbarDropdown">
-                        <a class="dropdown-item" href="/{{ lang }}/organizations">{{ fluent(key="organizations", lang=lang) }}</a>
-                        <a class="dropdown-item" href="/{{ lang }}/org_tiers">{{ fluent(key="org-tiers", lang=lang) }}</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="/{{ lang }}/people">{{ fluent(key="people", lang=lang) }}</a>
-                        <a class="dropdown-item" href="/{{ lang }}/roles">{{ fluent(key="roles", lang=lang) }}</a>
-                        <a class="dropdown-item" href="/{{ lang }}/teams">{{ fluent(key="teams", lang=lang) }}</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="/{{ lang }}/tasks">{{ fluent(key="tasks", lang=lang) }}</a>
-                        <a class="dropdown-item" href="/{{ lang }}/work">{{ fluent(key="work", lang=lang) }}</a>
-                        <a class="dropdown-item" href="/{{ lang }}/products">{{ fluent(key="products", lang=lang) }}</a>
-                        <a class="dropdown-item" href="/{{ lang }}/skills">{{ fluent(key="skills", lang=lang) }}</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="/{{ lang }}/vacancies">{{ fluent(key="vacancies", lang=lang) }}</a>
-                        <div class="dropdown-divider"></div>
-                        <h6 class="dropdown-header"><i class="bi bi-bar-chart-line"></i> Analytics</h6>
-                        <a class="dropdown-item" href="/{{ lang }}/analytics"><i class="bi bi-speedometer2"></i> Dashboard</a>
-                        <a class="dropdown-item" href="/{{ lang }}/analytics/coverage"><i class="bi bi-grid-3x3-gap"></i> Capability Coverage</a>
-                        <a class="dropdown-item" href="/{{ lang }}/analytics/delivery"><i class="bi bi-diagram-2"></i> Delivery Map</a>
-                        <a class="dropdown-item" href="/{{ lang }}/analytics/mobility"><i class="bi bi-arrow-left-right"></i> Talent Mobility</a>
-                        <a class="dropdown-item" href="/{{ lang }}/analytics/growth"><i class="bi bi-graph-up"></i> Capability Growth</a>
-                        <a class="dropdown-item" href="/{{ lang }}/analytics/supply-demand"><i class="bi bi-bar-chart-line"></i> Supply vs Demand</a>
-                    </div>
-                </li>
+            {% if session_user != "" %}
+            <gcds-nav-group menu-label="{{ fluent(key='explore', lang=lang) }}" open-trigger="{{ fluent(key='explore', lang=lang) }}">
+                <gcds-nav-link href="/{{ lang }}/organizations">{{ fluent(key="organizations", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/org_tiers">{{ fluent(key="org-tiers", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/people">{{ fluent(key="people", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/roles">{{ fluent(key="roles", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/teams">{{ fluent(key="teams", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/tasks">{{ fluent(key="tasks", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/work">{{ fluent(key="work", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/products">{{ fluent(key="products", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/skills">{{ fluent(key="skills", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/vacancies">{{ fluent(key="vacancies", lang=lang) }}</gcds-nav-link>
+            </gcds-nav-group>
+
+            <gcds-nav-group menu-label="{{ fluent(key='analytics', lang=lang) }}" open-trigger="{{ fluent(key='analytics', lang=lang) }}">
+                <gcds-nav-link href="/{{ lang }}/analytics">{{ fluent(key="analytics", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/coverage">Capability Coverage</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/delivery">Delivery Map</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/mobility">Talent Mobility</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/growth">Capability Growth</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/supply-demand">Supply vs Demand</gcds-nav-link>
+            </gcds-nav-group>
+
+            <gcds-nav-group menu-label="{{ session_user }}" open-trigger="{{ session_user }}">
+                <gcds-nav-link href="/{{ lang }}/user/{{ session_user }}">{{ fluent(key="profile", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/log_out">{{ fluent(key="logout", lang=lang) }}</gcds-nav-link>
+                {% if role == "admin" %}
+                <gcds-nav-link href="/{{ lang }}/user_index">{{ fluent(key="user-index", lang=lang) }}</gcds-nav-link>
                 {% endif %}
-                <div class="d-flex align-items-center ml-auto">
-                    <a class="btn btn-dark" href="/toggle_language{{ path }}">{{ fluent(key="language-toggle", lang=lang ) }}</a>
-                    <button id="theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
-                        <span class="theme-icon-light">☀️</span>
-                        <span class="theme-icon-dark">🌙</span>
-                    </button>
-                </div>
+            </gcds-nav-group>
+            {% else %}
+            <gcds-nav-link href="/{{ lang }}/log_in">{{ fluent(key="login", lang=lang) }}</gcds-nav-link>
+            <gcds-nav-link href="/{{ lang }}/register">{{ fluent(key="register", lang=lang) }}</gcds-nav-link>
+            {% endif %}
+        </gcds-top-nav>
+    </gcds-header>
 
-                {% if session_user != "" %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle active" href="#" id="userNavbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                      {{ session_user }}
-                    </a>
-                    <div class="dropdown-menu" aria-labelledby="userNavbarDropdown">
-                      <a class="dropdown-item" href="/{{ lang }}/me">{{ fluent(key="my-profile", lang=lang )}}</a>
-                      <a class="dropdown-item" href="/{{ lang }}/user/{{ session_user }}">{{ fluent(key="profile", lang=lang )}}</a>
-                      <a class="dropdown-item" href="/{{ lang }}/log_out">{{ fluent(key="logout", lang=lang )}}</a>
-                      <div class="dropdown-divider"></div>
-                      {% if role == "admin" %}
-                      <a class="dropdown-item" href="/{{ lang }}/admin/users">{{ fluent(key="manage-users", lang=lang )}}</a>
-                      <a class="dropdown-item" href="/{{ lang }}/admin/flags">{{ fluent(key="record-flags", lang=lang )}}</a>
-                      {% endif %}
-                    </div>
-                </li>
-                {% else %}
-                <li class="nav-item active">
-                    <a class="nav-link" href="/{{ lang }}/log_in">{{ fluent(key="login", lang=lang )}}<span class="sr-only">(current)</span></a>
-                </li>
-
-                <li class="nav-item active">
-                    <a class="nav-link" href="/{{ lang }}/register">{{ fluent(key="register", lang=lang )}}<span class="sr-only">(current)</span></a>
-                </li>
-
-                {% endif %}
-            </ul>
-            </div>
-            <!--
-                <form class="form-inline my-2 my-lg-0">
-                    <input class="form-control mr-sm-2" type="search" placeholder="Under Construction" aria-label="Search">
-                    <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-                </form>
-            -->
-          </nav>
+    <!-- Theme toggle: app feature retained as an accessible, labelled control.
+         Light is the GC-compliant default; dark mode is an explicit opt-in. -->
+    <div class="container d-flex justify-content-end pt-2">
+        <button id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle theme">
+            <span class="theme-icon-light">☀️</span>
+            <span class="theme-icon-dark">🌙</span>
+        </button>
     </div>
 
+    <main id="main-content" tabindex="-1">
     <div class="container">
 
     {% if flash_messages %}
@@ -152,44 +130,52 @@
             {% block content %}
             {% endblock content %}
     </div>
-        
-        {% block footer %}
-            <div class="row">
-                
-                <div class="col m-md-2 m-1">
 
+    </div>
+    </main>
+
+    {% block footer %}
+        <!-- App attribution / licensing band -->
+        <div class="container">
+            <div class="row">
+                <div class="col m-md-2 m-1">
                     <hr>
-                    
                     <p>{{ fluent(key="footer-1", lang=lang )}}</p>
                     <p>{{ fluent(key="available-licence", lang=lang )}} <a href="https://github.com/ToferC/epi_center">{{ fluent(key="epicenter", lang=lang )}}</a></p>
-                        <p>{{ fluent(key="developed-by", lang=lang )}}</p>
+                    <p>{{ fluent(key="developed-by", lang=lang )}}</p>
+                    <gcds-date-modified>2026-06-21</gcds-date-modified>
                 </div>
-
             </div>
-        {% endblock footer %}
-    </div>
+        </div>
+
+        <!-- GC Design System footer: includes the mandatory Canada wordmark -->
+        <gcds-footer
+            display="compact"
+            contextual-heading="{{ fluent(key='epicenter', lang=lang) }}"
+            contextual-links='{"{{ fluent(key="source-code", lang=lang) }}": "https://github.com/ToferC/epi_center", "{{ fluent(key="about", lang=lang) }}": "/{{ lang }}/about"}'>
+        </gcds-footer>
+    {% endblock footer %}
 
     {% block scripts %}
     {% endblock scripts %}
 
     <!-- Theme Toggle Script -->
     <script>
-        // Theme management
+        // Theme management. GC baseline is light; dark mode is an opt-in
+        // remembered per browser. The GCDS header/footer are shadow-DOM web
+        // components and are styled independently of this toggle.
         const themeToggle = document.getElementById('theme-toggle');
         const html = document.documentElement;
-        const navbar = document.getElementById('main-navbar');
 
-        // Check for saved theme preference or default to dark mode
-        const currentTheme = localStorage.getItem('theme') || 'dark';
+        // Default to light (GC standard); honour a saved preference if present.
+        const currentTheme = localStorage.getItem('theme') || 'light';
         html.setAttribute('data-theme', currentTheme);
 
-        // Update button visibility and navbar classes based on current theme
         function updateTheme() {
             const isDark = html.getAttribute('data-theme') === 'dark';
             const lightIcon = themeToggle.querySelector('.theme-icon-light');
             const darkIcon = themeToggle.querySelector('.theme-icon-dark');
 
-            // Update icon visibility
             if (isDark) {
                 lightIcon.style.display = 'inline-block';
                 darkIcon.style.display = 'none';
@@ -197,23 +183,13 @@
                 lightIcon.style.display = 'none';
                 darkIcon.style.display = 'inline-block';
             }
-
-            // Update navbar classes
-            if (isDark) {
-                navbar.classList.remove('navbar-light', 'bg-light');
-                navbar.classList.add('navbar-dark', 'bg-dark');
-            } else {
-                navbar.classList.remove('navbar-dark', 'bg-dark');
-                navbar.classList.add('navbar-light', 'bg-light');
-            }
         }
 
         updateTheme();
 
-        // Toggle theme on button click
         themeToggle.addEventListener('click', function() {
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            const current = html.getAttribute('data-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
 
             html.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
