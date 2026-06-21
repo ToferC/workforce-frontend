@@ -50,8 +50,9 @@
                 {{ forms::csrf(token=csrf_token) }}
 
                 {% if not edit %}
-                {{ forms::text_input(name="user_email", label=label_user_email, value=person.userEmail, type="email", help=help_user_email) }}
-                <hr>
+                <p class="text-muted small mb-3"><i class="bi bi-info-circle"></i>
+                    {{ fluent(key="create-person-account-note", lang=lang) }}
+                </p>
                 {% endif %}
 
                 <div class="row">

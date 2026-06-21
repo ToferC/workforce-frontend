@@ -15,6 +15,7 @@ pub mod validation;
 pub mod language;
 pub mod product;
 pub mod analytics;
+pub mod account;
 
 pub use client::*;
 pub use log_in_mutation::*;
@@ -33,3 +34,4 @@ pub use validation::*;
 pub use language::*;
 pub use product::*;
 pub use analytics::*;
+pub use account::*;

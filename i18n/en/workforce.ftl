@@ -394,3 +394,21 @@ explore = Explore
 people = People
 vacancies = Vacancies
 analytics = Analytics
+
+# Account onboarding & self-service (Phase 3)
+create-person-account-note = Creating a person also creates a login-disabled account using the email below. The person cannot sign in until an administrator grants access.
+my-profile = My profile
+my-details = My details
+account-status = Account
+status-active = Active
+status-invited = Invited
+status-disabled = Disabled
+status-provisioned = No access yet
+grant-access = Grant access
+activate-account = Activate account
+activate-account-lead = Set a password to activate your account.
+activate-missing-token = This activation link is missing its token. Please use the link your administrator sent you.
+confirm-password = Confirm password
+flag-an-issue = Flag an issue
+flag-an-issue-help = See something wrong in your record? Send a note and an administrator will review it.
+no-linked-person = Your account has no linked person record.

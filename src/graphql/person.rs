@@ -59,7 +59,7 @@ pub async fn get_user_by_email(email: String, bearer: String, api_url: &str, cli
 )]
 pub struct CreatePerson;
 
-pub async fn create_person(data: create_person::NewPerson, bearer: String, api_url: &str, client: Arc<Client>) -> Result<create_person::ResponseData, ApiError> {
+pub async fn create_person(data: create_person::NewPersonInput, bearer: String, api_url: &str, client: Arc<Client>) -> Result<create_person::ResponseData, ApiError> {
     post_graphql::<CreatePerson>(&client, api_url, &bearer, create_person::Variables {
         data,
     }).await

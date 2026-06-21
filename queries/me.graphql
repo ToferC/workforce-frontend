@@ -1,0 +1,17 @@
+query Me {
+  me {
+    user { id email role accountType status }
+    person {
+      id
+      givenName
+      familyName
+      email
+      phone
+      workAddress
+      city
+      province
+      postalCode
+      country
+    }
+  }
+}

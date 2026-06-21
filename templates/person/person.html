@@ -16,6 +16,15 @@
             <a href="/{{ lang }}/organization/{{ person.organization.id }}">{{ person.organization.nameEn }}</a>
             {% if person.personnelType %}<span class="badge bg-secondary align-middle">{{ person.personnelType }}</span>{% endif %}
         </p>
+        {% if account_status %}
+        <p class="mb-2">
+            <span class="text-muted small">{{ fluent(key="account-status", lang=lang) }}:</span>
+            {% if account_status == "ACTIVE" %}<span class="badge bg-success">{{ fluent(key="status-active", lang=lang) }}</span>
+            {% elif account_status == "INVITED" %}<span class="badge bg-info text-dark">{{ fluent(key="status-invited", lang=lang) }}</span>
+            {% elif account_status == "DISABLED" %}<span class="badge bg-danger">{{ fluent(key="status-disabled", lang=lang) }}</span>
+            {% else %}<span class="badge bg-secondary">{{ fluent(key="status-provisioned", lang=lang) }}</span>{% endif %}
+        </p>
+        {% endif %}
         {% if person.activeEffort is defined %}
         <div class="d-flex align-items-center justify-content-center gap-2 mt-1">
             <span class="text-muted small"><i class="bi bi-speedometer2"></i> {{ fluent(key="active-effort", lang=lang) }}</span>
@@ -28,6 +37,12 @@
             <a class="btn btn-primary" href="/{{ lang }}/person/{{ person.id }}/edit">
                 <i class="bi bi-pencil"></i> {{ fluent(key="edit-person", lang=lang) }}
             </a>
+            {% if role == "admin" and account_status and account_status != "ACTIVE" %}
+            <form method="post" action="/{{ lang }}/person/{{ person.id }}/grant-access" class="d-inline m-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-outline-primary"><i class="bi bi-key"></i> {{ fluent(key="grant-access", lang=lang) }}</button>
+            </form>
+            {% endif %}
             {% if person.retiredAt %}
             <form method="post" action="/{{ lang }}/person/{{ person.id }}/restore" class="d-inline m-0">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

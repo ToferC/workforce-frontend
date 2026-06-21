@@ -394,3 +394,21 @@ explore = Explorer
 people = Personnes
 vacancies = Postes vacants
 analytics = Analytique
+
+# Account onboarding & self-service (Phase 3)
+create-person-account-note = La création d'une personne crée aussi un compte sans accès à l'aide du courriel ci-dessous. La personne ne peut pas se connecter tant qu'un administrateur n'a pas accordé l'accès.
+my-profile = Mon profil
+my-details = Mes coordonnées
+account-status = Compte
+status-active = Actif
+status-invited = Invité
+status-disabled = Désactivé
+status-provisioned = Aucun accès
+grant-access = Accorder l'accès
+activate-account = Activer le compte
+activate-account-lead = Définissez un mot de passe pour activer votre compte.
+activate-missing-token = Ce lien d'activation n'a pas de jeton. Veuillez utiliser le lien envoyé par votre administrateur.
+confirm-password = Confirmer le mot de passe
+flag-an-issue = Signaler un problème
+flag-an-issue-help = Une erreur dans votre dossier? Envoyez une note et un administrateur l'examinera.
+no-linked-person = Votre compte n'a aucun dossier de personne associé.

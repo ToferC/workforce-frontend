@@ -171,7 +171,7 @@ pub async fn person_by_id(
         None => "".to_string(),
     };
 
-    let r = get_person_by_id(person_id, bearer, &data.api_url, Arc::clone(&data.client))
+    let r = get_person_by_id(person_id, bearer.clone(), &data.api_url, Arc::clone(&data.client))
         .await
         .expect("Unable to get person");
 
@@ -226,8 +226,75 @@ pub async fn person_by_id(
 
     ctx.insert("person", &r.person_by_id);
 
+    // Account status drives the status chip and the Grant-access action. The
+    // userByEmail lookup is admin-guarded, so this only resolves for admins;
+    // it degrades silently otherwise.
+    if let Ok(u) = get_user_by_email(person.email.clone(), bearer, &data.api_url, Arc::clone(&data.client)).await {
+        ctx.insert("account_status", &u.user_by_email.status);
+        ctx.insert("account_user_id", &u.user_by_email.id);
+    }
+
     let rendered = data.tmpl.render("person/person.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
+}
+
+#[derive(Deserialize, Debug)]
+pub struct GrantAccessForm {
+    pub csrf_token: String,
+}
+
+/// Issue an activation invite for a person's account (admin only — resolving the
+/// account requires the admin-guarded userByEmail). Surfaces the activation link
+/// as a flash message for the admin to share.
+#[post("/{lang}/person/{person_id}/grant-access")]
+pub async fn grant_access_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<GrantAccessForm>,
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Admin) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/person/{}", &lang, &person_id));
+    }
+
+    // Resolve the person's account, then issue the invite.
+    let person = match get_person_by_id(person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.person_by_id,
+        Err(e) => { security::add_flash(&session, "danger", &e.to_string()); return redirect_to(format!("/{}/person/{}", &lang, &person_id)); }
+    };
+
+    let user = match get_user_by_email(person.email.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.user_by_email,
+        Err(e) => { security::add_flash(&session, "danger", &e.to_string()); return redirect_to(format!("/{}/person/{}", &lang, &person_id)); }
+    };
+
+    match crate::graphql::invite_user(user.id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(resp) => {
+            let token = resp.invite_user.activation_token;
+            let link = format!("/{}/activate?token={}", &lang, token);
+            security::add_flash(
+                &session,
+                "success",
+                &by_lang(
+                    &lang,
+                    &format!("Access granted. Share this activation link with the person: {}", link),
+                    &format!("Accès accordé. Partagez ce lien d'activation avec la personne : {}", link),
+                ),
+            );
+        },
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/person/{}", &lang, &person_id))
 }
 
 #[get("/{lang}/person/new")]
@@ -293,27 +360,19 @@ pub async fn create_person_post(
         HttpResponse::Ok().body(rendered)
     };
 
-    // A person record must link to an existing user account
-    let user = match get_user_by_email(
-        form.user_email.to_lowercase().trim().to_string(),
-        auth.bearer.clone(),
-        &data.api_url,
-        Arc::clone(&data.client),
-    ).await {
-        Ok(r) => r.user_by_email,
-        Err(_) => {
-            let message = by_lang(
-                &lang,
-                "No user account found with that email. The person must have a registered user account first.",
-                "Aucun compte utilisateur trouvé avec ce courriel. La personne doit d'abord avoir un compte utilisateur.",
-            ).to_string();
-            let options = organization_options(&auth.bearer, &data).await;
-            return render_error(message, id, options);
-        },
-    };
+    // Email is required: creating a Person now auto-provisions a (login-disabled)
+    // user account, and the email becomes that account's login id.
+    if form.email.trim().is_empty() {
+        let message = by_lang(
+            &lang,
+            "An email address is required — it becomes the person's account login.",
+            "Une adresse courriel est requise — elle devient l'identifiant du compte de la personne.",
+        ).to_string();
+        let options = organization_options(&auth.bearer, &data).await;
+        return render_error(message, id, options);
+    }
 
-    let new_person = create_person::NewPerson {
-        user_id: user.id,
+    let new_person = create_person::NewPersonInput {
         family_name: form.family_name.trim().to_string(),
         given_name: form.given_name.trim().to_string(),
         email: form.email.trim().to_string(),

@@ -1,4 +1,4 @@
-mutation CreatePerson($data: NewPerson!) {
+mutation CreatePerson($data: NewPersonInput!) {
   createPerson(data: $data) {
     id
     familyName
