@@ -1,2 +1,5 @@
 /target
 .env
+# a11y audit harness deps
+a11y/node_modules/
+a11y/package-lock.json

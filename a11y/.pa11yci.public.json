@@ -1,0 +1,20 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "runners": ["axe", "htmlcs"],
+    "timeout": 30000,
+    "wait": 500,
+    "chromeLaunchConfig": {
+      "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+    },
+    "hideElements": "#theme-toggle"
+  },
+  "urls": [
+    "http://127.0.0.1:8088/en",
+    "http://127.0.0.1:8088/fr",
+    "http://127.0.0.1:8088/en/about",
+    "http://127.0.0.1:8088/en/log_in",
+    "http://127.0.0.1:8088/en/register",
+    "http://127.0.0.1:8088/en/this-route-does-not-exist"
+  ]
+}
