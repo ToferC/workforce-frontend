@@ -37,7 +37,7 @@
             <a class="btn btn-primary" href="/{{ lang }}/person/{{ person.id }}/edit">
                 <i class="bi bi-pencil"></i> {{ fluent(key="edit-person", lang=lang) }}
             </a>
-            {% if role == "admin" and account_status and account_status != "ACTIVE" %}
+            {% if (role == "operator" or role == "admin") and (not account_status or account_status != "ACTIVE") %}
             <form method="post" action="/{{ lang }}/person/{{ person.id }}/grant-access" class="d-inline m-0">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="btn btn-outline-primary"><i class="bi bi-key"></i> {{ fluent(key="grant-access", lang=lang) }}</button>
