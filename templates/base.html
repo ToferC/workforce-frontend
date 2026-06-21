@@ -102,6 +102,7 @@
                       {{ session_user }}
                     </a>
                     <div class="dropdown-menu" aria-labelledby="userNavbarDropdown">
+                      <a class="dropdown-item" href="/{{ lang }}/me">{{ fluent(key="my-profile", lang=lang )}}</a>
                       <a class="dropdown-item" href="/{{ lang }}/user/{{ session_user }}">{{ fluent(key="profile", lang=lang )}}</a>
                       <a class="dropdown-item" href="/{{ lang }}/log_out">{{ fluent(key="logout", lang=lang )}}</a>
                       <div class="dropdown-divider"></div>

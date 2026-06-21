@@ -20,6 +20,14 @@ use crate::handlers::{
     login_form_input,
     login_handler,
 
+    // account lifecycle / self-service
+    activate_form,
+    activate_post,
+    my_profile,
+    my_profile_post,
+    flag_issue_post,
+    grant_access_post,
+
     // person
     person_by_id,
     person_by_name,
@@ -170,6 +178,14 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     // login
     config.service(login_handler);
     config.service(login_form_input);
+
+    // account lifecycle / self-service
+    config.service(activate_form);
+    config.service(activate_post);
+    config.service(my_profile);
+    config.service(my_profile_post);
+    config.service(flag_issue_post);
+    config.service(grant_access_post);
 
     // person
     // "new" must be registered before the {person_id} catch-all

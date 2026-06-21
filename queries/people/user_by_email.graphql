@@ -3,5 +3,6 @@ query UserByEmail($email: String!) {
     id
     email
     name
+    status
   }
 }

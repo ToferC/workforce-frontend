@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    <title>{{ fluent(key="activate-account", lang=lang) }}</title>
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="display-4 mb-2"><i class="bi bi-key"></i> {{ fluent(key="activate-account", lang=lang) }}</h1>
+        <p class="lead text-muted">{{ fluent(key="activate-account-lead", lang=lang) }}</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-12">
+            <div class="card shadow-lg">
+                <div class="card-body p-4">
+                    {% if token == "" %}
+                    <p class="text-danger"><i class="bi bi-exclamation-octagon"></i> {{ fluent(key="activate-missing-token", lang=lang) }}</p>
+                    {% else %}
+                    <form method="post" action="/{{ lang }}/activate">
+                        {{ forms::csrf(token=csrf_token) }}
+                        <input type="hidden" name="token" value="{{ token }}">
+
+                        <div class="form-group mb-3">
+                            <label class="form-label"><strong>{{ fluent(key="password", lang=lang) }}</strong></label>
+                            <input class="form-control form-control-lg" type="password" name="password" minlength="8" required>
+                        </div>
+                        <div class="form-group mb-4">
+                            <label class="form-label"><strong>{{ fluent(key="confirm-password", lang=lang) }}</strong></label>
+                            <input class="form-control form-control-lg" type="password" name="password_confirm" minlength="8" required>
+                        </div>
+
+                        <button class="btn btn-primary btn-lg w-100" type="submit">{{ fluent(key="activate-account", lang=lang) }}</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

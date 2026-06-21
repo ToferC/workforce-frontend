@@ -1,0 +1,5 @@
+mutation FlagRecordIssue($message: String!) {
+  flagRecordIssue(message: $message) {
+    id
+  }
+}
