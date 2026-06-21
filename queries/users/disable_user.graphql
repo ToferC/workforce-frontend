@@ -1,0 +1,6 @@
+mutation DisableUser($userId: UUID!) {
+  disableUser(userId: $userId) {
+    id
+    status
+  }
+}

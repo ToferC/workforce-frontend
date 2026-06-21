@@ -1,0 +1,11 @@
+query AllUsers {
+  allUsers {
+    id
+    name
+    email
+    role
+    accountType
+    status
+    createdAt
+  }
+}

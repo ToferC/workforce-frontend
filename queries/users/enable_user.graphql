@@ -1,0 +1,6 @@
+mutation EnableUser($userId: UUID!) {
+  enableUser(userId: $userId) {
+    id
+    status
+  }
+}

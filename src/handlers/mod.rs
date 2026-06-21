@@ -1,5 +1,6 @@
 pub mod authentication_hander;
 pub mod account;
+pub mod admin;
 pub mod base;
 pub mod routes;
 pub mod users;
@@ -23,6 +24,7 @@ pub mod analytics;
 
 pub use authentication_hander::*;
 pub use account::*;
+pub use admin::*;
 pub use base::{index, raw_index};
 pub use routes::configure_services;
 pub use users::*;

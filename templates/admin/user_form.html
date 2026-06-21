@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    <title>{% if edit %}{{ fluent(key="edit-user", lang=lang) }}{% else %}{{ fluent(key="new-user", lang=lang) }}{% endif %}</title>
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+    <h1 class="mb-4">
+        <i class="bi bi-person-gear"></i>
+        {% if edit %}{{ fluent(key="edit-user", lang=lang) }}{% else %}{{ fluent(key="new-user", lang=lang) }}{% endif %}
+    </h1>
+
+    {% if edit %}
+        {% set form_action = "/" ~ lang ~ "/admin/users/" ~ user.id ~ "/edit" %}
+    {% else %}
+        {% set form_action = "/" ~ lang ~ "/admin/users/new" %}
+    {% endif %}
+    {% set cancel_url = "/" ~ lang ~ "/admin/users" %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="{{ form_action | safe }}">
+                {{ forms::csrf(token=csrf_token) }}
+
+                {{ forms::text_input(name="name", label=fluent(key="name", lang=lang), value=user.name) }}
+                {{ forms::text_input(name="email", label=fluent(key="email", lang=lang), value=user.email, type="email") }}
+
+                {% if edit %}
+                <div class="mb-3">
+                    <label class="form-label" for="password">{{ fluent(key="password", lang=lang) }}</label>
+                    <input class="form-control" id="password" name="password" type="password" minlength="8">
+                    <small class="form-text text-muted">{{ fluent(key="password-blank-keep", lang=lang) }}</small>
+                </div>
+                {% else %}
+                <div class="mb-3">
+                    <label class="form-label" for="password">{{ fluent(key="password", lang=lang) }} <span class="text-danger">*</span></label>
+                    <input class="form-control" id="password" name="password" type="password" minlength="8" required>
+                </div>
+                {% endif %}
+
+                {{ forms::select(name="role", label=fluent(key="user-role", lang=lang), options=role_options, selected=user.role) }}
+
+                {% if not edit %}
+                {{ forms::select(name="account_type", label=fluent(key="account-type", lang=lang), options=account_type_options, selected=user.accountType) }}
+                <p class="text-muted small">{{ fluent(key="account-type-help", lang=lang) }}</p>
+                {% endif %}
+
+                {{ forms::submit_row(label=fluent(key="save-button", lang=lang), cancel_url=cancel_url, cancel_label=fluent(key="cancel-button", lang=lang)) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

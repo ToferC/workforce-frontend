@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}
+    <title>{{ fluent(key="manage-users", lang=lang) }}</title>
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h1 class="display-5 mb-0"><i class="bi bi-people-fill"></i> {{ fluent(key="manage-users", lang=lang) }}</h1>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="/{{ lang }}/admin/flags"><i class="bi bi-flag"></i> {{ fluent(key="record-flags", lang=lang) }}</a>
+            <a class="btn btn-primary" href="/{{ lang }}/admin/users/new"><i class="bi bi-person-plus"></i> {{ fluent(key="new-user", lang=lang) }}</a>
+        </div>
+    </div>
+
+    <div class="card shadow-lg">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>{{ fluent(key="name", lang=lang) }}</th>
+                        <th>{{ fluent(key="email", lang=lang) }}</th>
+                        <th>{{ fluent(key="user-role", lang=lang) }}</th>
+                        <th>{{ fluent(key="account-type", lang=lang) }}</th>
+                        <th>{{ fluent(key="account-status", lang=lang) }}</th>
+                        <th class="text-end">{{ fluent(key="actions", lang=lang) }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for u in users %}
+                    <tr>
+                        <td>{{ u.name }}</td>
+                        <td>{{ u.email }}</td>
+                        <td><span class="badge bg-secondary">{{ u.role }}</span></td>
+                        <td>{{ u.accountType }}</td>
+                        <td>
+                            {% if u.status == "ACTIVE" %}<span class="badge bg-success">{{ fluent(key="status-active", lang=lang) }}</span>
+                            {% elif u.status == "INVITED" %}<span class="badge bg-info text-dark">{{ fluent(key="status-invited", lang=lang) }}</span>
+                            {% elif u.status == "DISABLED" %}<span class="badge bg-danger">{{ fluent(key="status-disabled", lang=lang) }}</span>
+                            {% else %}<span class="badge bg-secondary">{{ fluent(key="status-provisioned", lang=lang) }}</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1 flex-wrap justify-content-end">
+                                <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/admin/users/{{ u.id }}/edit"><i class="bi bi-pencil"></i></a>
+                                {% if u.status != "ACTIVE" and u.status != "DISABLED" %}
+                                <form method="post" action="/{{ lang }}/admin/users/{{ u.id }}/invite" class="m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button class="btn btn-sm btn-outline-success" title="{{ fluent(key='grant-access', lang=lang) }}"><i class="bi bi-key"></i></button>
+                                </form>
+                                {% endif %}
+                                {% if u.status == "DISABLED" %}
+                                <form method="post" action="/{{ lang }}/admin/users/{{ u.id }}/enable" class="m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button class="btn btn-sm btn-outline-success" title="{{ fluent(key='enable-user', lang=lang) }}"><i class="bi bi-check-circle"></i></button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="/{{ lang }}/admin/users/{{ u.id }}/disable" class="m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button class="btn btn-sm btn-outline-danger" title="{{ fluent(key='disable-user', lang=lang) }}"><i class="bi bi-slash-circle"></i></button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="text-muted text-center py-4">{{ fluent(key="no-users", lang=lang) }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock content %}

@@ -412,3 +412,24 @@ confirm-password = Confirmer le mot de passe
 flag-an-issue = Signaler un problème
 flag-an-issue-help = Une erreur dans votre dossier? Envoyez une note et un administrateur l'examinera.
 no-linked-person = Votre compte n'a aucun dossier de personne associé.
+
+# Admin user portal
+manage-users = Gérer les utilisateurs
+record-flags = Signalements
+new-user = Nouvel utilisateur
+edit-user = Modifier l'utilisateur
+no-users = Aucun utilisateur trouvé.
+no-flags = Aucun signalement ouvert. Tout est réglé.
+user-role = Rôle
+account-type = Type de compte
+account-type-help = Les agents sont des comptes de service non humains et ne sont pas liés à une personne.
+password-blank-keep = Laissez vide pour conserver le mot de passe actuel.
+record-flags-help = Demandes de correction soumises par les personnes au sujet de leur propre dossier.
+message = Message
+submitted = Soumis
+view-record = Voir le dossier
+resolve = Résoudre
+enable-user = Activer
+disable-user = Désactiver
+actions = Actions
+name = Nom

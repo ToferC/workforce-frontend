@@ -1,0 +1,8 @@
+query RecordFlags {
+  recordFlags {
+    id
+    personId
+    message
+    createdAt
+  }
+}

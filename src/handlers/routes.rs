@@ -28,6 +28,18 @@ use crate::handlers::{
     flag_issue_post,
     grant_access_post,
 
+    // admin portal
+    admin_users,
+    admin_user_new_form,
+    admin_user_create,
+    admin_user_edit_form,
+    admin_user_update,
+    admin_user_invite,
+    admin_user_disable,
+    admin_user_enable,
+    admin_flags,
+    admin_flag_resolve,
+
     // person
     person_by_id,
     person_by_name,
@@ -186,6 +198,18 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(my_profile_post);
     config.service(flag_issue_post);
     config.service(grant_access_post);
+
+    // admin portal — "new" must be registered before the {user_id} catch-alls
+    config.service(admin_users);
+    config.service(admin_user_new_form);
+    config.service(admin_user_create);
+    config.service(admin_user_edit_form);
+    config.service(admin_user_update);
+    config.service(admin_user_invite);
+    config.service(admin_user_disable);
+    config.service(admin_user_enable);
+    config.service(admin_flags);
+    config.service(admin_flag_resolve);
 
     // person
     // "new" must be registered before the {person_id} catch-all
