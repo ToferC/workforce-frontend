@@ -1,0 +1,5 @@
+mutation ResolveRecordFlag($id: UUID!) {
+  resolveRecordFlag(id: $id) {
+    id
+  }
+}

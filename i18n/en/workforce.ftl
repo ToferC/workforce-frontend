@@ -412,3 +412,24 @@ confirm-password = Confirm password
 flag-an-issue = Flag an issue
 flag-an-issue-help = See something wrong in your record? Send a note and an administrator will review it.
 no-linked-person = Your account has no linked person record.
+
+# Admin user portal
+manage-users = Manage users
+record-flags = Record flags
+new-user = New user
+edit-user = Edit user
+no-users = No users found.
+no-flags = No open flags. All clear.
+user-role = Role
+account-type = Account type
+account-type-help = Agents are non-human service accounts and are not linked to a person.
+password-blank-keep = Leave blank to keep the current password.
+record-flags-help = Correction requests submitted by people about their own records.
+message = Message
+submitted = Submitted
+view-record = View record
+resolve = Resolve
+enable-user = Enable
+disable-user = Disable
+actions = Actions
+name = Name
