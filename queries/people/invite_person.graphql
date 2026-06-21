@@ -1,0 +1,7 @@
+mutation InvitePerson($personId: UUID!) {
+  invitePerson(personId: $personId) {
+    userId
+    activationToken
+    expiresAt
+  }
+}

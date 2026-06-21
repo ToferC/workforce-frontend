@@ -243,9 +243,10 @@ pub struct GrantAccessForm {
     pub csrf_token: String,
 }
 
-/// Issue an activation invite for a person's account (admin only — resolving the
-/// account requires the admin-guarded userByEmail). Surfaces the activation link
-/// as a flash message for the admin to share.
+/// Issue an activation invite for a person's account (operator+). Uses the
+/// invitePerson mutation, which resolves the account server-side, so operators
+/// who cannot read user records can still grant access. Surfaces the activation
+/// link as a flash message to share.
 #[post("/{lang}/person/{person_id}/grant-access")]
 pub async fn grant_access_post(
     data: web::Data<AppData>,
@@ -256,7 +257,7 @@ pub async fn grant_access_post(
     let (lang, person_id) = path_params.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Admin) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -266,21 +267,9 @@ pub async fn grant_access_post(
         return redirect_to(format!("/{}/person/{}", &lang, &person_id));
     }
 
-    // Resolve the person's account, then issue the invite.
-    let person = match get_person_by_id(person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
-        Ok(r) => r.person_by_id,
-        Err(e) => { security::add_flash(&session, "danger", &e.to_string()); return redirect_to(format!("/{}/person/{}", &lang, &person_id)); }
-    };
-
-    let user = match get_user_by_email(person.email.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
-        Ok(r) => r.user_by_email,
-        Err(e) => { security::add_flash(&session, "danger", &e.to_string()); return redirect_to(format!("/{}/person/{}", &lang, &person_id)); }
-    };
-
-    match crate::graphql::invite_user(user.id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match crate::graphql::invite_person(person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(resp) => {
-            let token = resp.invite_user.activation_token;
-            let link = format!("/{}/activate?token={}", &lang, token);
+            let link = format!("/{}/activate?token={}", &lang, resp.invite_person.activation_token);
             security::add_flash(
                 &session,
                 "success",

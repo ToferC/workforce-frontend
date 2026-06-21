@@ -22,6 +22,20 @@ pub async fn invite_user(user_id: String, bearer: String, api_url: &str, client:
     post_graphql::<InviteUser>(&client, api_url, &bearer, invite_user::Variables { user_id }).await
 }
 
+/// Grant access by person id (operator+). Resolves the person's account
+/// server-side, so operators who can't read user records can still invite.
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(
+    schema_path = "schema.graphql",
+    query_path = "queries/people/invite_person.graphql",
+    response_derives = "Debug, Serialize, PartialEq"
+)]
+pub struct InvitePerson;
+
+pub async fn invite_person(person_id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<invite_person::ResponseData, ApiError> {
+    post_graphql::<InvitePerson>(&client, api_url, &bearer, invite_person::Variables { person_id }).await
+}
+
 /// Redeem an activation token by setting a password (public — no bearer).
 #[derive(GraphQLQuery, Serialize, Deserialize)]
 #[graphql(
