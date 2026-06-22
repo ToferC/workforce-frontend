@@ -27,6 +27,7 @@ about = À propos du projet
 language-toggle = English
 main-navigation = Navigation principale
 skip-to-content = Passer au contenu principal
+home = Accueil
 profile = Profil
 logout = Déconnexion
 user-index = Index des utilisateurs

@@ -15,7 +15,7 @@
     </nav>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0"><i class="bi bi-graph-up"></i> Capability Growth</h1>
+        <h1 class="h3 mb-0"><i class="bi bi-graph-up" aria-hidden="true"></i> Capability Growth</h1>
         <span class="text-muted small">Cumulative validated capability depth over time by domain</span>
     </div>
 
@@ -42,7 +42,7 @@
     <!-- Line Chart -->
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Capability Depth Over Time (Quarterly)</h5>
+            <h5 class="mb-0"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Capability Depth Over Time (Quarterly)</h5>
         </div>
         <div class="card-body">
             {{ charts::chart(id="growth", height="500px") }}

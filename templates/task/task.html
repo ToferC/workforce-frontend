@@ -8,21 +8,21 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-kanban"></i> {{ task.title }}
+        <h1 class="display-4 mb-2"><i class="bi bi-kanban" aria-hidden="true"></i> {{ task.title }}
             <span class="align-middle">{{ viz::status_chip(status=task.taskStatus) }}</span> {{ viz::priority_chip(priority=task.priority) }}
         </h1>
         {% if task.product %}
         <p class="lead text-muted">
-            <i class="bi bi-box-seam"></i> Product: <a href="/{{ lang }}/product/{{ task.product.id }}">{% if lang == "fr" %}{{ task.product.nameFr }}{% else %}{{ task.product.nameEn }}{% endif %}</a>
+            <i class="bi bi-box-seam" aria-hidden="true"></i> Product: <a href="/{{ lang }}/product/{{ task.product.id }}">{% if lang == "fr" %}{{ task.product.nameFr }}{% else %}{{ task.product.nameEn }}{% endif %}</a>
         </p>
         {% endif %}
         {% if role == "operator" or role == "admin" %}
         <div class="mb-2">
             <a class="btn btn-primary" href="/{{ lang }}/task/{{ task.id }}/edit">
-                <i class="bi bi-pencil"></i> {{ fluent(key="edit-task", lang=lang) }}
+                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-task", lang=lang) }}
             </a>
             <a class="btn btn-outline-primary" href="/{{ lang }}/task/{{ task.id }}/work/new">
-                <i class="bi bi-plus-circle"></i> Add Work Item
+                <i class="bi bi-plus-circle" aria-hidden="true"></i> Add Work Item
             </a>
         </div>
         {% endif %}
@@ -64,7 +64,7 @@
             <!-- Work Elements -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-list-task"></i> Work Elements</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-list-task" aria-hidden="true"></i> Work Elements</h2>
                 </div>
                 <div class="card-body p-0">
                     {% for work in task.work %}
@@ -106,7 +106,7 @@
                             Not assigned.
                             {% if role == "operator" or role == "admin" %}
                             <a href="/{{ lang }}/work/{{ work.id }}/assign" class="ms-2 btn btn-sm btn-outline-success">
-                                <i class="bi bi-person-plus"></i> Assign
+                                <i class="bi bi-person-plus" aria-hidden="true"></i> Assign
                             </a>
                             {% endif %}
                         </p>
@@ -125,7 +125,7 @@
                 <!-- Details -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> Details</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">

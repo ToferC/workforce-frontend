@@ -111,6 +111,7 @@
     </div>
 
     <main id="main-content" tabindex="-1">
+    {% block breadcrumb %}{% endblock breadcrumb %}
     <div class="container">
 
     {% if flash_messages %}
@@ -119,7 +120,7 @@
             {% for flash in flash_messages %}
             <div class="alert alert-{{ flash.level }} alert-dismissible fade show" role="alert">
                 {{ flash.message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
             {% endfor %}
         </div>

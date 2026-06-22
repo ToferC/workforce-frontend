@@ -7,7 +7,7 @@
                 {% if lang == "fr" %}{{ tier.nameFr }}{% else %}{{ tier.nameEn }}{% endif %}
             </a>
             <span class="text-muted small ms-2">
-                <i class="bi bi-building"></i>
+                <i class="bi bi-building" aria-hidden="true"></i>
                 {% if lang == "fr" %}{{ tier.organization.nameFr }}{% else %}{{ tier.organization.nameEn }}{% endif %}
                 ({% if lang == "fr" %}{{ tier.organization.acronymFr }}{% else %}{{ tier.organization.acronymEn }}{% endif %})
             </span>

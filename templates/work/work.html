@@ -8,21 +8,21 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-list-task"></i> {{ work.workDescription | title }}
+        <h1 class="display-4 mb-2"><i class="bi bi-list-task" aria-hidden="true"></i> {{ work.workDescription | title }}
             <span class="align-middle">{{ viz::status_chip(status=work.workStatus) }}</span>
         </h1>
         {% if role == "operator" or role == "admin" %}
         <div class="mb-2">
             <a class="btn btn-primary" href="/{{ lang }}/work/{{ work.id }}/edit">
-                <i class="bi bi-pencil"></i> {{ fluent(key="edit-work", lang=lang) }}
+                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-work", lang=lang) }}
             </a>
             {% if work.role %}
             <a class="btn btn-warning" href="/{{ lang }}/work/{{ work.id }}/assign">
-                <i class="bi bi-arrow-left-right"></i> Reassign
+                <i class="bi bi-arrow-left-right" aria-hidden="true"></i> Reassign
             </a>
             {% else %}
             <a class="btn btn-success" href="/{{ lang }}/work/{{ work.id }}/assign">
-                <i class="bi bi-person-plus"></i> Assign
+                <i class="bi bi-person-plus" aria-hidden="true"></i> Assign
             </a>
             {% endif %}
         </div>
@@ -42,12 +42,12 @@
             <!-- Assigned To -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <h2 class="h4 mb-0"><i class="bi bi-person-check"></i> Assigned To</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-person-check" aria-hidden="true"></i> Assigned To</h2>
                     {% if work.role and work.role.person %}
                         {% if assignee_qualified %}
-                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Meets required level</span>
+                        <span class="badge bg-success"><i class="bi bi-check-circle" aria-hidden="true"></i> Meets required level</span>
                         {% else %}
-                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Below required level</span>
+                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Below required level</span>
                         {% endif %}
                     {% endif %}
                 </div>
@@ -79,7 +79,7 @@
             {% if role == "operator" or role == "admin" %}
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <h2 class="h4 mb-0"><i class="bi bi-people"></i> Qualified People</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> Qualified People</h2>
                     <span class="text-muted small">Validated at or above {{ work.capabilityLevel }} in {{ work.skill.nameEn }}</span>
                 </div>
                 <div class="card-body p-0">
@@ -108,7 +108,7 @@
                                                 <input type="hidden" name="role_id" value="{{ r.id }}">
                                                 <input type="hidden" name="skill_id" value="{{ work.skill.id }}">
                                                 <button type="submit" class="btn btn-sm btn-outline-success">
-                                                    <i class="bi bi-person-plus"></i> Assign as {{ r.titleEnglish }}
+                                                    <i class="bi bi-person-plus" aria-hidden="true"></i> Assign as {{ r.titleEnglish }}
                                                 </button>
                                             </form>
                                             {% endif %}
@@ -135,7 +135,7 @@
                 <!-- Details -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> Details</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">

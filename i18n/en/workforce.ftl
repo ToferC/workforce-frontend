@@ -27,6 +27,7 @@ about = About the Project
 language-toggle = Français
 main-navigation = Main navigation
 skip-to-content = Skip to main content
+home = Home
 profile = Profile
 logout = Logout
 user-index = User Index

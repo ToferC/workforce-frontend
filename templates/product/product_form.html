@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
 
+{% block breadcrumb %}
+<div class="container pt-2">
+    <gcds-breadcrumbs hide-canada-link="true">
+        <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
+        <gcds-breadcrumbs-item href="/{{ lang }}/products">{{ fluent(key="products", lang=lang) }}</gcds-breadcrumbs-item>
+    </gcds-breadcrumbs>
+</div>
+{% endblock breadcrumb %}
+
 {% block title %}
     {% if edit %}<title>{{ fluent(key="edit-product", lang=lang) }}</title>
     {% else %}<title>{{ fluent(key="create-product", lang=lang) }}</title>{% endif %}
@@ -9,9 +18,9 @@
 {% block content %}
 <div class="col-12 col-md-8 px-md-4 px-2 py-4">
     {% if edit %}
-    <h1 class="mb-4"><i class="bi bi-box-seam"></i> {{ fluent(key="edit-product", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-box-seam" aria-hidden="true"></i> {{ fluent(key="edit-product", lang=lang) }}</h1>
     {% else %}
-    <h1 class="mb-4"><i class="bi bi-box-seam"></i> {{ fluent(key="create-product", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-box-seam" aria-hidden="true"></i> {{ fluent(key="create-product", lang=lang) }}</h1>
     {% endif %}
 
     {% set label_org = fluent(key="organization", lang=lang) %}

@@ -8,7 +8,7 @@
 {% block content %}
 <div class="col-12 col-md-8 px-md-4 px-2 py-4">
 
-    <h1 class="mb-4"><i class="bi bi-person-gear"></i> {{ fluent(key="assign-owner", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-person-gear" aria-hidden="true"></i> {{ fluent(key="assign-owner", lang=lang) }}</h1>
     <p class="lead text-muted">
         {% if lang == "fr" %}{{ org_tier.nameFr }}{% else %}{{ org_tier.nameEn }}{% endif %}
         <span class="badge bg-secondary">L{{ org_tier.tierLevel }}</span>

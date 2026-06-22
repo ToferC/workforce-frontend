@@ -38,14 +38,14 @@
            href="/{{ lang }}/role/{{ role_id }}/transfer-preview?person_id={{ c.person.id }}"
            hx-get="/{{ lang }}/role/{{ role_id }}/transfer-preview?person_id={{ c.person.id }}"
            hx-target="#transfer-modal-container" hx-swap="innerHTML">
-            <i class="bi bi-person-plus"></i> Assign
+            <i class="bi bi-person-plus" aria-hidden="true"></i> Assign
         </a>
         {% else %}
         <form method="post" action="/{{ lang }}/role/{{ role_id }}/assign" class="m-0">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="hidden" name="person_id" value="{{ c.person.id }}">
             <button type="submit" class="btn btn-sm btn-success text-nowrap">
-                <i class="bi bi-person-plus"></i> Assign
+                <i class="bi bi-person-plus" aria-hidden="true"></i> Assign
             </button>
         </form>
         {% endif %}
@@ -57,11 +57,11 @@
         {% for g in c.requirementGaps %}
         {% if g.met %}
         <span class="badge bg-success" title="Meets requirement">
-            <i class="bi bi-check2"></i> {{ g.skillName }} &mdash; {{ g.actualLevel }}
+            <i class="bi bi-check2" aria-hidden="true"></i> {{ g.skillName }} &mdash; {{ g.actualLevel }}
         </span>
         {% else %}
         <span class="badge bg-danger" title="Short by {{ g.gap }} level(s)">
-            <i class="bi bi-exclamation-triangle"></i> {{ g.skillName }}: needs {{ g.requiredLevel }}{% if g.actualLevel %}, has {{ g.actualLevel }}{% else %}, none held{% endif %}
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ g.skillName }}: needs {{ g.requiredLevel }}{% if g.actualLevel %}, has {{ g.actualLevel }}{% else %}, none held{% endif %}
         </span>
         {% endif %}
         {% endfor %}
@@ -77,7 +77,7 @@
     {# Out-of-area candidate: surface their manager so a transfer can be arranged #}
     {% if c.manager %}
     <div class="small mt-2 p-2 rounded bg-body-secondary border">
-        <i class="bi bi-person-badge"></i>
+        <i class="bi bi-person-badge" aria-hidden="true"></i>
         <span class="text-muted">Contact manager to request transfer:</span>
         {% if c.manager.name %}<span class="fw-semibold">{{ c.manager.name }}</span>{% else %}<span class="text-muted">Vacant</span>{% endif %}
         <span class="text-muted">&mdash; {{ c.manager.ownerRoleTitle }} ({{ c.manager.teamName }})</span>

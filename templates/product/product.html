@@ -9,7 +9,7 @@
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
         <h1 class="display-4 mb-2">
-            <i class="bi bi-box-seam"></i>
+            <i class="bi bi-box-seam" aria-hidden="true"></i>
             {% if lang == "fr" %}{{ product.nameFr }}{% else %}{{ product.nameEn }}{% endif %}
             <span class="align-middle">{{ viz::status_chip(status=product.productStatus) }}</span>
             {% if product.retiredAt %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
@@ -21,7 +21,7 @@
         {% if role == "operator" or role == "admin" %}
         <div class="mb-2">
             <a class="btn btn-primary" href="/{{ lang }}/product/{{ product.id }}/edit">
-                <i class="bi bi-pencil"></i> {{ fluent(key="edit-product", lang=lang) }}
+                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-product", lang=lang) }}
             </a>
         </div>
         {% endif %}
@@ -33,10 +33,10 @@
             <!-- Tasks -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h4 mb-0"><i class="bi bi-list-task"></i> {{ fluent(key="tasks", lang=lang) }}</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-list-task" aria-hidden="true"></i> {{ fluent(key="tasks", lang=lang) }}</h2>
                     {% if role == "operator" or role == "admin" %}
                     <a class="btn btn-sm btn-primary" href="/{{ lang }}/product/{{ product.id }}/task/new">
-                        <i class="bi bi-plus-circle"></i> {{ fluent(key="create-task", lang=lang) }}
+                        <i class="bi bi-plus-circle" aria-hidden="true"></i> {{ fluent(key="create-task", lang=lang) }}
                     </a>
                     {% endif %}
                 </div>
@@ -62,7 +62,7 @@
             {% if product.vacantWork %}
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-person-dash"></i> {{ fluent(key="vacant-work", lang=lang) }}</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-person-dash" aria-hidden="true"></i> {{ fluent(key="vacant-work", lang=lang) }}</h2>
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
@@ -85,7 +85,7 @@
             {% if product.skillDemand %}
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps"></i> Skill Demand</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> Skill Demand</h2>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm table-hover mb-0 align-middle">
@@ -121,7 +121,7 @@
                 <!-- Details -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> Details</h2>
                     </div>
                     <div class="card-body">
                         <p>
@@ -146,7 +146,7 @@
                 <!-- Product Owner -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-person-badge"></i> {{ fluent(key="product-owner", lang=lang) }}</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-person-badge" aria-hidden="true"></i> {{ fluent(key="product-owner", lang=lang) }}</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
