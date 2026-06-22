@@ -38,6 +38,7 @@
         <div class="card-body">
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
 
                 {% if not edit %}
                 {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=product.organization.id) }}

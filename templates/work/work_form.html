@@ -39,6 +39,7 @@
         <div class="card-body">
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 {% if not edit and not vacant %}{{ forms::select(name="task_id", label=label_task, options=task_options) }}{% endif %}
                 {{ forms::textarea(name="work_description", label=label_desc, value=work.workDescription) }}
                 {{ forms::text_input(name="url", label=label_url, value=work.url, type="url", required=false) }}

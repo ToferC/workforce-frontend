@@ -48,6 +48,7 @@
         <div class="card-body">
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
 
                 {% if not edit %}
                 <p class="text-muted small mb-3"><i class="bi bi-info-circle"></i>

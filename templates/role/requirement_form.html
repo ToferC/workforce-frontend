@@ -32,12 +32,14 @@
             {% if edit %}
             <form method="post" action="/{{ lang }}/role/{{ role_id }}/requirement/{{ requirement.id }}/edit">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 {{ forms::select(name="required_level", label=label_level, options=capability_levels, selected=requirement.requiredLevel) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>
             {% else %}
             <form method="post" action="/{{ lang }}/role/{{ role_id }}/requirement/new">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 {% include "skill/skill_picker.html" %}
                 {{ forms::select(name="required_level", label=label_level, options=capability_levels) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}

@@ -8,6 +8,7 @@
       hx-target="this"
       hx-swap="outerHTML">
     {{ forms::csrf(token=csrf_token) }}
+    {{ forms::error_summary() }}
     <input type="hidden" name="team_id" value="{{ role_form.teamId }}">
     <input type="hidden" name="org_tier_id" value="{{ role_form.orgTierId }}">
     <input type="hidden" name="organization_id" value="{{ role_form.organizationId }}">

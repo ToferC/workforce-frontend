@@ -23,6 +23,7 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/me">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 <div class="row">
                     <div class="col-md-6">{{ forms::text_input(name="given_name", label=label_given, value=me.person.givenName) }}</div>
                     <div class="col-md-6">{{ forms::text_input(name="family_name", label=label_family, value=me.person.familyName) }}</div>
@@ -49,6 +50,7 @@
             <p class="text-muted small">{{ fluent(key="flag-an-issue-help", lang=lang) }}</p>
             <form method="post" action="/{{ lang }}/me/flag">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 <div class="form-group mb-3">
                     <textarea class="form-control" name="message" rows="3" required></textarea>
                 </div>

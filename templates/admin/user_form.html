@@ -23,6 +23,7 @@
         <div class="card-body">
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
 
                 {{ forms::text_input(name="name", label=fluent(key="name", lang=lang), value=user.name) }}
                 {{ forms::text_input(name="email", label=fluent(key="email", lang=lang), value=user.email, type="email") }}

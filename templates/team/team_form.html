@@ -40,6 +40,7 @@
         <div class="card-body">
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 <input type="hidden" name="organization_id" value="{{ team.organization.id }}">
 
                 {% if edit %}

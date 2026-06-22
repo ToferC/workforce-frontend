@@ -43,6 +43,7 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/work/{{ work.id }}/assign">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 <div class="mb-3">
                     <label class="form-label" for="role_id">{{ fluent(key="assign-to-role", lang=lang) }}</label>
                     <select class="form-select" id="role_id" name="role_id">

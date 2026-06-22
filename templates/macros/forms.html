@@ -1,44 +1,77 @@
-{# Shared Bootstrap form macros for entity create/edit forms.
+{# Shared form macros for entity create/edit forms.
 
    Import with: {% import "macros/forms.html" as forms %}
    Labels are passed in by the caller so pages keep using Fluent, e.g.:
    {{ forms::text_input(name="name_en", label=fluent(key="name-english", lang=lang), value=org.nameEn) }}
-#}
+
+   text_input / textarea / select render GC Design System web components
+   (<gcds-input>, <gcds-textarea>, <gcds-select>). These are form-associated
+   custom elements, so they submit exactly like native fields under the same
+   `name` — plain POST + redirect and HTMX form serialization are unchanged.
+   date_input and checkbox stay native (GCDS has no single-boolean checkbox and
+   the native date field already submits the YYYY-MM-DD the handlers expect).
+
+   Each input macro accepts an optional `error` string. Pass server-side
+   validation messages through it to render an associated <gcds-error-message>;
+   pair it with forms::error_summary() at the top of the form. #}
 
 {% macro csrf(token) %}
 <input type="hidden" name="csrf_token" value="{{ token }}">
 {% endmacro csrf %}
 
-{% macro text_input(name, label, value="", required=true, type="text", help="", placeholder="") %}
-<div class="mb-3">
-    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
-    <input type="{{ type }}" class="form-control" id="{{ name }}" name="{{ name }}"
-        value="{{ value }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}>
-    {% if help %}<div class="form-text">{{ help }}</div>{% endif %}
-</div>
+{# Place at the top of a <form>. With `listen`, the GCDS error summary collects
+   validation errors from the gcds-* fields in the form on submit, moves focus to
+   itself, and links to each offending field (WCAG 3.3.1 / 2.4.3). Harmless on
+   forms with no validated fields. #}
+{% macro error_summary(heading="") %}
+<gcds-error-summary listen="true"{% if heading %} heading="{{ heading }}"{% endif %}></gcds-error-summary>
+{% endmacro error_summary %}
+
+{% macro text_input(name, label, value="", required=true, type="text", help="", placeholder="", error="") %}
+<gcds-input
+    input-id="{{ name }}"
+    name="{{ name }}"
+    label="{{ label }}"
+    type="{{ type }}"
+    value="{{ value }}"
+    {% if required %}required="true"{% endif %}
+    {% if help %}hint="{{ help }}"{% endif %}
+    {% if error %}error-message="{{ error }}"{% endif %}>
+</gcds-input>
 {% endmacro text_input %}
 
-{% macro textarea(name, label, value="", required=true, rows=3, help="") %}
-<div class="mb-3">
-    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
-    <textarea class="form-control" id="{{ name }}" name="{{ name }}" rows="{{ rows }}"{% if required %} required{% endif %}>{{ value }}</textarea>
-    {% if help %}<div class="form-text">{{ help }}</div>{% endif %}
-</div>
+{% macro textarea(name, label, value="", required=true, rows=3, help="", error="") %}
+<gcds-textarea
+    textarea-id="{{ name }}"
+    name="{{ name }}"
+    label="{{ label }}"
+    value="{{ value }}"
+    rows="{{ rows }}"
+    {% if required %}required="true"{% endif %}
+    {% if help %}hint="{{ help }}"{% endif %}
+    {% if error %}error-message="{{ error }}"{% endif %}>
+</gcds-textarea>
 {% endmacro textarea %}
 
 {# options is a list of {value, label} objects #}
-{% macro select(name, label, options, selected="", required=true, blank_label="") %}
-<div class="mb-3">
-    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
-    <select class="form-select" id="{{ name }}" name="{{ name }}"{% if required %} required{% endif %}>
-        {% if blank_label %}<option value=""{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>{% endif %}
-        {% for option in options %}
-        <option value="{{ option.value }}"{% if option.value == selected %} selected{% endif %}>{{ option.label }}</option>
-        {% endfor %}
-    </select>
-</div>
+{% macro select(name, label, options, selected="", required=true, blank_label="", help="", error="") %}
+<gcds-select
+    select-id="{{ name }}"
+    name="{{ name }}"
+    label="{{ label }}"
+    {% if selected %}value="{{ selected }}"{% endif %}
+    {% if required %}required="true"{% endif %}
+    {% if help %}hint="{{ help }}"{% endif %}
+    {% if error %}error-message="{{ error }}"{% endif %}>
+    {% if blank_label %}<option value=""{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>{% endif %}
+    {% for option in options %}
+    <option value="{{ option.value }}"{% if option.value == selected %} selected{% endif %}>{{ option.label }}</option>
+    {% endfor %}
+</gcds-select>
 {% endmacro select %}
 
+{# Native date field: already accessible and submits YYYY-MM-DD, which the
+   handlers parse. Kept native to avoid changing the submitted value format. #}
 {% macro date_input(name, label, value="", required=false) %}
 <div class="mb-3">
     <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
@@ -54,7 +87,7 @@
 {% endmacro checkbox %}
 
 {% macro submit_row(label, cancel_url="", cancel_label="") %}
-<div class="mb-3">
+<div class="mb-3 mt-3">
     <button type="submit" class="btn btn-primary">{{ label }}</button>
     {% if cancel_url %}<a class="btn btn-secondary" href="{{ cancel_url | safe }}">{{ cancel_label }}</a>{% endif %}
 </div>

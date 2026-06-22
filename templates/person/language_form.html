@@ -21,6 +21,7 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/person/{{ person.id }}/language/new">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 {{ forms::select(name="language_name", label=label_name, options=language_names) }}
                 <div class="row">
                     <div class="col-md-4">{{ forms::select(name="reading", label=label_reading, options=language_levels, required=false, blank_label=blank) }}</div>

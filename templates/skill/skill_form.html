@@ -35,6 +35,7 @@
         <div class="card-body">
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 <div class="row">
                     <div class="col-md-6">{{ forms::text_input(name="name_en", label=label_name_en, value=skill.nameEn) }}</div>
                     <div class="col-md-6">{{ forms::text_input(name="name_fr", label=label_name_fr, value=skill.nameFr) }}</div>

@@ -40,6 +40,7 @@
         <div class="card-body">
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
 
                 <div class="row">
                     <div class="col-md-6">
