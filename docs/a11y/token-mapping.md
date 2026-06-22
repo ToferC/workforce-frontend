@@ -65,3 +65,13 @@ defer dark mode to a follow-up rather than ship a non-compliant default.
 - [x] Token integration approach decided (this doc).
 - [ ] Live axe/pa11y numeric baseline captured once a dev server is available
       (carried into Phase 1 as the first task).
+
+## Update — implemented in Phase 2
+
+This mapping was applied in `static/css/theme.css`; see
+[`phase-2-notes.md`](./phase-2-notes.md). Note the final implementation uses the
+GCDS **primitive** tokens that `gcds.css` actually exposes (e.g.
+`--gcds-color-grayscale-800`, `--gcds-link-default`, `--gcds-bg-white`,
+`--gcds-color-green-750`) rather than the semantic `--gcds-text-*` names sketched
+above — this package version ships the primitive scale, so the table's "intent"
+column was realized with the nearest AA-passing primitive.

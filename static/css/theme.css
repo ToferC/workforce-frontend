@@ -1,16 +1,16 @@
 /* Theme CSS with Dark Mode Support */
 
 :root {
-    /* Spacing */
-    --spacing-xs: 0.25rem;
-    --spacing-sm: 0.5rem;
-    --spacing-md: 1rem;
-    --spacing-lg: 1.5rem;
-    --spacing-xl: 3rem;
+    /* Spacing — mapped onto the GC Design System spacing scale (gcds.css) */
+    --spacing-xs: var(--gcds-spacing-50);   /* 0.25rem */
+    --spacing-sm: var(--gcds-spacing-100);  /* 0.5rem  */
+    --spacing-md: var(--gcds-spacing-200);  /* 1rem    */
+    --spacing-lg: var(--gcds-spacing-300);  /* 1.5rem  */
+    --spacing-xl: var(--gcds-spacing-600);  /* 3rem    */
 
-    /* Border Radius */
-    --radius-sm: 0.25rem;
-    --radius-md: 0.375rem;
+    /* Border Radius — GCDS radii where they exist */
+    --radius-sm: var(--gcds-border-radius-sm); /* 0.125rem */
+    --radius-md: var(--gcds-border-radius-md); /* 0.375rem */
     --radius-lg: 0.5rem;
 
     /* Transitions */
@@ -19,23 +19,57 @@
     --transition-slow: 350ms ease-in-out;
 }
 
-/* Dark Mode Colors - Default */
+/* Light Mode Colors — GC Design System default.
+   Values are drawn from GCDS tokens (gcds.css) so the app palette matches the
+   Government of Canada standard and stays AA-contrast-checked. */
 :root,
+[data-theme="light"] {
+    color-scheme: light;
+    --bg-primary: var(--gcds-bg-white);              /* #fff */
+    --bg-secondary: var(--gcds-bg-light);            /* #f2f2f2 */
+    --bg-tertiary: var(--gcds-color-grayscale-100);  /* #e6e6e6 */
+    --text-primary: var(--gcds-color-grayscale-800); /* #333 */
+    --text-secondary: var(--gcds-color-grayscale-700); /* #4d4d4d, AA on white */
+    --text-muted: var(--gcds-color-grayscale-600);   /* #666, AA on white */
+
+    --color-primary: var(--gcds-link-default);       /* #1f497a */
+    --color-primary-hover: var(--gcds-link-hover);   /* #1354ec */
+    --color-success: var(--gcds-color-green-750);    /* #196636, AA on white */
+    --color-danger: var(--gcds-color-red-600);       /* #b3192e */
+    --color-warning: var(--gcds-color-yellow-500);   /* #f2ad0d (needs dark text) */
+    --color-info: var(--gcds-color-blue-700);        /* #1f497a */
+
+    --border-color: var(--gcds-border-default);      /* #8c8c8c */
+    --border-color-light: var(--gcds-color-grayscale-100); /* #e6e6e6 */
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+
+    --table-border: var(--gcds-border-default);
+    --table-stripe: var(--gcds-bg-light);
+    --table-hover: var(--gcds-color-grayscale-100);
+
+    --code-bg: var(--gcds-color-grayscale-900);      /* #1a1a1a */
+    --code-text: var(--gcds-color-grayscale-50);     /* #f2f2f2, ~15:1 on code-bg */
+    --code-border: #000000;
+}
+
+/* Dark Mode — opt-in. Not a GC default; tuned so each pair clears WCAG AA. */
 [data-theme="dark"] {
     color-scheme: dark;
     --bg-primary: #1a1d23;
     --bg-secondary: #2d3238;
     --bg-tertiary: #3a3f47;
     --text-primary: #e9ecef;
-    --text-secondary: #adb5bd;
-    --text-muted: #6c757d;
+    --text-secondary: #ced4da;   /* lightened for AA on dark */
+    --text-muted: #adb5bd;       /* lightened for AA on dark */
 
-    --color-primary: #4a9eff;
-    --color-primary-hover: #6db0ff;
-    --color-success: #28a745;
-    --color-danger: #ff4444;
-    --color-warning: #ffc107;
-    --color-info: #17a2b8;
+    --color-primary: #85afe0;        /* gcds blue-300, AA on dark */
+    --color-primary-hover: #adcaeb;  /* gcds blue-200 */
+    --color-success: #70db97;        /* gcds green-350, AA on dark */
+    --color-danger: #ec7988;         /* gcds red-300, AA on dark */
+    --color-warning: #f7ce6e;        /* gcds yellow-300 */
+    --color-info: #85afe0;           /* gcds blue-300 */
 
     --border-color: #495057;
     --border-color-light: #3a3f47;
@@ -48,39 +82,7 @@
     --table-hover: #3a3f47;
 
     --code-bg: #0d0f12;
-    --code-text: #00ff41;
-    --code-border: #000000;
-}
-
-/* Light Mode Override */
-[data-theme="light"] {
-    color-scheme: light;
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8f9fa;
-    --bg-tertiary: #e9ecef;
-    --text-primary: #212529;
-    --text-secondary: #6c757d;
-    --text-muted: #868e96;
-
-    --color-primary: #1b6ec2;
-    --color-primary-hover: #155a9e;
-    --color-success: #008000;
-    --color-danger: #D50000;
-    --color-warning: #f4d03f;
-    --color-info: #8cd2e7;
-
-    --border-color: #dee2e6;
-    --border-color-light: #e9ecef;
-    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-
-    --table-border: #dddddd;
-    --table-stripe: #f8f9fa;
-    --table-hover: #e9ecef;
-
-    --code-bg: #1a1a1a;
-    --code-text: #1eff00;
+    --code-text: #e6e6e6;        /* replaced neon green; AA on near-black */
     --code-border: #000000;
 }
 
@@ -94,8 +96,24 @@
 body {
     background-color: var(--bg-secondary);
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    /* GC Design System typeface: Noto Sans for body copy. Size kept slightly
+       below the 1.25rem GC default so this app's dense data tables don't
+       overflow, while still being more readable than the old 16px default. */
+    font-family: var(--gcds-font-families-body);
+    font-size: 1.0625rem;
     line-height: 1.6;
+}
+
+/* GC Design System typeface: Lato for headings */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: var(--gcds-font-families-heading);
+}
+
+/* GC Design System monospace for code */
+code, pre, kbd, samp,
+pre code {
+    font-family: var(--gcds-font-families-monospace);
 }
 
 /* Container Improvements */
@@ -274,7 +292,7 @@ pre code {
     display: block;
     padding: var(--spacing-lg);
     border-radius: var(--radius-md);
-    font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
+    font-family: var(--gcds-font-families-monospace);
     font-size: 0.875rem;
     line-height: 1.5;
 }
@@ -813,6 +831,20 @@ footer hr,
     }
 }
 
+/* Accessibility: honour the user's reduced-motion preference (WCAG 2.3.3).
+   The global transitions, hover transforms, and smooth scroll are decorative,
+   so disable them when the user has asked for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 /* Accessibility Improvements */
 *:focus-visible {
     outline: 2px solid var(--color-primary);
@@ -861,19 +893,25 @@ footer hr,
     opacity: 0.5;
 }
 
-/* ── Domain chip colors (viz macro) ─────────────────────────────────────── */
+/* ── Domain chip colors (viz macro) ─────────────────────────────────────────
+   Derived from the GC Design System palette (gcds.css). Light (default) uses a
+   soft tint with a dark accent foreground; dark mode uses a deep solid fill
+   with white text. Each pair is chosen to clear WCAG AA contrast. */
 .domain-chip { font-weight: 500; letter-spacing: 0.01em; }
-.domain-ops      { background-color: #842029 !important; color: #fff !important; }
-.domain-science  { background-color: #084298 !important; color: #fff !important; }
-.domain-digital  { background-color: #055160 !important; color: #fff !important; }
-.domain-delivery { background-color: #664d03 !important; color: #fff !important; }
-.domain-corp     { background-color: #41464b !important; color: #fff !important; }
 
-[data-theme="light"] .domain-ops      { background-color: #f8d7da !important; color: #58151c !important; }
-[data-theme="light"] .domain-science  { background-color: #cfe2ff !important; color: #084298 !important; }
-[data-theme="light"] .domain-digital  { background-color: #cff4fc !important; color: #055160 !important; }
-[data-theme="light"] .domain-delivery { background-color: #fff3cd !important; color: #664d03 !important; }
-[data-theme="light"] .domain-corp     { background-color: #e2e3e5 !important; color: #41464b !important; }
+/* Light (GC default): soft tint + dark accent text */
+.domain-ops      { background-color: var(--gcds-color-red-50)       !important; color: var(--gcds-color-red-700)       !important; }
+.domain-science  { background-color: var(--gcds-color-blue-50)      !important; color: var(--gcds-color-blue-700)      !important; }
+.domain-digital  { background-color: var(--gcds-color-green-50)     !important; color: var(--gcds-color-green-800)     !important; }
+.domain-delivery { background-color: var(--gcds-color-yellow-50)    !important; color: var(--gcds-color-yellow-800)    !important; }
+.domain-corp     { background-color: var(--gcds-color-grayscale-50) !important; color: var(--gcds-color-grayscale-800) !important; }
+
+/* Dark mode: deep solid fill + white text */
+[data-theme="dark"] .domain-ops      { background-color: var(--gcds-color-red-700)       !important; color: #fff !important; }
+[data-theme="dark"] .domain-science  { background-color: var(--gcds-color-blue-700)      !important; color: #fff !important; }
+[data-theme="dark"] .domain-digital  { background-color: var(--gcds-color-green-800)     !important; color: #fff !important; }
+[data-theme="dark"] .domain-delivery { background-color: var(--gcds-color-yellow-800)    !important; color: #fff !important; }
+[data-theme="dark"] .domain-corp     { background-color: var(--gcds-color-grayscale-700) !important; color: #fff !important; }
 
 /* Modal dark-mode overrides (Bootstrap 4 hard-codes white backgrounds) */
 .modal-content {
