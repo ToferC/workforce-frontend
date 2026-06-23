@@ -120,7 +120,7 @@
 
     <main id="main-content" tabindex="-1">
     {% block breadcrumb %}{% endblock breadcrumb %}
-    <div class="container">
+    <div class="{% block main_container %}container{% endblock main_container %}">
 
     {% if flash_messages %}
     <div class="row mt-2">

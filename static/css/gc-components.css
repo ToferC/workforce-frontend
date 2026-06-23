@@ -49,7 +49,7 @@
 
 /* ── Typographic helpers ───────────────────────────────────────────────── */
 .lead      { font-size: 1.25rem; font-weight: 400; }
-.display-4 { font-size: 2.5rem; font-weight: 700; line-height: 1.2; }
+.display-4 { font-size: 3.5rem; font-weight: 300; line-height: 1.2; }
 .small     { font-size: 0.875em; }
 .fw-light  { font-weight: 300; }
 
@@ -185,6 +185,18 @@
 .border-0      { border: 0 !important; }
 .rounded       { border-radius: var(--radius-md) !important; }
 .rounded-circle{ border-radius: 50% !important; }
+
+/* Wide content container for data-dense pages (dashboards, analytics) that
+   benefit from more horizontal room than Bootstrap's 1140px `.container`.
+   Pages opt in via {% block main_container %}container-wide{% endblock %}. */
+.container-wide {
+    width: 100%;
+    max-width: 1680px;
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: 15px;
+    padding-left: 15px;
+}
 
 /* ── Stretched link (whole-card click target) ──────────────────────────── */
 .stretched-link::after {
