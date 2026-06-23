@@ -16,12 +16,18 @@
         <link href="/static/gcds/fonts/lato/gcds-lato.css" rel="stylesheet">
         <link href="/static/gcds/fonts/noto-sans/gcds-noto-sans.css" rel="stylesheet">
         <link href="/static/gcds/fonts/noto-sans-mono/gcds-noto-sans-mono.css" rel="stylesheet">
-        <!-- Bootstrap core CSS (being phased out in favour of GCDS) -->
-        <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+        <!-- Bootstrap GRID ONLY: grid + flex/display + spacing utilities.
+             Bootstrap's component styles were retired in favour of GCDS; the
+             remaining Bootstrap component/utility classes are reimplemented with
+             GC tokens in gc-components.css. New pages should prefer GCDS
+             components and gcds-utility classes. -->
+        <link href="/static/bootstrap/css/bootstrap-grid.min.css" rel="stylesheet">
         <!-- GC Design System core stylesheet (design tokens + component styles) -->
         <link href="/static/gcds/gcds.css" rel="stylesheet">
         <!-- GC Design System utility classes -->
         <link href="/static/gcds/gcds-utility.min.css" rel="stylesheet">
+        <!-- GC-token shim for the Bootstrap component/utility classes still in use -->
+        <link href="/static/css/gc-components.css" rel="stylesheet">
         <!-- Bootstrap Icons (vendored locally) -->
         <link rel="stylesheet" href="/static/bootstrap-icons/bootstrap-icons.css">
         <!-- JqueryUI -->
@@ -36,7 +42,9 @@
         <script type="text/javascript" src="/static/jquery/js/jquery.min.js"></script>
 
         <script type="text/javascript" src="/static/jquery-ui/jquery-ui.min.js"></script>
-        <!-- Bootstrap core JavaScript (bundle includes Popper.js) -->
+        <!-- Bootstrap JS bundle retained for the few remaining JS-driven widgets
+             (modal in role transfer, collapse in organization detail, alert
+             dismiss). Migrate these to GCDS/HTMX to drop this dependency. -->
         <script type="text/javascript" src="/static/bootstrap/js/bootstrap.bundle.min.js"></script>
         <!-- HTMX for progressive enhancement of forms and partial page updates -->
         <script type="text/javascript" src="/static/htmx/htmx.min.js"></script>
