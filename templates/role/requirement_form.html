@@ -12,13 +12,13 @@
 {% block content %}
 <div class="col-12 col-md-8 px-md-4 px-2 py-4">
     {% if edit %}
-    <h1 class="mb-1"><i class="bi bi-card-checklist"></i> Edit Requirement</h1>
+    <h1 class="mb-1"><i class="bi bi-card-checklist" aria-hidden="true"></i> Edit Requirement</h1>
     <p class="text-muted mb-4">
         {{ requirement.nameEn }}
         <span class="badge bg-secondary ms-1">{{ requirement.domain }}</span>
     </p>
     {% else %}
-    <h1 class="mb-4"><i class="bi bi-card-checklist"></i> {{ fluent(key="add-requirement", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-card-checklist" aria-hidden="true"></i> {{ fluent(key="add-requirement", lang=lang) }}</h1>
     {% endif %}
 
     {% set label_skill = fluent(key="skill", lang=lang) %}
@@ -32,12 +32,14 @@
             {% if edit %}
             <form method="post" action="/{{ lang }}/role/{{ role_id }}/requirement/{{ requirement.id }}/edit">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 {{ forms::select(name="required_level", label=label_level, options=capability_levels, selected=requirement.requiredLevel) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>
             {% else %}
             <form method="post" action="/{{ lang }}/role/{{ role_id }}/requirement/new">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 {% include "skill/skill_picker.html" %}
                 {{ forms::select(name="required_level", label=label_level, options=capability_levels) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}

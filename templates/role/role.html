@@ -10,7 +10,7 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-briefcase"></i>
+        <h1 class="display-4 mb-2"><i class="bi bi-briefcase" aria-hidden="true"></i>
             {% if lang == "fr" %}{{ role_record.titleFrench }}{% else %}{{ role_record.titleEnglish }}{% endif %}
             {% if role_record.active == "false" %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="role-ended", lang=lang) }}</span>{% endif %}
         </h1>
@@ -19,25 +19,25 @@
         {% if role == "operator" or role == "admin" %}
         <div class="mb-2">
             <a class="btn btn-primary" href="/{{ lang }}/role/{{ role_record.id }}/edit">
-                <i class="bi bi-pencil"></i> {{ fluent(key="edit-role-status", lang=lang) }}
+                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-role-status", lang=lang) }}
             </a>
             <a class="btn btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/task/new">
-                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-task", lang=lang) }}
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-task", lang=lang) }}
             </a>
             <a class="btn btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/work/new">
-                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-work", lang=lang) }}
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-work", lang=lang) }}
             </a>
             {% if role_record.person %}
             <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/vacate" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="btn btn-outline-warning">
-                    <i class="bi bi-person-dash"></i> Vacate role
+                    <i class="bi bi-person-dash" aria-hidden="true"></i> Vacate role
                 </button>
             </form>
             {% endif %}
             {% if role_record.active == "true" %}
             <a class="btn btn-outline-danger" href="/{{ lang }}/role/{{ role_record.id }}/end">
-                <i class="bi bi-stop-circle"></i> {{ fluent(key="end-role", lang=lang) }}
+                <i class="bi bi-stop-circle" aria-hidden="true"></i> {{ fluent(key="end-role", lang=lang) }}
             </a>
             {% endif %}
         </div>
@@ -51,10 +51,10 @@
             <!-- Requirements -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h4 mb-0"><i class="bi bi-check2-square"></i> Requirements</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-check2-square" aria-hidden="true"></i> Requirements</h2>
                     {% if role == "operator" or role == "admin" %}
                     <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/new">
-                        <i class="bi bi-plus-lg"></i> {{ fluent(key="add-requirement", lang=lang) }}
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-requirement", lang=lang) }}
                     </a>
                     {% endif %}
                 </div>
@@ -71,7 +71,7 @@
                             {% if role == "operator" or role == "admin" %}
                             <div class="d-flex gap-1">
                                 <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/edit">
-                                    <i class="bi bi-pencil"></i> Edit
+                                    <i class="bi bi-pencil" aria-hidden="true"></i> Edit
                                 </a>
                                 <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/retire" class="m-0">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -88,7 +88,7 @@
                 </div>
                 {% if requirement_match %}
                 <div class="card-body border-top">
-                    <h3 class="h6 text-muted mb-2"><i class="bi bi-bar-chart-steps"></i> Incumbent fit — required vs held</h3>
+                    <h3 class="h6 text-muted mb-2"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> Incumbent fit — required vs held</h3>
                     {{ charts::chart(id="requirement-match", height="320px") }}
                     <script type="application/json" id="requirement-match-data">{{ requirement_match | safe }}</script>
                     <p class="small text-muted mb-0 mt-2">
@@ -102,7 +102,7 @@
             <!-- Work -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-kanban"></i> Work</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-kanban" aria-hidden="true"></i> Work</h2>
                 </div>
                 <div class="card-body p-0">
                     {% if role_record.work %}
@@ -128,7 +128,7 @@
             <!-- Potential Matches -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bullseye"></i> Potential Matches</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-bullseye" aria-hidden="true"></i> Potential Matches</h2>
                 </div>
                 {% if role_record.requirements %}
                 {# Tuning sliders sit outside #role-matches so they keep their
@@ -177,7 +177,7 @@
             {% if role_record.assignments %}
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-clock-history"></i> Assignment History</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-clock-history" aria-hidden="true"></i> Assignment History</h2>
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
@@ -203,7 +203,7 @@
                 <!-- Incumbent -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-person-badge"></i> Incumbent</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-person-badge" aria-hidden="true"></i> Incumbent</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
@@ -220,7 +220,7 @@
                 <!-- Team -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-people"></i> Team</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> Team</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
@@ -244,10 +244,10 @@
                 <!-- Vacant Role -->
                 <div class="card shadow-lg mb-4 border-warning">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h2 class="h4 mb-0"><i class="bi bi-exclamation-circle"></i> VACANT</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> VACANT</h2>
                         {% if role == "operator" or role == "admin" %}
                         <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/new">
-                            <i class="bi bi-plus-lg"></i> {{ fluent(key="add-requirement", lang=lang) }}
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-requirement", lang=lang) }}
                         </a>
                         {% endif %}
                     </div>
@@ -273,7 +273,7 @@
                 {% if role_record.team %}
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-people"></i> Team</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> Team</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">

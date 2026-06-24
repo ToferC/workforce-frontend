@@ -8,7 +8,7 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-key"></i> {{ fluent(key="activate-account", lang=lang) }}</h1>
+        <h1 class="display-4 mb-2"><i class="bi bi-key" aria-hidden="true"></i> {{ fluent(key="activate-account", lang=lang) }}</h1>
         <p class="lead text-muted">{{ fluent(key="activate-account-lead", lang=lang) }}</p>
     </div>
 
@@ -17,7 +17,7 @@
             <div class="card shadow-lg">
                 <div class="card-body p-4">
                     {% if token == "" %}
-                    <p class="text-danger"><i class="bi bi-exclamation-octagon"></i> {{ fluent(key="activate-missing-token", lang=lang) }}</p>
+                    <p class="text-danger"><i class="bi bi-exclamation-octagon" aria-hidden="true"></i> {{ fluent(key="activate-missing-token", lang=lang) }}</p>
                     {% else %}
                     <form method="post" action="/{{ lang }}/activate">
                         {{ forms::csrf(token=csrf_token) }}

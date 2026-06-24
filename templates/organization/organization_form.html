@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
 
+{% block breadcrumb %}
+<div class="container pt-2">
+    <gcds-breadcrumbs hide-canada-link="true">
+        <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
+        <gcds-breadcrumbs-item href="/{{ lang }}/organizations">{{ fluent(key="organizations", lang=lang) }}</gcds-breadcrumbs-item>
+    </gcds-breadcrumbs>
+</div>
+{% endblock breadcrumb %}
+
 {% block title %}
     {% if edit %}
     <title>{{ fluent(key="edit-organization", lang=lang) }}</title>
@@ -13,9 +22,9 @@
 <div class="col-12 col-md-8 px-md-4 px-2 py-4">
 
     {% if edit %}
-    <h1 class="mb-4"><i class="bi bi-building"></i> {{ fluent(key="edit-organization", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-building" aria-hidden="true"></i> {{ fluent(key="edit-organization", lang=lang) }}</h1>
     {% else %}
-    <h1 class="mb-4"><i class="bi bi-building"></i> {{ fluent(key="create-organization", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-building" aria-hidden="true"></i> {{ fluent(key="create-organization", lang=lang) }}</h1>
     {% endif %}
 
     {% set label_name_en = fluent(key="name-english", lang=lang) %}
@@ -40,6 +49,7 @@
         <div class="card-body">
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
 
                 <div class="row">
                     <div class="col-md-6">

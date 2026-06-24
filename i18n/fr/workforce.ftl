@@ -25,11 +25,15 @@ task = Tâche
 button-explore-demo-data = Explorer les données de démonstration
 about = À propos du projet
 language-toggle = English
+main-navigation = Navigation principale
+skip-to-content = Passer au contenu principal
+home = Accueil
 profile = Profil
 logout = Déconnexion
 user-index = Index des utilisateurs
 login = Connexion
 register = S'inscrire
+source-code = Code source
 
 ## Footer
 footer-1 = Veuillez noter que ce travail est un projet d'apprentissage et d'expérimentation dans le développement d'analytique exploitable de la main-d'œuvre.

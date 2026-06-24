@@ -16,7 +16,7 @@
     </nav>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0"><i class="bi bi-grid-3x3-gap"></i> Team Capability Coverage</h1>
+        <h1 class="h3 mb-0"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i> Team Capability Coverage</h1>
         <span class="text-muted small">Depth score = sum of capability level weights per team × domain</span>
     </div>
 
@@ -51,7 +51,7 @@
     <!-- ECharts Heatmap -->
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-grid-3x3-gap-fill"></i> Capability Heatmap (Teams × Domains)</h5>
+            <h5 class="mb-0"><i class="bi bi-grid-3x3-gap-fill" aria-hidden="true"></i> Capability Heatmap (Teams × Domains)</h5>
         </div>
         <div class="card-body">
             {{ charts::chart(id="heatmap", height=chart_height) }}
@@ -70,7 +70,7 @@
         <div class="col-12 col-lg-4">
             <div class="card shadow-sm mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-trophy"></i> Domain Strength Ranking</h5>
+                    <h5 class="mb-0"><i class="bi bi-trophy" aria-hidden="true"></i> Domain Strength Ranking</h5>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm mb-0 align-middle">
@@ -103,7 +103,7 @@
         <div class="col-12 col-lg-8">
             <div class="card shadow-sm mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-table"></i> Coverage Table</h5>
+                    <h5 class="mb-0"><i class="bi bi-table" aria-hidden="true"></i> Coverage Table</h5>
                 </div>
                 <div class="card-body p-0" style="overflow-x:auto">
                     {% if table_rows %}

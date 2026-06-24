@@ -22,14 +22,14 @@
        hx-get="/{{ lang }}/org_tier/new?organization={{ node.organization.id }}&parent={{ node.id }}"
        hx-target="#add-slot-{{ node.id }}"
        hx-swap="innerHTML">
-        <i class="bi bi-plus-lg"></i> {{ fluent(key="add-child-tier", lang=lang) }}
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-child-tier", lang=lang) }}
     </a>
     <a class="btn btn-sm btn-outline-success"
        href="/{{ lang }}/team/new?organization={{ node.organization.id }}&org_tier={{ node.id }}"
        hx-get="/{{ lang }}/team/new?organization={{ node.organization.id }}&org_tier={{ node.id }}"
        hx-target="#add-slot-{{ node.id }}"
        hx-swap="innerHTML">
-        <i class="bi bi-plus-lg"></i> {{ fluent(key="add-team", lang=lang) }}
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-team", lang=lang) }}
     </a>
 </div>
 {% endif %}

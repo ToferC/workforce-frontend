@@ -8,6 +8,7 @@
       hx-target="this"
       hx-swap="outerHTML">
     {{ forms::csrf(token=csrf_token) }}
+    {{ forms::error_summary() }}
     <input type="hidden" name="organization_id" value="{{ org_tier.organization.id }}">
     <input type="hidden" name="parent_tier" value="{% if org_tier.parentOrganizationTier %}{{ org_tier.parentOrganizationTier.id }}{% endif %}">
 

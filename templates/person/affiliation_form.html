@@ -8,7 +8,7 @@
 {% block content %}
 <div class="col-12 col-md-8 px-md-4 px-2 py-4">
 
-    <h1 class="mb-4"><i class="bi bi-link-45deg"></i> {{ fluent(key="add-affiliation", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-link-45deg" aria-hidden="true"></i> {{ fluent(key="add-affiliation", lang=lang) }}</h1>
     <p class="lead text-muted">{{ person.givenName }} {{ person.familyName }}</p>
 
     {% set label_org = fluent(key="affiliated-organization", lang=lang) %}
@@ -23,6 +23,7 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/person/{{ person.id }}/affiliation/new">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=affiliation.organization.id) }}
                 {{ forms::text_input(name="affiliation_role", label=label_role, value=affiliation.affiliationRole, help=help_role) }}
                 {{ forms::date_input(name="end_date", label=label_end, value=affiliation.endDate) }}

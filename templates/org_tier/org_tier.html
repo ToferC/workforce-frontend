@@ -8,36 +8,36 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-diagram-3"></i>
+        <h1 class="display-4 mb-2"><i class="bi bi-diagram-3" aria-hidden="true"></i>
             {% if lang == "fr" %}{{ org_tier.nameFr }}{% else %}{{ org_tier.nameEn }}{% endif %}
             {% if org_tier.retiredAt %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
         </h1>
 
         <div class="mb-2">
             <a class="btn btn-outline-secondary" href="/{{ lang }}/organization/{{ org_tier.organization.id }}/org_chart">
-                <i class="bi bi-diagram-3"></i> {{ fluent(key="org-chart", lang=lang) }}
+                <i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="org-chart", lang=lang) }}
             </a>
         </div>
 
         {% if role == "operator" or role == "admin" %}
         <div class="mb-2">
             <a class="btn btn-primary" href="/{{ lang }}/org_tier/{{ org_tier.id }}/edit">
-                <i class="bi bi-pencil"></i> {{ fluent(key="edit-org-tier", lang=lang) }}
+                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-org-tier", lang=lang) }}
             </a>
             <a class="btn btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ org_tier.organization.id }}&parent={{ org_tier.id }}">
-                <i class="bi bi-plus-lg"></i> {{ fluent(key="add-child-tier", lang=lang) }}
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-child-tier", lang=lang) }}
             </a>
             <a class="btn btn-outline-secondary" href="/{{ lang }}/org_tier/{{ org_tier.id }}/owner">
-                <i class="bi bi-person-gear"></i> {{ fluent(key="assign-owner", lang=lang) }}
+                <i class="bi bi-person-gear" aria-hidden="true"></i> {{ fluent(key="assign-owner", lang=lang) }}
             </a>
             {% if org_tier.retiredAt %}
             <form method="post" action="/{{ lang }}/org_tier/{{ org_tier.id }}/restore" class="d-inline m-0">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="btn btn-outline-success"><i class="bi bi-arrow-counterclockwise"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
+                <button type="submit" class="btn btn-outline-success"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
             </form>
             {% else %}
             <a class="btn btn-outline-danger" href="/{{ lang }}/org_tier/{{ org_tier.id }}/retire">
-                <i class="bi bi-x-circle"></i> {{ fluent(key="retire-org-tier", lang=lang) }}
+                <i class="bi bi-x-circle" aria-hidden="true"></i> {{ fluent(key="retire-org-tier", lang=lang) }}
             </a>
             {% endif %}
         </div>
@@ -50,10 +50,10 @@
             <!-- Teams -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h4 mb-0"><i class="bi bi-people"></i> Teams</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> Teams</h2>
                     {% if role == "operator" or role == "admin" %}
                     <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/team/new?organization={{ org_tier.organization.id }}&org_tier={{ org_tier.id }}">
-                        <i class="bi bi-plus-lg"></i> {{ fluent(key="add-team", lang=lang) }}
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-team", lang=lang) }}
                     </a>
                     {% endif %}
                 </div>
@@ -79,7 +79,7 @@
             <!-- Child Organization Tiers -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-diagram-2"></i> Child Organization Tiers</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-diagram-2" aria-hidden="true"></i> Child Organization Tiers</h2>
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
@@ -134,7 +134,7 @@
             {% if domain_summary %}
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps"></i> Capabilities by Domain</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> Capabilities by Domain</h2>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm table-hover mb-0 align-middle">
@@ -164,7 +164,7 @@
                 <!-- Details -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-info-circle"></i> Details</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> Details</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">

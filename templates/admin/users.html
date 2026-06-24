@@ -7,10 +7,10 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h1 class="display-5 mb-0"><i class="bi bi-people-fill"></i> {{ fluent(key="manage-users", lang=lang) }}</h1>
+        <h1 class="display-5 mb-0"><i class="bi bi-people-fill" aria-hidden="true"></i> {{ fluent(key="manage-users", lang=lang) }}</h1>
         <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="/{{ lang }}/admin/flags"><i class="bi bi-flag"></i> {{ fluent(key="record-flags", lang=lang) }}</a>
-            <a class="btn btn-primary" href="/{{ lang }}/admin/users/new"><i class="bi bi-person-plus"></i> {{ fluent(key="new-user", lang=lang) }}</a>
+            <a class="btn btn-outline-secondary" href="/{{ lang }}/admin/flags"><i class="bi bi-flag" aria-hidden="true"></i> {{ fluent(key="record-flags", lang=lang) }}</a>
+            <a class="btn btn-primary" href="/{{ lang }}/admin/users/new"><i class="bi bi-person-plus" aria-hidden="true"></i> {{ fluent(key="new-user", lang=lang) }}</a>
         </div>
     </div>
 
@@ -42,22 +42,22 @@
                         </td>
                         <td class="text-end">
                             <div class="d-inline-flex gap-1 flex-wrap justify-content-end">
-                                <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/admin/users/{{ u.id }}/edit"><i class="bi bi-pencil"></i></a>
+                                <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/admin/users/{{ u.id }}/edit" aria-label="{{ fluent(key='edit-user', lang=lang) }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
                                 {% if u.status != "ACTIVE" and u.status != "DISABLED" %}
                                 <form method="post" action="/{{ lang }}/admin/users/{{ u.id }}/invite" class="m-0">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <button class="btn btn-sm btn-outline-success" title="{{ fluent(key='grant-access', lang=lang) }}"><i class="bi bi-key"></i></button>
+                                    <button class="btn btn-sm btn-outline-success" title="{{ fluent(key='grant-access', lang=lang) }}" aria-label="{{ fluent(key='grant-access', lang=lang) }}"><i class="bi bi-key" aria-hidden="true"></i></button>
                                 </form>
                                 {% endif %}
                                 {% if u.status == "DISABLED" %}
                                 <form method="post" action="/{{ lang }}/admin/users/{{ u.id }}/enable" class="m-0">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <button class="btn btn-sm btn-outline-success" title="{{ fluent(key='enable-user', lang=lang) }}"><i class="bi bi-check-circle"></i></button>
+                                    <button class="btn btn-sm btn-outline-success" title="{{ fluent(key='enable-user', lang=lang) }}" aria-label="{{ fluent(key='enable-user', lang=lang) }}"><i class="bi bi-check-circle" aria-hidden="true"></i></button>
                                 </form>
                                 {% else %}
                                 <form method="post" action="/{{ lang }}/admin/users/{{ u.id }}/disable" class="m-0">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <button class="btn btn-sm btn-outline-danger" title="{{ fluent(key='disable-user', lang=lang) }}"><i class="bi bi-slash-circle"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" title="{{ fluent(key='disable-user', lang=lang) }}" aria-label="{{ fluent(key='disable-user', lang=lang) }}"><i class="bi bi-slash-circle" aria-hidden="true"></i></button>
                                 </form>
                                 {% endif %}
                             </div>

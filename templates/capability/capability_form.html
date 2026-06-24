@@ -8,7 +8,7 @@
 {% block content %}
 <div class="col-12 col-md-8 px-md-4 px-2 py-4">
 
-    <h1 class="mb-4"><i class="bi bi-award"></i> {{ fluent(key="add-capability", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-award" aria-hidden="true"></i> {{ fluent(key="add-capability", lang=lang) }}</h1>
     <p class="lead text-muted">{{ person.givenName }} {{ person.familyName }}</p>
 
     {% set label_skill = fluent(key="skill", lang=lang) %}
@@ -21,6 +21,7 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/person/{{ person.id }}/capability/new">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 {% include "skill/skill_picker.html" %}
                 {{ forms::select(name="self_identified_level", label=label_level, options=capability_levels) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}

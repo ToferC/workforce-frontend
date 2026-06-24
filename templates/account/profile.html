@@ -8,7 +8,7 @@
 {% block content %}
 <div class="col-12 col-md-10 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-5 mb-2"><i class="bi bi-person-gear"></i> {{ fluent(key="my-profile", lang=lang) }}</h1>
+        <h1 class="display-5 mb-2"><i class="bi bi-person-gear" aria-hidden="true"></i> {{ fluent(key="my-profile", lang=lang) }}</h1>
     </div>
 
     {% if me and me.person %}
@@ -23,6 +23,7 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/me">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 <div class="row">
                     <div class="col-md-6">{{ forms::text_input(name="given_name", label=label_given, value=me.person.givenName) }}</div>
                     <div class="col-md-6">{{ forms::text_input(name="family_name", label=label_family, value=me.person.familyName) }}</div>
@@ -38,7 +39,7 @@
                     <div class="col-md-4">{{ forms::text_input(name="postal_code", label=fluent(key="postal-code", lang=lang), value=me.person.postalCode) }}</div>
                 </div>
                 {{ forms::text_input(name="country", label=fluent(key="country", lang=lang), value=me.person.country) }}
-                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> {{ label_save }}</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save" aria-hidden="true"></i> {{ label_save }}</button>
             </form>
         </div>
     </div>
@@ -49,10 +50,11 @@
             <p class="text-muted small">{{ fluent(key="flag-an-issue-help", lang=lang) }}</p>
             <form method="post" action="/{{ lang }}/me/flag">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 <div class="form-group mb-3">
                     <textarea class="form-control" name="message" rows="3" required></textarea>
                 </div>
-                <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-flag"></i> {{ fluent(key="flag-an-issue", lang=lang) }}</button>
+                <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-flag" aria-hidden="true"></i> {{ fluent(key="flag-an-issue", lang=lang) }}</button>
             </form>
         </div>
     </div>

@@ -1,0 +1,285 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   GC component & utility shim
+   ---------------------------------------------------------------------------
+   Part of the hybrid Bootstrap-retirement (Phase 5). The app now loads only
+   `bootstrap-grid.min.css` (grid + flex/display + spacing utilities). This file
+   re-implements — using GC Design System tokens via the theme variables — the
+   Bootstrap *component* and *utility* classes the templates still rely on, so
+   removing the full Bootstrap stylesheet does not break styling.
+
+   Only classes actually used in templates are covered (audited). New/refactored
+   pages should prefer GCDS components and @cdssnc/gcds-utility classes instead
+   of these. Loaded after the grid and before theme.css, so theme.css (which
+   already styles .btn base, .btn-primary, .card, .list-group, .form-control,
+   .modal-content, etc.) wins on overlap.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ── Text colour utilities ─────────────────────────────────────────────── */
+.text-muted     { color: var(--text-muted) !important; }
+.text-secondary { color: var(--text-secondary) !important; }
+.text-dark      { color: var(--text-primary) !important; }
+.text-primary   { color: var(--color-primary) !important; }
+.text-success   { color: var(--color-success) !important; }
+.text-danger    { color: var(--color-danger) !important; }
+.text-info      { color: var(--color-info) !important; }
+.text-warning   { color: #8d6708 !important; } /* AA-legible amber on light */
+[data-theme="dark"] .text-warning { color: var(--color-warning) !important; }
+
+/* ── Text alignment / decoration ───────────────────────────────────────── */
+.text-start  { text-align: left !important; }
+.text-center { text-align: center !important; }
+.text-end    { text-align: right !important; }
+.text-nowrap { white-space: nowrap !important; }
+.text-decoration-none { text-decoration: none !important; }
+
+/* ── Sizing ────────────────────────────────────────────────────────────── */
+.w-100 { width: 100% !important; }
+.h-100 { height: 100% !important; }
+
+/* ── Background utilities ──────────────────────────────────────────────── */
+.bg-primary   { background-color: var(--color-primary) !important; }
+.bg-secondary { background-color: var(--text-secondary) !important; }
+.bg-success   { background-color: var(--color-success) !important; }
+.bg-danger    { background-color: var(--color-danger) !important; }
+.bg-info      { background-color: var(--color-info) !important; }
+.bg-warning   { background-color: var(--color-warning) !important; }
+.bg-light     { background-color: var(--bg-secondary) !important; }
+.bg-dark      { background-color: var(--bg-tertiary) !important; }
+.bg-body-secondary { background-color: var(--bg-secondary) !important; }
+
+/* ── Typographic helpers ───────────────────────────────────────────────── */
+.lead      { font-size: 1.25rem; font-weight: 400; }
+.display-4 { font-size: 3.5rem; font-weight: 300; line-height: 1.2; }
+.small     { font-size: 0.875em; }
+.fw-light  { font-weight: 300; }
+
+/* ── Badges (colour comes from the .bg-* utilities above) ──────────────── */
+.badge {
+    display: inline-block;
+    padding: 0.35em 0.6em;
+    font-size: 0.75em;
+    font-weight: 600;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: var(--radius-sm);
+}
+.badge.bg-primary,
+.badge.bg-secondary,
+.badge.bg-success,
+.badge.bg-danger,
+.badge.bg-info,
+.badge.bg-dark   { color: #fff !important; }
+.badge.bg-warning,
+.badge.bg-light  { color: #000 !important; }
+.rounded-pill { border-radius: 50rem !important; }
+
+/* ── Button variants not covered by theme.css ──────────────────────────── */
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; border-radius: var(--radius-sm); }
+
+.btn-secondary {
+    background-color: var(--text-secondary);
+    border-color: var(--text-secondary);
+    color: #fff;
+}
+.btn-secondary:hover,
+.btn-secondary:focus {
+    background-color: var(--text-primary);
+    border-color: var(--text-primary);
+    color: #fff;
+}
+
+/* Outline buttons */
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-outline-success,
+.btn-outline-danger,
+.btn-outline-warning,
+.btn-outline-info {
+    background-color: transparent;
+    border: 1px solid currentColor;
+}
+.btn-outline-primary   { color: var(--color-primary); }
+.btn-outline-secondary { color: var(--text-secondary); }
+.btn-outline-success   { color: var(--color-success); }
+.btn-outline-danger    { color: var(--color-danger); }
+.btn-outline-warning   { color: #8d6708; }
+.btn-outline-info      { color: var(--color-info); }
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus     { background-color: var(--color-primary); color: #fff; }
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus   { background-color: var(--text-secondary); color: #fff; }
+.btn-outline-success:hover,
+.btn-outline-success:focus     { background-color: var(--color-success); color: #fff; }
+.btn-outline-danger:hover,
+.btn-outline-danger:focus      { background-color: var(--color-danger); color: #fff; }
+.btn-outline-warning:hover,
+.btn-outline-warning:focus     { background-color: var(--color-warning); color: #000; }
+.btn-outline-info:hover,
+.btn-outline-info:focus        { background-color: var(--color-info); color: #fff; }
+
+/* Solid contextual buttons used outside the .btn-a11y scope */
+.btn-success { background-color: var(--color-success); border-color: var(--color-success); color: #fff; }
+.btn-danger  { background-color: var(--color-danger);  border-color: var(--color-danger);  color: #fff; }
+.btn-info    { background-color: var(--color-info);    border-color: var(--color-info);    color: #fff; }
+.btn-warning { background-color: var(--color-warning); border-color: var(--color-warning); color: #000; }
+
+.btn.disabled,
+.btn:disabled { opacity: 0.6; pointer-events: none; }
+
+/* ── Forms: native checkbox group + helper text + select ───────────────── */
+.form-check { display: block; min-height: 1.5rem; padding-left: 1.5em; margin-bottom: var(--spacing-sm); }
+.form-check-input { float: left; margin-left: -1.5em; width: 1em; height: 1em; margin-top: 0.25em; }
+.form-check-label { display: inline-block; }
+.form-text { margin-top: 0.25rem; font-size: 0.875em; color: var(--text-muted); }
+.form-select {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+}
+.form-select:focus {
+    border-color: var(--color-primary);
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 0.2rem rgba(31, 73, 122, 0.25);
+}
+
+/* ── Alerts (flash messages) ───────────────────────────────────────────── */
+.alert {
+    position: relative;
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    border: 1px solid transparent;
+    border-left-width: 5px;
+    border-radius: var(--radius-md);
+}
+.alert-success   { background-color: var(--bg-secondary); border-left-color: var(--color-success); color: var(--text-primary); }
+.alert-danger    { background-color: var(--bg-secondary); border-left-color: var(--color-danger);  color: var(--text-primary); }
+.alert-warning   { background-color: var(--bg-secondary); border-left-color: var(--color-warning); color: var(--text-primary); }
+.alert-info      { background-color: var(--bg-secondary); border-left-color: var(--color-info);    color: var(--text-primary); }
+.alert-secondary { background-color: var(--bg-secondary); border-left-color: var(--text-secondary); color: var(--text-primary); }
+.alert-primary   { background-color: var(--bg-secondary); border-left-color: var(--color-primary); color: var(--text-primary); }
+.alert-dismissible { padding-right: 3rem; }
+.alert-dismissible .close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: transparent;
+    border: 0;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: inherit;
+    cursor: pointer;
+}
+
+/* ── Borders / corners ─────────────────────────────────────────────────── */
+.border        { border: 1px solid var(--border-color) !important; }
+.border-top    { border-top: 1px solid var(--border-color) !important; }
+.border-bottom { border-bottom: 1px solid var(--border-color) !important; }
+.border-0      { border: 0 !important; }
+.rounded       { border-radius: var(--radius-md) !important; }
+.rounded-circle{ border-radius: 50% !important; }
+
+/* Wide content container for data-dense pages (dashboards, analytics) that
+   benefit from more horizontal room than Bootstrap's 1140px `.container`.
+   Pages opt in via {% block main_container %}container-wide{% endblock %}. */
+.container-wide {
+    width: 100%;
+    max-width: 1680px;
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+/* ── Stretched link (whole-card click target) ──────────────────────────── */
+.stretched-link::after {
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    z-index: 1;
+    content: "";
+}
+
+/* ── Screen-reader-only (kept for a11y even if currently unused) ────────── */
+.sr-only,
+.visually-hidden {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ── Modal structure (behaviour driven by the retained Bootstrap JS;
+      theme.css styles .modal-content/header/body/footer) ────────────────── */
+.modal {
+    position: fixed;
+    top: 0; left: 0;
+    z-index: 1050;
+    display: none;
+    width: 100%; height: 100%;
+    overflow: hidden auto;
+    outline: 0;
+    background: transparent;
+}
+.modal.show { display: block; }
+.modal-open { overflow: hidden; }
+.modal-dialog {
+    position: relative;
+    width: auto;
+    margin: 1.75rem auto;
+    max-width: 500px;
+    pointer-events: none;
+}
+.modal-dialog-centered { display: flex; align-items: center; min-height: calc(100% - 3.5rem); }
+.modal .modal-content { pointer-events: auto; }
+.modal-backdrop {
+    position: fixed;
+    top: 0; left: 0;
+    z-index: 1040;
+    width: 100vw; height: 100vh;
+    background-color: #000;
+}
+.modal-backdrop.show { opacity: 0.5; }
+
+/* ── Collapse (behaviour driven by the retained Bootstrap JS) ───────────── */
+.collapse:not(.show) { display: none; }
+.collapsing { height: 0; overflow: hidden; transition: height var(--transition-normal); }
+
+/* ── Fade transition used by alerts/modals ─────────────────────────────── */
+.fade { transition: opacity var(--transition-normal); }
+.fade:not(.show) { opacity: 0; }
+.fade.show { opacity: 1; }
+
+/* ── Misc utilities still referenced by templates ──────────────────────── */
+.align-middle { vertical-align: middle !important; }
+.align-top    { vertical-align: top !important; }
+.align-bottom { vertical-align: bottom !important; }
+
+.list-unstyled { padding-left: 0; list-style: none; }
+.list-inline { padding-left: 0; list-style: none; }
+.list-inline-item { display: inline-block; }
+
+.position-relative { position: relative !important; }
+.position-absolute { position: absolute !important; }
+.position-sticky   { position: sticky !important; }
+
+.overflow-auto    { overflow: auto !important; }
+.overflow-hidden  { overflow: hidden !important; }
+.overflow-x-auto  { overflow-x: auto !important; }
+
+/* Bootstrap font-size scale (only the steps in use) */
+.fs-1 { font-size: 2.25rem !important; }
+.fs-2 { font-size: 1.75rem !important; }
+.fs-3 { font-size: 1.5rem !important; }
+.fs-4 { font-size: 1.25rem !important; }
+.fs-5 { font-size: 1.125rem !important; }
+.fs-6 { font-size: 1rem !important; }

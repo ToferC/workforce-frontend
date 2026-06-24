@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
 
+{% block breadcrumb %}
+<div class="container pt-2">
+    <gcds-breadcrumbs hide-canada-link="true">
+        <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
+        <gcds-breadcrumbs-item href="/{{ lang }}/roles">{{ fluent(key="roles", lang=lang) }}</gcds-breadcrumbs-item>
+    </gcds-breadcrumbs>
+</div>
+{% endblock breadcrumb %}
+
 {% block title %}
     <title>{{ fluent(key="create-role", lang=lang) }}</title>
 {% endblock title %}
@@ -8,7 +17,7 @@
 {% block content %}
 <div class="col-12 col-md-8 px-md-4 px-2 py-4">
 
-    <h1 class="mb-4"><i class="bi bi-briefcase"></i> {{ fluent(key="create-role", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-briefcase" aria-hidden="true"></i> {{ fluent(key="create-role", lang=lang) }}</h1>
     {% if team %}
     <p class="lead text-muted">
         {{ fluent(key="team", lang=lang) }}:
@@ -36,6 +45,7 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/role/new">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 <input type="hidden" name="team_id" value="{{ role_form.teamId }}">
                 <input type="hidden" name="org_tier_id" value="{{ role_form.orgTierId }}">
                 <input type="hidden" name="organization_id" value="{{ role_form.organizationId }}">

@@ -114,14 +114,51 @@ Required `.env` variables:
   (`{% import "macros/viz.html" as viz %}`). Use `viz::effort_meter`,
   `viz::status_chip`, `viz::domain_chip`, `viz::capability_scale`, and
   `viz::level_chip` instead of hand-rolled Bootstrap badges for these values.
-- **ECharts** is loaded from CDN in `base.html` (vendor to
-  `static/echarts/echarts.min.js` for offline use). Chart macros are in
+- **ECharts** is vendored at `static/echarts/echarts.min.js` and loaded in
+  `base.html` (no CDN). Chart macros are in
   `templates/macros/charts.html` (`{% import "macros/charts.html" as charts %}`).
   Handlers aggregate JSON and inject it into the context; templates render it via
   `{{ charts::chart(id="...", height="300px") }}` paired with a
   `<script type="application/json" id="...-data">{{ my_json }}</script>` payload.
   Charts do NOT call GraphQL client-side. The `themechange` custom DOM event is
   dispatched on theme toggle so charts re-render correctly.
+
+## GC Design System (frontend UI)
+
+The frontend is being aligned with the
+[GC Design System (GCDS)](https://design-system.canada.ca/) and federal
+accessibility / Federal Identity Program requirements. The migration plan and
+per-phase notes live in `docs/GC_DESIGN_SYSTEM_COMPLIANCE.md` and `docs/a11y/`.
+When building or changing frontend pages:
+
+- **Vendored, no CDNs.** GCDS components/tokens/utility, fonts (Lato / Noto
+  Sans / Noto Sans Mono), Bootstrap Icons, and ECharts are all served from
+  `static/`. Do not reintroduce external `<link>`/`<script>` hosts (CSP /
+  air-gap).
+- **Global chrome** is GCDS: `base.html` renders `<gcds-header>` (Government of
+  Canada signature, skip-to-content link, `/toggle_language` language toggle)
+  and `<gcds-footer>` (Canada wordmark) + `<gcds-date-modified>`. Content lives
+  in `<main id="main-content">`. Add a breadcrumb trail via the
+  `{% block breadcrumb %}` (see the entity `*_form.html` for the
+  `<gcds-breadcrumbs hide-canada-link>` pattern).
+- **Forms** use the GCDS-backed macros in `templates/macros/forms.html`
+  (`gcds-input` / `gcds-textarea` / `gcds-select`, all form-associated so plain
+  POST + HTMX submission is unchanged). Put `{{ forms::error_summary() }}` at the
+  top of a form and pass server errors via each macro's `error` param. Native
+  date input and single checkbox are intentionally kept.
+- **Theme/tokens.** `static/css/theme.css` maps the app's CSS custom properties
+  onto GCDS tokens; light is the default theme, dark is an opt-in. Use the
+  `--color-*` / `--bg-*` / `--text-*` / `--spacing-*` variables, not raw hexes.
+- **Icons** are decorative: give every `<i class="bi …">` `aria-hidden="true"`,
+  and give icon-only controls an `aria-label`.
+- **Grid / layout (hybrid).** Bootstrap is reduced to `bootstrap-grid.min.css`
+  (grid + flex/display + spacing utilities); its components/utilities still in
+  use are reimplemented with GC tokens in `static/css/gc-components.css`. The
+  Bootstrap JS bundle is retained only for the remaining modal/collapse/alert
+  widgets. **New or refactored pages should prefer `<gcds-grid>` /
+  `<gcds-grid-col>` / `<gcds-container>` and `@cdssnc/gcds-utility` classes**
+  over Bootstrap grid markup, and GCDS components over the `gc-components.css`
+  shim, so the shim and the Bootstrap JS can eventually be removed.
 
 ## Development Notes
 

@@ -9,7 +9,7 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-person-badge"></i> {{ person.givenName }} {{ person.familyName }}
+        <h1 class="display-4 mb-2"><i class="bi bi-person-badge" aria-hidden="true"></i> {{ person.givenName }} {{ person.familyName }}
             {% if person.retiredAt %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
         </h1>
         <p class="lead text-muted">
@@ -27,7 +27,7 @@
         {% endif %}
         {% if person.activeEffort is defined %}
         <div class="d-flex align-items-center justify-content-center gap-2 mt-1">
-            <span class="text-muted small"><i class="bi bi-speedometer2"></i> {{ fluent(key="active-effort", lang=lang) }}</span>
+            <span class="text-muted small"><i class="bi bi-speedometer2" aria-hidden="true"></i> {{ fluent(key="active-effort", lang=lang) }}</span>
             {{ viz::effort_meter(value=person.activeEffort) }}
         </div>
         {% endif %}
@@ -35,22 +35,22 @@
         {% if role == "operator" or role == "admin" %}
         <div class="mb-2">
             <a class="btn btn-primary" href="/{{ lang }}/person/{{ person.id }}/edit">
-                <i class="bi bi-pencil"></i> {{ fluent(key="edit-person", lang=lang) }}
+                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-person", lang=lang) }}
             </a>
             {% if (role == "operator" or role == "admin") and (not account_status or account_status != "ACTIVE") %}
             <form method="post" action="/{{ lang }}/person/{{ person.id }}/grant-access" class="d-inline m-0">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="btn btn-outline-primary"><i class="bi bi-key"></i> {{ fluent(key="grant-access", lang=lang) }}</button>
+                <button type="submit" class="btn btn-outline-primary"><i class="bi bi-key" aria-hidden="true"></i> {{ fluent(key="grant-access", lang=lang) }}</button>
             </form>
             {% endif %}
             {% if person.retiredAt %}
             <form method="post" action="/{{ lang }}/person/{{ person.id }}/restore" class="d-inline m-0">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="btn btn-outline-success"><i class="bi bi-arrow-counterclockwise"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
+                <button type="submit" class="btn btn-outline-success"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
             </form>
             {% else %}
             <a class="btn btn-outline-danger" href="/{{ lang }}/person/{{ person.id }}/retire">
-                <i class="bi bi-person-x"></i> {{ fluent(key="retire-person", lang=lang) }}
+                <i class="bi bi-person-x" aria-hidden="true"></i> {{ fluent(key="retire-person", lang=lang) }}
             </a>
             {% endif %}
         </div>
@@ -65,7 +65,7 @@
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
                     <h2 class="h4 mb-0">
-                        <i class="bi bi-briefcase"></i>
+                        <i class="bi bi-briefcase" aria-hidden="true"></i>
                         <a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish }}</a>
                         <span class="text-muted fw-normal small ms-2">{{ role.militaryOccupation }}-{{ role.rank }}</span>
                     </h2>
@@ -115,10 +115,10 @@
             <!-- Capabilities -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h4 mb-0"><i class="bi bi-award"></i> Capabilities</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-award" aria-hidden="true"></i> Capabilities</h2>
                     {% if role == "operator" or role == "admin" %}
                     <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/capability/new">
-                        <i class="bi bi-plus-lg"></i> {{ fluent(key="add-capability", lang=lang) }}
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-capability", lang=lang) }}
                     </a>
                     {% endif %}
                 </div>
@@ -135,7 +135,7 @@
                                     {% if cap.validatedBy %}
                                     {% set validator_name = cap.validatedBy.name %}
                                     {% set validated_on = cap.validatedAt | default(value="") | truncate(length=10, end="") %}
-                                    <i class="bi bi-patch-check"></i> {{ fluent(key="validated-by", name=validator_name, date=validated_on, lang=lang) }}
+                                    <i class="bi bi-patch-check" aria-hidden="true"></i> {{ fluent(key="validated-by", name=validator_name, date=validated_on, lang=lang) }}
                                     {% else %}
                                     {{ fluent(key="not-yet-validated", lang=lang) }}
                                     {% endif %}
@@ -169,7 +169,7 @@
             <!-- Potential Job Matches -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bullseye"></i> Potential Job Matches</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-bullseye" aria-hidden="true"></i> Potential Job Matches</h2>
                 </div>
                 <div class="card-body p-0">
                     {% for match in person.findMatches %}
@@ -185,14 +185,14 @@
                                href="/{{ lang }}/role/{{ match.id }}/transfer-preview?person_id={{ person.id }}"
                                hx-get="/{{ lang }}/role/{{ match.id }}/transfer-preview?person_id={{ person.id }}"
                                hx-target="#transfer-modal-container" hx-swap="innerHTML">
-                                <i class="bi bi-person-plus"></i> Assign to this role
+                                <i class="bi bi-person-plus" aria-hidden="true"></i> Assign to this role
                             </a>
                             {% else %}
                             <form method="post" action="/{{ lang }}/role/{{ match.id }}/assign" class="m-0">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <input type="hidden" name="person_id" value="{{ person.id }}">
                                 <button type="submit" class="btn btn-sm btn-success">
-                                    <i class="bi bi-person-plus"></i> Assign to this role
+                                    <i class="bi bi-person-plus" aria-hidden="true"></i> Assign to this role
                                 </button>
                             </form>
                             {% endif %}
@@ -214,7 +214,7 @@
             <!-- Past Roles -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-clock-history"></i> Past Roles</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-clock-history" aria-hidden="true"></i> Past Roles</h2>
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
@@ -243,7 +243,7 @@
                 <!-- Contact Info -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-telephone"></i> Contact Info</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-telephone" aria-hidden="true"></i> Contact Info</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
@@ -257,10 +257,10 @@
                 <!-- Languages -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h2 class="h4 mb-0"><i class="bi bi-translate"></i> {{ fluent(key="languages", lang=lang) }}</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-translate" aria-hidden="true"></i> {{ fluent(key="languages", lang=lang) }}</h2>
                         {% if role == "operator" or role == "admin" %}
                         <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/language/new">
-                            <i class="bi bi-plus-lg"></i> {{ fluent(key="add-language", lang=lang) }}
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-language", lang=lang) }}
                         </a>
                         {% endif %}
                     </div>
@@ -285,10 +285,10 @@
                 <!-- Affiliations -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h2 class="h4 mb-0"><i class="bi bi-link-45deg"></i> {{ fluent(key="affiliation", lang=lang) }}</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-link-45deg" aria-hidden="true"></i> {{ fluent(key="affiliation", lang=lang) }}</h2>
                         {% if role == "operator" or role == "admin" %}
                         <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/affiliation/new">
-                            <i class="bi bi-plus-lg"></i> {{ fluent(key="add-affiliation", lang=lang) }}
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-affiliation", lang=lang) }}
                         </a>
                         {% endif %}
                     </div>
@@ -318,7 +318,7 @@
                 <!-- Publications -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-journal-richtext"></i> Publications</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-journal-richtext" aria-hidden="true"></i> Publications</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">

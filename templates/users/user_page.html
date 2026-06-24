@@ -7,13 +7,13 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-person-circle"></i> {{ fluent(key="user-profile-for", lang=lang )}} {{ user.user_name }}</h1>
+        <h1 class="display-4 mb-2"><i class="bi bi-person-circle" aria-hidden="true"></i> {{ fluent(key="user-profile-for", lang=lang )}} {{ user.user_name }}</h1>
     </div>
 
     <!-- Account Details -->
     <div class="card shadow-lg mb-4">
         <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-person"></i> {{ fluent(key="user-details", lang=lang )}}</h2>
+            <h2 class="h4 mb-0"><i class="bi bi-person" aria-hidden="true"></i> {{ fluent(key="user-details", lang=lang )}}</h2>
         </div>
         <div class="card-body p-0">
             <ul class="list-group list-group-flush">
@@ -26,23 +26,23 @@
     <!-- Account Options -->
     <div class="card shadow-lg mb-4">
         <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-gear"></i> {{ fluent(key="account-options", lang=lang )}}</h2>
+            <h2 class="h4 mb-0"><i class="bi bi-gear" aria-hidden="true"></i> {{ fluent(key="account-options", lang=lang )}}</h2>
         </div>
         <div class="card-body d-flex flex-wrap gap-2">
             {% if role == "admin" %}
             <a class="btn btn-primary" href="/{{ lang }}/admin_edit_user/{{ user.slug }}">
-                <i class="bi bi-shield-lock"></i> {{ fluent(key="edit-as-admin", lang=lang )}}
+                <i class="bi bi-shield-lock" aria-hidden="true"></i> {{ fluent(key="edit-as-admin", lang=lang )}}
             </a>
             {% else %}
             <a class="btn btn-primary" href="/{{ lang }}/edit_user/{{ user.slug }}">
-                <i class="bi bi-pencil"></i> {{ fluent(key="change-username-email", lang=lang )}}
+                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="change-username-email", lang=lang )}}
             </a>
             {% endif %}
             <a class="btn btn-primary" href="/{{ lang }}/request_password_reset">
-                <i class="bi bi-key"></i> {{ fluent(key="reset-password", lang=lang )}}
+                <i class="bi bi-key" aria-hidden="true"></i> {{ fluent(key="reset-password", lang=lang )}}
             </a>
             <a class="btn btn-danger" href="/{{ lang }}/delete_user/{{ user.slug }}">
-                <i class="bi bi-trash"></i> {{ fluent(key="delete-user", lang=lang )}}
+                <i class="bi bi-trash" aria-hidden="true"></i> {{ fluent(key="delete-user", lang=lang )}}
             </a>
         </div>
     </div>
@@ -50,15 +50,15 @@
     <!-- Verification Status -->
     <div class="card shadow-lg mb-4">
         <div class="card-header">
-            <h2 class="h4 mb-0"><i class="bi bi-shield-check"></i> Documents &amp; Work</h2>
+            <h2 class="h4 mb-0"><i class="bi bi-shield-check" aria-hidden="true"></i> Documents &amp; Work</h2>
         </div>
         <div class="card-body">
             {% if user.validated %}
-            <p class="mb-2 text-success"><i class="bi bi-check-circle"></i> Account validated — you can add documents and work.</p>
+            <p class="mb-2 text-success"><i class="bi bi-check-circle" aria-hidden="true"></i> Account validated — you can add documents and work.</p>
             {% else %}
             <p class="mb-3"><strong>{{ fluent(key="must-verify", lang=lang )}}</strong></p>
             <a class="btn btn-primary" href="/{{ lang }}/resend_email_verification">
-                <i class="bi bi-envelope"></i> {{ fluent(key="send-email-verification", lang=lang )}}
+                <i class="bi bi-envelope" aria-hidden="true"></i> {{ fluent(key="send-email-verification", lang=lang )}}
             </a>
             {% endif %}
         </div>

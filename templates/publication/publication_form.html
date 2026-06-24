@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
 
+{% block breadcrumb %}
+<div class="container pt-2">
+    <gcds-breadcrumbs hide-canada-link="true">
+        <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
+        <gcds-breadcrumbs-item href="/{{ lang }}/publications">{{ fluent(key="publications", lang=lang) }}</gcds-breadcrumbs-item>
+    </gcds-breadcrumbs>
+</div>
+{% endblock breadcrumb %}
+
 {% block title %}
     {% if edit %}<title>{{ fluent(key="edit-publication", lang=lang) }}</title>
     {% else %}<title>{{ fluent(key="create-publication", lang=lang) }}</title>{% endif %}
@@ -9,9 +18,9 @@
 {% block content %}
 <div class="col-12 col-md-8 px-md-4 px-2 py-4">
     {% if edit %}
-    <h1 class="mb-4"><i class="bi bi-journal-richtext"></i> {{ fluent(key="edit-publication", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-journal-richtext" aria-hidden="true"></i> {{ fluent(key="edit-publication", lang=lang) }}</h1>
     {% else %}
-    <h1 class="mb-4"><i class="bi bi-journal-richtext"></i> {{ fluent(key="create-publication", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-journal-richtext" aria-hidden="true"></i> {{ fluent(key="create-publication", lang=lang) }}</h1>
     {% endif %}
 
     {% set label_org = fluent(key="publishing-organization", lang=lang) %}
@@ -38,6 +47,7 @@
         <div class="card-body">
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
                 {% if not edit %}
                 {{ forms::select(name="organization_id", label=label_org, options=organization_options) }}
                 {{ forms::text_input(name="lead_author_name", label=label_author, help=help_author) }}

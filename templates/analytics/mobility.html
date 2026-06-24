@@ -15,7 +15,7 @@
     </nav>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0"><i class="bi bi-arrow-left-right"></i> Talent Mobility</h1>
+        <h1 class="h3 mb-0"><i class="bi bi-arrow-left-right" aria-hidden="true"></i> Talent Mobility</h1>
         <span class="text-muted small">Previous team → current team movement</span>
     </div>
 
@@ -74,7 +74,7 @@
     <!-- Sankey -->
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Movement Flow</h5>
+            <h5 class="mb-0"><i class="bi bi-diagram-3" aria-hidden="true"></i> Movement Flow</h5>
         </div>
         <div class="card-body">
             {% if has_moves %}
@@ -82,7 +82,7 @@
             <script type="application/json" id="mobility-data">{{ chart_option | safe }}</script>
             {% else %}
             <div class="text-muted text-center p-4">
-                <i class="bi bi-info-circle"></i>
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
                 No team-to-team moves found. Movement is detected when a person's most recent
                 prior role was in a different team than their current role.
             </div>
@@ -98,7 +98,7 @@
     {% if has_moves %}
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-table"></i> Transitions</h5>
+            <h5 class="mb-0"><i class="bi bi-table" aria-hidden="true"></i> Transitions</h5>
         </div>
         <div class="card-body p-0">
             <table class="table table-sm table-hover mb-0 align-middle">
