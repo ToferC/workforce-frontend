@@ -441,5 +441,7 @@ name = Name
 # Assign work
 assign-to-role = Assign to role
 select-a-role = — Select a role —
+select-an-organization = — Select an organization —
+select-personnel-type = — Select a type —
 your-team = Your team
 all-roles = All roles

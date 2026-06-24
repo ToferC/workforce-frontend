@@ -39,7 +39,9 @@
     {% set label_postal = fluent(key="postal-code", lang=lang) %}
     {% set label_country = fluent(key="country", lang=lang) %}
     {% set label_org = fluent(key="organization", lang=lang) %}
+    {% set blank_org = fluent(key="select-an-organization", lang=lang) %}
     {% set label_personnel_type = fluent(key="personnel-type", lang=lang) %}
+    {% set blank_personnel = fluent(key="select-personnel-type", lang=lang) %}
     {% set label_peoplesoft = fluent(key="peoplesoft-id", lang=lang) %}
     {% set label_orcid = fluent(key="orcid-id", lang=lang) %}
     {% set label_save = fluent(key="save-button", lang=lang) %}
@@ -66,19 +68,19 @@
                 {% endif %}
 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-12 col-sm-6">
                         {{ forms::text_input(name="given_name", label=label_given, value=person.givenName) }}
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12 col-sm-6">
                         {{ forms::text_input(name="family_name", label=label_family, value=person.familyName) }}
                     </div>
                 </div>
 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-12 col-sm-6">
                         {{ forms::text_input(name="email", label=label_email, value=person.email, type="email") }}
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12 col-sm-6">
                         {{ forms::text_input(name="phone", label=label_phone, value=person.phone) }}
                     </div>
                 </div>
@@ -86,26 +88,26 @@
                 {{ forms::text_input(name="work_address", label=label_address, value=person.workAddress) }}
 
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-12 col-sm-6 col-lg-5">
                         {{ forms::text_input(name="city", label=label_city, value=person.city) }}
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-lg-3">
                         {{ forms::text_input(name="province", label=label_province, value=person.province) }}
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-6 col-lg-2">
                         {{ forms::text_input(name="postal_code", label=label_postal, value=person.postalCode) }}
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-2">
                         {{ forms::text_input(name="country", label=label_country, value=person.country) }}
                     </div>
                 </div>
 
                 <div class="row">
-                    <div class="col-md-6">
-                        {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=person.organization.id) }}
+                    <div class="col-12 col-sm-6">
+                        {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=person.organization.id, blank_label=blank_org) }}
                     </div>
-                    <div class="col-md-6">
-                        {{ forms::select(name="personnel_type", label=label_personnel_type, options=personnel_types, selected=person.personnelType) }}
+                    <div class="col-12 col-sm-6">
+                        {{ forms::select(name="personnel_type", label=label_personnel_type, options=personnel_types, selected=person.personnelType, blank_label=blank_personnel) }}
                     </div>
                 </div>
 

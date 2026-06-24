@@ -63,7 +63,13 @@
     {% if required %}required="true"{% endif %}
     {% if help %}hint="{{ help }}"{% endif %}
     {% if error %}error-message="{{ error }}"{% endif %}>
-    {% if blank_label %}<option value=""{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>{% endif %}
+    {# For a required select the blank entry is a prompt, not a choosable value:
+       render it disabled so it can't be submitted, but keep it selected by
+       default so picking any real option is an index change that fires
+       `change` (without this, a select with a single option never fires the
+       event and the value is never committed). Optional selects keep a
+       choosable blank. #}
+    {% if blank_label %}<option value=""{% if required %} disabled{% endif %}{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>{% endif %}
     {% for option in options %}
     <option value="{{ option.value }}"{% if option.value == selected %} selected{% endif %}>{{ option.label }}</option>
     {% endfor %}
