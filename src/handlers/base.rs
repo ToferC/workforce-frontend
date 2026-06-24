@@ -32,6 +32,14 @@ pub async fn index(
         None => "".to_string(),
     };
 
+    // Not authenticated: send the visitor to the login page up front instead of
+    // firing an API call with an empty token and depending on the API to error.
+    if bearer.is_empty() {
+        return HttpResponse::Found()
+            .append_header(("Location", format!("/{}/log_in", lang)))
+            .finish();
+    }
+
     match all_organizations(bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => {
             ctx.insert("organizations", &r.all_organizations);
