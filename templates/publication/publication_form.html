@@ -49,7 +49,7 @@
                 {{ forms::csrf(token=csrf_token) }}
                 {{ forms::error_summary() }}
                 {% if not edit %}
-                {{ forms::select(name="organization_id", label=label_org, options=organization_options) }}
+                {{ forms::select(name="organization_id", label=label_org, options=organization_options, blank_label=fluent(key="select-an-organization", lang=lang)) }}
                 {{ forms::text_input(name="lead_author_name", label=label_author, help=help_author) }}
                 {% endif %}
                 {{ forms::text_input(name="title", label=label_title, value=publication.title) }}
