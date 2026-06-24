@@ -206,12 +206,20 @@ pub async fn create_organization_post(
 
     match create_organization(new_organization, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(response) => {
+            // The API seeds a starter Executive tier with a vacant "Head" role
+            // (see createOrganization). Point the operator straight at the org
+            // chart so they can staff that role instead of landing on a
+            // read-only detail page.
             security::add_flash(
                 &session,
                 "success",
-                by_lang(&lang, "Organization created.", "Organisation créée."),
+                by_lang(
+                    &lang,
+                    "Organization created with a starter Executive tier. Assign a person to its vacant Head role to staff it.",
+                    "Organisation créée avec un niveau exécutif de départ. Assignez une personne à son rôle de responsable vacant pour la doter.",
+                ),
             );
-            redirect_to(format!("/{}/organization/{}", &lang, response.create_organization.id))
+            redirect_to(format!("/{}/organization/{}/org_chart", &lang, response.create_organization.id))
         },
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
