@@ -50,10 +50,10 @@
                 {{ forms::error_summary() }}
 
                 {% if not edit %}
-                {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=product.organization.id) }}
+                {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=product.organization.id, blank_label=fluent(key="select-an-organization", lang=lang)) }}
                 {% endif %}
 
-                {{ forms::select(name="product_owner_role_id", label=label_owner, options=role_options, selected=product.productOwner.id) }}
+                {{ forms::select(name="product_owner_role_id", label=label_owner, options=role_options, selected=product.productOwner.id, blank_label=fluent(key="select-a-role", lang=lang)) }}
 
                 <div class="row">
                     <div class="col-md-6">

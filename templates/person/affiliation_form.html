@@ -24,7 +24,7 @@
             <form method="post" action="/{{ lang }}/person/{{ person.id }}/affiliation/new">
                 {{ forms::csrf(token=csrf_token) }}
                 {{ forms::error_summary() }}
-                {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=affiliation.organization.id) }}
+                {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=affiliation.organization.id, blank_label=fluent(key="select-an-organization", lang=lang)) }}
                 {{ forms::text_input(name="affiliation_role", label=label_role, value=affiliation.affiliationRole, help=help_role) }}
                 {{ forms::date_input(name="end_date", label=label_end, value=affiliation.endDate) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}

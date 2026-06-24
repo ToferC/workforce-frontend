@@ -49,7 +49,7 @@
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
                 {{ forms::error_summary() }}
-                {% if not edit and not vacant %}{{ forms::select(name="task_id", label=label_task, options=task_options) }}{% endif %}
+                {% if not edit and not vacant %}{{ forms::select(name="task_id", label=label_task, options=task_options, blank_label=fluent(key="select-a-task", lang=lang)) }}{% endif %}
                 {{ forms::textarea(name="work_description", label=label_desc, value=work.workDescription) }}
                 {{ forms::text_input(name="url", label=label_url, value=work.url, type="url", required=false) }}
                 <div class="row">
@@ -61,7 +61,7 @@
                     <div class="col-md-4">{{ forms::select(name="work_status", label=label_status, options=work_statuses, selected=work.workStatus) }}</div>
                     <div class="col-md-4">{{ forms::select(name="priority", label="Priority", options=priorities, selected=work.priority) }}</div>
                 </div>
-                {{ forms::select(name="skill_id", label="Required Skill", options=skill_options, selected=skill_id, required=true) }}
+                {{ forms::select(name="skill_id", label="Required Skill", options=skill_options, selected=skill_id, required=true, blank_label=fluent(key="select-a-skill", lang=lang)) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>
         </div>
