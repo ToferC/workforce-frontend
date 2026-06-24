@@ -441,5 +441,7 @@ name = Nom
 # Assign work
 assign-to-role = Assigner à un rôle
 select-a-role = — Sélectionner un rôle —
+select-an-organization = — Sélectionner une organisation —
+select-personnel-type = — Sélectionner un type —
 your-team = Votre équipe
 all-roles = Tous les rôles
