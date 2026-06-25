@@ -1,0 +1,65 @@
+{% import "macros/viz.html" as viz %}
+{#
+  Work section fragment for the analytics dashboard. Lazy-loaded by HTMX from
+  analytics_section_work. Expects: total_work, vacant_work, work_status_counts,
+  work_by_domain.
+#}
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h2 class="h5 mb-0"><i class="bi bi-list-check" aria-hidden="true"></i> Work by Status</h2>
+        <span class="d-flex gap-2">
+            <span class="badge bg-primary">{{ total_work }} total</span>
+            <span class="badge {% if vacant_work > 0 %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ vacant_work }} unassigned</span>
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0 align-middle">
+            <thead>
+                <tr><th>Status</th><th class="text-end">Count</th><th>Bar</th></tr>
+            </thead>
+            <tbody>
+                {% if work_status_counts %}
+                {% for item in work_status_counts %}
+                {% set pct = (item.count * 100 / total_work) | int %}
+                <tr>
+                    <td>{{ viz::status_chip(status=item.status) }}</td>
+                    <td class="text-end fw-bold">{{ item.count }}</td>
+                    <td style="min-width:100px">
+                        <div class="progress" style="height:8px">
+                            <div class="progress-bar" role="progressbar" style="width:{{ pct }}%"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr><td colspan="3" class="text-muted text-center p-3">No work data available.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h2 class="h5 mb-0"><i class="bi bi-layers" aria-hidden="true"></i> Work Effort by Domain</h2>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0 align-middle">
+            <thead>
+                <tr><th>Domain</th><th class="text-end">Total Effort</th></tr>
+            </thead>
+            <tbody>
+                {% if work_by_domain %}
+                {% for item in work_by_domain %}
+                <tr>
+                    <td>{{ viz::domain_chip(domain=item.domain) }}</td>
+                    <td class="text-end fw-bold">{{ item.effort }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr><td colspan="2" class="text-muted text-center p-3">No data.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>

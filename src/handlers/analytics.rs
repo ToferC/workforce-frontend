@@ -41,6 +41,34 @@ pub async fn analytics_dashboard(
     let lang = path.into_inner();
     let session = req.get_session();
 
+    // Enforce access, but make no API calls here: the shell renders instantly
+    // and each section lazy-loads its own data via HTMX (see the fragment
+    // handlers below). This keeps any single request well under Heroku's 30s
+    // limit even when the underlying GraphQL queries are slow.
+    if let Err(response) = security::require_role(&session, &lang, MinimumRole::Analyst) {
+        return response;
+    }
+
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    let rendered = data.tmpl.render("analytics/analytics.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+// ── Dashboard section fragments ─────────────────────────────────────────────
+// Each fragment is fetched independently by HTMX (hx-trigger="load") so the
+// dashboard's previously-monolithic four-query render is split into separate,
+// smaller requests that load in parallel from the browser.
+
+#[get("/{lang}/analytics/section/work")]
+pub async fn analytics_section_work(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
     let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
         Ok(auth) => auth,
         Err(response) => return response,
@@ -48,23 +76,11 @@ pub async fn analytics_dashboard(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    // Fetch the four datasets concurrently. Run serially this handler issued
-    // four heavy GraphQL queries back to back, and the summed latency tripped
-    // Heroku's 30s request timeout. Awaiting them together makes the total
-    // roughly the slowest single query instead of the sum of all four.
-    let (work_res, vacant_res, people_res, roles_res) = futures::future::join4(
-        all_work(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        vacant_roles(200, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        analytics_people(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        analytics_roles(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-    ).await;
+    let work_list = all_work(auth.bearer, &data.api_url, Arc::clone(&data.client))
+        .await
+        .map(|r| r.all_work)
+        .unwrap_or_default();
 
-    let work_list = work_res.map(|r| r.all_work).unwrap_or_default();
-    let vacant_role_list = vacant_res.map(|r| r.vacant_roles).unwrap_or_default();
-    let people_list = people_res.map(|r| r.all_people).unwrap_or_default();
-    let roles_list = roles_res.map(|r| r.all_roles).unwrap_or_default();
-
-    // ── 1. Work status summary ──────────────────────────────────────────────
     let total_work = work_list.len() as i64;
     let vacant_work_count = work_list.iter().filter(|w| w.role.is_none()).count() as i64;
 
@@ -81,7 +97,53 @@ pub async fn analytics_dashboard(
         .map(|(status, count)| json!({"status": status, "count": count}))
         .collect();
 
-    // ── 2. Capacity / utilization ───────────────────────────────────────────
+    let mut domain_work_effort: BTreeMap<String, i64> = BTreeMap::new();
+    for w in &work_list {
+        let domain = serde_json::to_value(&w.domain)
+            .ok()
+            .and_then(|v| v.as_str().map(String::from))
+            .unwrap_or_else(|| "UNKNOWN".to_string());
+        *domain_work_effort.entry(domain).or_insert(0) += w.effort;
+    }
+    let mut work_by_domain: Vec<serde_json::Value> = domain_work_effort
+        .into_iter()
+        .map(|(domain, effort)| json!({"domain": domain, "effort": effort}))
+        .collect();
+    work_by_domain.sort_by(|a, b| {
+        b["effort"].as_i64().unwrap_or(0).cmp(&a["effort"].as_i64().unwrap_or(0))
+    });
+
+    ctx.insert("total_work", &total_work);
+    ctx.insert("vacant_work", &vacant_work_count);
+    ctx.insert("work_status_counts", &work_status_counts);
+    ctx.insert("work_by_domain", &work_by_domain);
+
+    let rendered = data.tmpl.render("analytics/_section_work.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[get("/{lang}/analytics/section/capacity")]
+pub async fn analytics_section_capacity(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let people_list = analytics_people(auth.bearer, &data.api_url, Arc::clone(&data.client))
+        .await
+        .map(|r| r.all_people)
+        .unwrap_or_default();
+
     let active_people: Vec<_> = people_list.iter()
         .filter(|p| p.retired_at.is_none())
         .collect();
@@ -111,7 +173,6 @@ pub async fn analytics_dashboard(
         .filter(|p| p.active_effort == 0)
         .count() as i64;
 
-    // Team effort summary
     let mut team_effort: BTreeMap<String, i64> = BTreeMap::new();
     for person in &active_people {
         let team = person.active_roles.first()
@@ -127,7 +188,84 @@ pub async fn analytics_dashboard(
         b["effort"].as_i64().unwrap_or(0).cmp(&a["effort"].as_i64().unwrap_or(0))
     });
 
-    // ── 3. Capability gap analysis ──────────────────────────────────────────
+    ctx.insert("total_people", &total_people);
+    ctx.insert("over_allocated_count", &(over_allocated.len() as i64));
+    ctx.insert("available_count", &available_count);
+    ctx.insert("team_capacity", &team_capacity);
+    ctx.insert("over_allocated", &over_allocated);
+
+    let rendered = data.tmpl.render("analytics/_section_capacity.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[get("/{lang}/analytics/section/vacancies")]
+pub async fn analytics_section_vacancies(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let vacant_role_list = vacant_roles(200, auth.bearer, &data.api_url, Arc::clone(&data.client))
+        .await
+        .map(|r| r.vacant_roles)
+        .unwrap_or_default();
+
+    let rows: Vec<serde_json::Value> = vacant_role_list.iter()
+        .map(|r| json!({
+            "id": r.id,
+            "title": r.title_english,
+            "team": r.team.name_english,
+        }))
+        .collect();
+
+    ctx.insert("vacant_roles_count", &(rows.len() as i64));
+    ctx.insert("vacant_roles", &rows);
+
+    let rendered = data.tmpl.render("analytics/_section_vacancies.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[get("/{lang}/analytics/section/gaps")]
+pub async fn analytics_section_gaps(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    // Gaps compare role requirements against people's capabilities, so this one
+    // section needs both datasets — fetch them concurrently.
+    let (people_res, roles_res) = futures::future::join(
+        analytics_people(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        analytics_roles(auth.bearer, &data.api_url, Arc::clone(&data.client)),
+    ).await;
+
+    let people_list = people_res.map(|r| r.all_people).unwrap_or_default();
+    let roles_list = roles_res.map(|r| r.all_roles).unwrap_or_default();
+
+    let active_people: Vec<_> = people_list.iter()
+        .filter(|p| p.retired_at.is_none())
+        .collect();
+
     let mut required: BTreeMap<String, BTreeMap<String, i64>> = BTreeMap::new();
     for role in &roles_list {
         for req in &role.requirements {
@@ -206,40 +344,9 @@ pub async fn analytics_dashboard(
         b_gap.cmp(&a_gap)
     });
 
-    // ── 4. Work domain effort distribution ─────────────────────────────────
-    let mut domain_work_effort: BTreeMap<String, i64> = BTreeMap::new();
-    for w in &work_list {
-        let domain = serde_json::to_value(&w.domain)
-            .ok()
-            .and_then(|v| v.as_str().map(String::from))
-            .unwrap_or_else(|| "UNKNOWN".to_string());
-        *domain_work_effort.entry(domain).or_insert(0) += w.effort;
-    }
-    let mut work_by_domain: Vec<serde_json::Value> = domain_work_effort
-        .into_iter()
-        .map(|(domain, effort)| json!({"domain": domain, "effort": effort}))
-        .collect();
-    work_by_domain.sort_by(|a, b| {
-        b["effort"].as_i64().unwrap_or(0).cmp(&a["effort"].as_i64().unwrap_or(0))
-    });
-
-    let summary = json!({
-        "total_work": total_work,
-        "vacant_work": vacant_work_count,
-        "vacant_roles": vacant_role_list.len() as i64,
-        "total_people": total_people,
-        "over_allocated_count": over_allocated.len() as i64,
-        "available_count": available_count,
-    });
-
-    ctx.insert("summary", &summary);
-    ctx.insert("work_status_counts", &work_status_counts);
-    ctx.insert("team_capacity", &team_capacity);
-    ctx.insert("over_allocated", &over_allocated);
     ctx.insert("domain_gaps", &domain_gaps);
-    ctx.insert("work_by_domain", &work_by_domain);
 
-    let rendered = data.tmpl.render("analytics/analytics.html", &ctx).unwrap();
+    let rendered = data.tmpl.render("analytics/_section_gaps.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }
 

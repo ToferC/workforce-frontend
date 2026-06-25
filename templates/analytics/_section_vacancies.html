@@ -1,0 +1,32 @@
+{#
+  Vacancies section fragment for the analytics dashboard. Lazy-loaded by HTMX
+  from analytics_section_vacancies. Expects: vacant_roles_count, vacant_roles
+  (list of {id, title, team}).
+#}
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h2 class="h5 mb-0"><i class="bi bi-person-dash" aria-hidden="true"></i> Vacant Roles</h2>
+        <span class="badge {% if vacant_roles_count > 0 %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ vacant_roles_count }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0 align-middle">
+            <thead>
+                <tr><th>Role</th><th>Team</th></tr>
+            </thead>
+            <tbody>
+                {% if vacant_roles %}
+                {% for r in vacant_roles %}
+                <tr>
+                    <td><a href="/{{ lang }}/role/{{ r.id }}">{{ r.title }}</a></td>
+                    <td class="small text-muted">{{ r.team }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr><td colspan="2" class="text-success text-center p-3">
+                    <i class="bi bi-check-circle" aria-hidden="true"></i> No vacant roles.
+                </td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
