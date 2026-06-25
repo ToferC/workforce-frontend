@@ -11,5 +11,8 @@ query AllProducts {
       id
       nameEn
     }
+    productOwner {
+      id
+    }
   }
 }
