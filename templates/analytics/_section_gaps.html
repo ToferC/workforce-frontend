@@ -1,0 +1,66 @@
+{% import "macros/viz.html" as viz %}
+{#
+  Capability-gap section fragment for the analytics dashboard. Lazy-loaded by
+  HTMX from analytics_section_gaps. Expects: domain_gaps.
+#}
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h2 class="h5 mb-0"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Capability Gap by Domain</h2>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>Domain</th>
+                    <th class="text-center">Required</th>
+                    <th class="text-center">Available</th>
+                    <th class="text-center">Gap</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if domain_gaps %}
+                {% for d in domain_gaps %}
+                <tr>
+                    <td>{{ viz::domain_chip(domain=d.domain) }}</td>
+                    <td class="text-center">{{ d.total_required }}</td>
+                    <td class="text-center">{{ d.total_available }}</td>
+                    <td class="text-center">
+                        {% if d.net_gap > 0 %}
+                            <span class="badge bg-danger">-{{ d.net_gap }}</span>
+                        {% elif d.net_gap < 0 %}
+                            <span class="badge bg-success">+{{ d.net_gap | abs }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">0</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if d.levels %}
+                {% for lvl in d.levels %}
+                <tr class="table-light">
+                    <td class="ps-4 small text-muted">↳ {{ lvl.level | replace(from="_", to=" ") | title }}</td>
+                    <td class="text-center small text-muted">{{ lvl.required }}</td>
+                    <td class="text-center small text-muted">{{ lvl.available }}</td>
+                    <td class="text-center small">
+                        {% if lvl.gap > 0 %}
+                            <span class="text-danger small">-{{ lvl.gap }}</span>
+                        {% elif lvl.gap < 0 %}
+                            <span class="text-success small">+{{ lvl.gap | abs }}</span>
+                        {% else %}
+                            <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+                {% endfor %}
+                {% else %}
+                <tr><td colspan="4" class="text-muted text-center p-3">No capability or requirement data available.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer small text-muted">
+        Required = role requirements. Available = validated capabilities (or self-identified where unvalidated).
+        A negative gap (red) means fewer qualified people than required positions.
+    </div>
+</div>
