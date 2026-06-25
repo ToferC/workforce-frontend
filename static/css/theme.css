@@ -640,6 +640,85 @@ footer hr,
     margin-bottom: var(--spacing-xs);
 }
 
+/* ── Entity record header ───────────────────────────────────────────────────
+   Structured header for object detail pages (Person, Team, …). Identity sits
+   on the left, primary actions are pulled to the right to use the horizontal
+   space, and secondary facts collapse onto a single compact "meta" strip
+   beneath a hairline rule — replacing the loose vertical stack of one-line
+   facts that read as cluttered. */
+.entity-header__bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--spacing-sm) var(--spacing-md);
+}
+
+.hero-section .entity-header__title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+/* The GCDS heading red rule reads as a stray dash on a flex title row; the
+   header's own borders already provide separation. */
+.hero-section .entity-header__title::after {
+    display: none;
+}
+
+.entity-header__subtitle {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    margin: var(--spacing-xs) 0 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.entity-header__sep { color: var(--text-muted); }
+
+.entity-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+}
+
+/* Actions manage their own spacing via flex gap, so drop the generic hero
+   .btn margins that would otherwise double up. */
+.entity-header__actions .btn { margin: 0; }
+.entity-header__actions form { margin: 0; }
+
+.entity-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm) var(--spacing-lg);
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color-light);
+}
+
+.meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.meta-item__label {
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
 /* Detail page multi-pane layout
    Object detail pages use a main pane (operational lists) + a sidebar
    (identity/summary at-a-glance info). Panes stack on small screens and

@@ -9,49 +9,63 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-person-badge" aria-hidden="true"></i> {{ person.givenName }} {{ person.familyName }}
-            {% if person.retiredAt %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
-        </h1>
-        <p class="lead text-muted">
-            <a href="/{{ lang }}/organization/{{ person.organization.id }}">{{ person.organization.nameEn }}</a>
-            {% if person.personnelType %}<span class="badge bg-secondary align-middle">{{ person.personnelType }}</span>{% endif %}
-        </p>
-        {% if account_status %}
-        <p class="mb-2">
-            <span class="text-muted small">{{ fluent(key="account-status", lang=lang) }}:</span>
-            {% if account_status == "ACTIVE" %}<span class="badge bg-success">{{ fluent(key="status-active", lang=lang) }}</span>
-            {% elif account_status == "INVITED" %}<span class="badge bg-info text-dark">{{ fluent(key="status-invited", lang=lang) }}</span>
-            {% elif account_status == "DISABLED" %}<span class="badge bg-danger">{{ fluent(key="status-disabled", lang=lang) }}</span>
-            {% else %}<span class="badge bg-secondary">{{ fluent(key="status-provisioned", lang=lang) }}</span>{% endif %}
-        </p>
-        {% endif %}
-        {% if person.activeEffort is defined %}
-        <div class="d-flex align-items-center gap-2 mt-1">
-            <span class="text-muted small"><i class="bi bi-speedometer2" aria-hidden="true"></i> {{ fluent(key="active-effort", lang=lang) }}</span>
-            {{ viz::effort_meter(value=person.activeEffort) }}
-        </div>
-        {% endif %}
+        <div class="entity-header__bar">
+            <div class="entity-header__identity">
+                <h1 class="entity-header__title">
+                    {{ person.givenName }} {{ person.familyName }}
+                    {% if person.personnelType %}<span class="badge bg-secondary">{{ person.personnelType }}</span>{% endif %}
+                    {% if person.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+                </h1>
+                <p class="entity-header__subtitle">
+                    {% for r in person.activeRoles %}{% if loop.first %}
+                    <span class="text-nowrap"><i class="bi bi-briefcase" aria-hidden="true"></i> <a href="/{{ lang }}/role/{{ r.id }}">{{ r.titleEnglish }}</a></span>
+                    <span class="entity-header__sep" aria-hidden="true">&middot;</span>
+                    {% endif %}{% endfor %}
+                    <a href="/{{ lang }}/organization/{{ person.organization.id }}">{{ person.organization.nameEn }}</a>
+                </p>
+            </div>
 
-        {% if role == "operator" or role == "admin" %}
-        <div class="mb-2">
-            <a class="btn btn-primary" href="/{{ lang }}/person/{{ person.id }}/edit">
-                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-person", lang=lang) }}
-            </a>
-            {% if (role == "operator" or role == "admin") and (not account_status or account_status != "ACTIVE") %}
-            <form method="post" action="/{{ lang }}/person/{{ person.id }}/grant-access" class="d-inline m-0">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="btn btn-outline-primary"><i class="bi bi-key" aria-hidden="true"></i> {{ fluent(key="grant-access", lang=lang) }}</button>
-            </form>
+            {% if role == "operator" or role == "admin" %}
+            <div class="entity-header__actions">
+                <a class="btn btn-primary btn-sm" href="/{{ lang }}/person/{{ person.id }}/edit">
+                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-person", lang=lang) }}
+                </a>
+                {% if not account_status or account_status != "ACTIVE" %}
+                <form method="post" action="/{{ lang }}/person/{{ person.id }}/grant-access">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-key" aria-hidden="true"></i> {{ fluent(key="grant-access", lang=lang) }}</button>
+                </form>
+                {% endif %}
+                {% if person.retiredAt %}
+                <form method="post" action="/{{ lang }}/person/{{ person.id }}/restore">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
+                </form>
+                {% else %}
+                <a class="btn btn-outline-danger btn-sm" href="/{{ lang }}/person/{{ person.id }}/retire">
+                    <i class="bi bi-person-x" aria-hidden="true"></i> {{ fluent(key="retire-person", lang=lang) }}
+                </a>
+                {% endif %}
+            </div>
             {% endif %}
-            {% if person.retiredAt %}
-            <form method="post" action="/{{ lang }}/person/{{ person.id }}/restore" class="d-inline m-0">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="btn btn-outline-success"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
-            </form>
-            {% else %}
-            <a class="btn btn-outline-danger" href="/{{ lang }}/person/{{ person.id }}/retire">
-                <i class="bi bi-person-x" aria-hidden="true"></i> {{ fluent(key="retire-person", lang=lang) }}
-            </a>
+        </div>
+
+        {% if account_status or person.activeEffort is defined %}
+        <div class="entity-header__meta">
+            {% if account_status %}
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="account-status", lang=lang) }}</span>
+                {% if account_status == "ACTIVE" %}<span class="badge bg-success">{{ fluent(key="status-active", lang=lang) }}</span>
+                {% elif account_status == "INVITED" %}<span class="badge bg-info text-dark">{{ fluent(key="status-invited", lang=lang) }}</span>
+                {% elif account_status == "DISABLED" %}<span class="badge bg-danger">{{ fluent(key="status-disabled", lang=lang) }}</span>
+                {% else %}<span class="badge bg-secondary">{{ fluent(key="status-provisioned", lang=lang) }}</span>{% endif %}
+            </span>
+            {% endif %}
+            {% if person.activeEffort is defined %}
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="active-effort", lang=lang) }}</span>
+                {{ viz::effort_meter(value=person.activeEffort) }}
+            </span>
             {% endif %}
         </div>
         {% endif %}
