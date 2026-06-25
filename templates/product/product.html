@@ -8,23 +8,27 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2">
-            <i class="bi bi-box-seam" aria-hidden="true"></i>
-            {% if lang == "fr" %}{{ product.nameFr }}{% else %}{{ product.nameEn }}{% endif %}
-            <span class="align-middle">{{ viz::status_chip(status=product.productStatus) }}</span>
-            {% if product.retiredAt %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
-        </h1>
-        <p class="lead text-muted">
-            <a href="/{{ lang }}/organization/{{ product.organization.id }}">{{ product.organization.nameEn }}</a>
-            &mdash; {{ viz::domain_chip(domain=product.primaryDomain) }}
-        </p>
-        {% if role == "operator" or role == "admin" %}
-        <div class="mb-2">
-            <a class="btn btn-primary" href="/{{ lang }}/product/{{ product.id }}/edit">
-                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-product", lang=lang) }}
-            </a>
+        <div class="entity-header__bar">
+            <div class="entity-header__identity">
+                <h1 class="entity-header__title">
+                    {% if lang == "fr" %}{{ product.nameFr }}{% else %}{{ product.nameEn }}{% endif %}
+                    {{ viz::status_chip(status=product.productStatus) }}
+                    {% if product.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+                </h1>
+                <p class="entity-header__subtitle">
+                    <a href="/{{ lang }}/organization/{{ product.organization.id }}">{{ product.organization.nameEn }}</a>
+                    <span class="entity-header__sep" aria-hidden="true">&middot;</span> {{ viz::domain_chip(domain=product.primaryDomain) }}
+                </p>
+            </div>
+
+            {% if role == "operator" or role == "admin" %}
+            <div class="entity-header__actions">
+                <a class="btn btn-primary btn-sm" href="/{{ lang }}/product/{{ product.id }}/edit">
+                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-product", lang=lang) }}
+                </a>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 
     <div class="detail-layout">

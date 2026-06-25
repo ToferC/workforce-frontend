@@ -8,35 +8,39 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-people" aria-hidden="true"></i>
-            {% if lang == "fr" %}{{ team.nameFrench }}{% else %}{{ team.nameEnglish }}{% endif %}
-            {% if team.retiredAt != "Still Active" %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
-        </h1>
-        <p class="lead text-muted">{% if lang == "fr" %}{{ team.descriptionFrench }}{% else %}{{ team.descriptionEnglish }}{% endif %}</p>
+        <div class="entity-header__bar">
+            <div class="entity-header__identity">
+                <h1 class="entity-header__title">
+                    {% if lang == "fr" %}{{ team.nameFrench }}{% else %}{{ team.nameEnglish }}{% endif %}
+                    {% if team.retiredAt != "Still Active" %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+                </h1>
+                <p class="entity-header__subtitle">{% if lang == "fr" %}{{ team.descriptionFrench }}{% else %}{{ team.descriptionEnglish }}{% endif %}</p>
+            </div>
 
-        {% if role == "operator" or role == "admin" %}
-        <div class="mb-2">
-            <a class="btn btn-primary" href="/{{ lang }}/team/{{ team.id }}/edit">
-                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-team", lang=lang) }}
-            </a>
-            <a class="btn btn-outline-info" href="/{{ lang }}/role/new?team={{ team.id }}&org_tier={{ team.organizationLevel.id }}&organization={{ team.organization.id }}">
-                <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-role", lang=lang) }}
-            </a>
-            <a class="btn btn-outline-secondary" href="/{{ lang }}/team/{{ team.id }}/owner">
-                <i class="bi bi-person-gear" aria-hidden="true"></i> {{ fluent(key="assign-owner", lang=lang) }}
-            </a>
-            {% if team.retiredAt != "Still Active" %}
-            <form method="post" action="/{{ lang }}/team/{{ team.id }}/restore" class="d-inline m-0">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="btn btn-outline-success"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
-            </form>
-            {% else %}
-            <a class="btn btn-outline-danger" href="/{{ lang }}/team/{{ team.id }}/retire">
-                <i class="bi bi-x-circle" aria-hidden="true"></i> {{ fluent(key="retire-team", lang=lang) }}
-            </a>
+            {% if role == "operator" or role == "admin" %}
+            <div class="entity-header__actions">
+                <a class="btn btn-primary btn-sm" href="/{{ lang }}/team/{{ team.id }}/edit">
+                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-team", lang=lang) }}
+                </a>
+                <a class="btn btn-outline-info btn-sm" href="/{{ lang }}/role/new?team={{ team.id }}&org_tier={{ team.organizationLevel.id }}&organization={{ team.organization.id }}">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-role", lang=lang) }}
+                </a>
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/team/{{ team.id }}/owner">
+                    <i class="bi bi-person-gear" aria-hidden="true"></i> {{ fluent(key="assign-owner", lang=lang) }}
+                </a>
+                {% if team.retiredAt != "Still Active" %}
+                <form method="post" action="/{{ lang }}/team/{{ team.id }}/restore">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
+                </form>
+                {% else %}
+                <a class="btn btn-outline-danger btn-sm" href="/{{ lang }}/team/{{ team.id }}/retire">
+                    <i class="bi bi-x-circle" aria-hidden="true"></i> {{ fluent(key="retire-team", lang=lang) }}
+                </a>
+                {% endif %}
+            </div>
             {% endif %}
         </div>
-        {% endif %}
     </div>
 
     <div class="detail-layout">

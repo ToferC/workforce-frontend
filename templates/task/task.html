@@ -8,24 +8,31 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-kanban" aria-hidden="true"></i> {{ task.title }}
-            <span class="align-middle">{{ viz::status_chip(status=task.taskStatus) }}</span> {{ viz::priority_chip(priority=task.priority) }}
-        </h1>
-        {% if task.product %}
-        <p class="lead text-muted">
-            <i class="bi bi-box-seam" aria-hidden="true"></i> Product: <a href="/{{ lang }}/product/{{ task.product.id }}">{% if lang == "fr" %}{{ task.product.nameFr }}{% else %}{{ task.product.nameEn }}{% endif %}</a>
-        </p>
-        {% endif %}
-        {% if role == "operator" or role == "admin" %}
-        <div class="mb-2">
-            <a class="btn btn-primary" href="/{{ lang }}/task/{{ task.id }}/edit">
-                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-task", lang=lang) }}
-            </a>
-            <a class="btn btn-outline-primary" href="/{{ lang }}/task/{{ task.id }}/work/new">
-                <i class="bi bi-plus-circle" aria-hidden="true"></i> Add Work Item
-            </a>
+        <div class="entity-header__bar">
+            <div class="entity-header__identity">
+                <h1 class="entity-header__title">
+                    {{ task.title }}
+                    {{ viz::status_chip(status=task.taskStatus) }}
+                    {{ viz::priority_chip(priority=task.priority) }}
+                </h1>
+                {% if task.product %}
+                <p class="entity-header__subtitle">
+                    <i class="bi bi-box-seam" aria-hidden="true"></i> Product: <a href="/{{ lang }}/product/{{ task.product.id }}">{% if lang == "fr" %}{{ task.product.nameFr }}{% else %}{{ task.product.nameEn }}{% endif %}</a>
+                </p>
+                {% endif %}
+            </div>
+
+            {% if role == "operator" or role == "admin" %}
+            <div class="entity-header__actions">
+                <a class="btn btn-primary btn-sm" href="/{{ lang }}/task/{{ task.id }}/edit">
+                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-task", lang=lang) }}
+                </a>
+                <a class="btn btn-outline-primary btn-sm" href="/{{ lang }}/task/{{ task.id }}/work/new">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i> Add Work Item
+                </a>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 
     <div class="detail-layout">
