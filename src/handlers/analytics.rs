@@ -48,25 +48,21 @@ pub async fn analytics_dashboard(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let work_list = all_work(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))
-        .await
-        .map(|r| r.all_work)
-        .unwrap_or_default();
+    // Fetch the four datasets concurrently. Run serially this handler issued
+    // four heavy GraphQL queries back to back, and the summed latency tripped
+    // Heroku's 30s request timeout. Awaiting them together makes the total
+    // roughly the slowest single query instead of the sum of all four.
+    let (work_res, vacant_res, people_res, roles_res) = futures::future::join4(
+        all_work(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        vacant_roles(200, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        analytics_people(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        analytics_roles(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+    ).await;
 
-    let vacant_role_list = vacant_roles(200, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))
-        .await
-        .map(|r| r.vacant_roles)
-        .unwrap_or_default();
-
-    let people_list = analytics_people(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))
-        .await
-        .map(|r| r.all_people)
-        .unwrap_or_default();
-
-    let roles_list = analytics_roles(auth.bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .map(|r| r.all_roles)
-        .unwrap_or_default();
+    let work_list = work_res.map(|r| r.all_work).unwrap_or_default();
+    let vacant_role_list = vacant_res.map(|r| r.vacant_roles).unwrap_or_default();
+    let people_list = people_res.map(|r| r.all_people).unwrap_or_default();
+    let roles_list = roles_res.map(|r| r.all_roles).unwrap_or_default();
 
     // ── 1. Work status summary ──────────────────────────────────────────────
     let total_work = work_list.len() as i64;
