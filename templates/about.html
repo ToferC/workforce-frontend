@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}
+    <title>{{ fluent(key="about", lang=lang) }}</title>
+{% endblock title %}
+
+{% block breadcrumb %}
+<div class="container pt-2">
+    <gcds-breadcrumbs hide-canada-link="true">
+        <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
+        <gcds-breadcrumbs-item href="/{{ lang }}/about">{{ fluent(key="about", lang=lang) }}</gcds-breadcrumbs-item>
+    </gcds-breadcrumbs>
+</div>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="col-12 col-lg-10 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4">
+        <h1 class="mb-2"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ fluent(key="about", lang=lang) }}</h1>
+        <p class="lead text-muted">{{ fluent(key="about-lead", lang=lang) }}</p>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-lightbulb" aria-hidden="true"></i> {{ fluent(key="about-what-heading", lang=lang) }}</h2>
+        </div>
+        <div class="card-body">
+            <p class="mb-0">{{ fluent(key="about-what-body", lang=lang) }}</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-gear-wide-connected" aria-hidden="true"></i> {{ fluent(key="about-tech-heading", lang=lang) }}</h2>
+        </div>
+        <div class="card-body">
+            <p class="mb-0">{{ fluent(key="about-tech-body", lang=lang) }}</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-github" aria-hidden="true"></i> {{ fluent(key="about-source-heading", lang=lang) }}</h2>
+        </div>
+        <div class="card-body">
+            <p>{{ fluent(key="about-source-body", lang=lang) }}</p>
+            <a class="btn btn-outline-primary btn-sm" href="https://github.com/ToferC/workforce-frontend">
+                <i class="bi bi-github" aria-hidden="true"></i> {{ fluent(key="source-code", lang=lang) }}
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0"><i class="bi bi-envelope" aria-hidden="true"></i> {{ fluent(key="about-contact-heading", lang=lang) }}</h2>
+        </div>
+        <div class="card-body">
+            <p class="mb-0">{{ fluent(key="about-contact-body", lang=lang) }}</p>
+        </div>
+    </div>
+
+    <a class="btn btn-primary" href="/{{ lang }}">
+        <i class="bi bi-house" aria-hidden="true"></i> {{ fluent(key="go-home", lang=lang) }}
+    </a>
+</div>
+{% endblock content %}

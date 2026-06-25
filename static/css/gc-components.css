@@ -53,6 +53,18 @@
 .small     { font-size: 0.875em; }
 .fw-light  { font-weight: 300; }
 
+/* Heading size utilities. theme.css sets only the heading font-family, so the
+   .h1–.h6 *classes* had no size and page titles rendered inconsistently. This
+   gives them a uniform scale: `.h3` is the standard page-title size used by the
+   index and analytics headers. Element-level rules (e.g. `.card-header h2`) are
+   more specific and still win where used, so section/card headers are unchanged. */
+.h1 { font-size: 2.5rem; }
+.h2 { font-size: 2rem; }
+.h3 { font-size: 1.75rem; }
+.h4 { font-size: 1.5rem; }
+.h5 { font-size: 1.25rem; }
+.h6 { font-size: 1rem; }
+
 /* ── Badges (colour comes from the .bg-* utilities above) ──────────────── */
 .badge {
     display: inline-block;

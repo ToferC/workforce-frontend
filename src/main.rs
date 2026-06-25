@@ -94,6 +94,8 @@ async fn main() -> std::io::Result<()> {
                 "/static", generated,
             ))
             .configure(handlers::configure_services)
+            // Friendly bilingual 404 for any unmatched route (links back home).
+            .default_service(web::route().to(handlers::default_404))
             .app_data(data.clone())
             .wrap(IdentityMiddleware::default())
             .wrap(

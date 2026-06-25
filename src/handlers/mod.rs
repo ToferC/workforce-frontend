@@ -25,7 +25,7 @@ pub mod analytics;
 pub use authentication_hander::*;
 pub use account::*;
 pub use admin::*;
-pub use base::{index, raw_index};
+pub use base::{index, raw_index, about};
 pub use routes::configure_services;
 pub use users::*;
 pub use forms::*;

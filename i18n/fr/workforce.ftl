@@ -37,8 +37,19 @@ source-code = Code source
 
 ## Footer
 footer-1 = Veuillez noter que ce travail est un projet d'apprentissage et d'expérimentation dans le développement d'analytique exploitable de la main-d'œuvre.
-available-licence = Le projet d'analytique de la main-d'œuvre en santé publique est disponible sur GitHub sous licence MIT ici :
-developed-by = Développé par ToferC 2023
+available-licence = Le projet { -app-name } est disponible sur GitHub sous licence MIT ici :
+developed-by = Développé par ToferC 2026
+
+## About Page
+about-lead = Un projet d'apprentissage et d'expérimentation en analytique exploitable de la main-d'œuvre.
+about-what-heading = Ce que c'est
+about-what-body = { -app-name } est une application expérimentale qui explore comment une organisation peut gérer en un seul endroit ses personnes, ses rôles, ses capacités, ses équipes et son travail. Elle traite la main-d'œuvre comme des données interreliées — capacités, exigences des rôles, effort et livraison — afin de voir d'un coup d'œil la capacité et les écarts de compétences.
+about-tech-heading = Comment c'est construit
+about-tech-body = Une application web en Rust développée avec Actix-Web et le moteur de gabarits Tera, qui communique avec une API d'analytique GraphQL. L'interface bilingue est alignée sur le Système de design du gouvernement du Canada.
+about-source-heading = Code source et licence
+about-source-body = Le projet est à code ouvert et disponible sur GitHub sous licence MIT. Vous êtes invité à consulter le code, à signaler des problèmes et à contribuer.
+about-contact-heading = Contact
+about-contact-body = Des questions ou des commentaires? Écrivez à l'équipe à { -user-support-email }.
 
 ## Login Page
 email-address = Adresse courriel

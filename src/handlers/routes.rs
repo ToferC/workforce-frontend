@@ -5,7 +5,7 @@ use crate::handlers::{
     index,
     raw_index,
 
-    //about,
+    about,
     toggle_language,
     toggle_language_index,
     toggle_language_two,
@@ -367,7 +367,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(analytics_section_gaps);
     config.service(analytics_dashboard);
 
-    //config.service(about);
+    config.service(about);
     config.service(toggle_language);
     config.service(toggle_language_index);
     config.service(toggle_language_two);

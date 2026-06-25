@@ -37,8 +37,19 @@ source-code = Source code
 
 ## Footer
 footer-1 = Please note that this work is a learning project and experiment in developing actionable workforce analytics.
-available-licence = The Public Health Workforce Analytics project is available on GitHub under an MIT licence here:
-developed-by = Developed by ToferC 2023
+available-licence = The { -app-name } project is available on GitHub under an MIT licence here:
+developed-by = Developed by ToferC 2026
+
+## About Page
+about-lead = A learning project and experiment in actionable workforce analytics.
+about-what-heading = What this is
+about-what-body = { -app-name } is an experimental application for exploring how an organization can manage its people, roles, capabilities, teams and work in one place. It treats the workforce as connected data — capabilities, role requirements, effort and delivery — so capacity and skill gaps can be seen at a glance.
+about-tech-heading = How it is built
+about-tech-body = A Rust web application built with Actix-Web and the Tera templating engine, talking to a GraphQL analytics API. The bilingual interface is aligned with the Government of Canada Design System.
+about-source-heading = Source code and licence
+about-source-body = The project is open source and available on GitHub under an MIT licence. You are welcome to read the code, open issues and contribute.
+about-contact-heading = Contact
+about-contact-body = Questions or feedback? Reach the team at { -user-support-email }.
 
 ## Login Page
 email-address = Email address
