@@ -7,18 +7,22 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-mortarboard" aria-hidden="true"></i>
-            {% if lang == "fr" %}{{ skill.nameFr }}{% else %}{{ skill.nameEn }}{% endif %}
-            <span class="badge bg-secondary align-middle">{{ skill.domain }}</span>
-        </h1>
+        <div class="entity-header__bar">
+            <div class="entity-header__identity">
+                <h1 class="entity-header__title">
+                    {% if lang == "fr" %}{{ skill.nameFr }}{% else %}{{ skill.nameEn }}{% endif %}
+                    <span class="badge bg-secondary">{{ skill.domain }}</span>
+                </h1>
+            </div>
 
-        {% if role == "operator" or role == "admin" %}
-        <div class="mb-2">
-            <a class="btn btn-primary" href="/{{ lang }}/skill/{{ skill.id }}/edit">
-                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-skill", lang=lang) }}
-            </a>
+            {% if role == "operator" or role == "admin" %}
+            <div class="entity-header__actions">
+                <a class="btn btn-primary btn-sm" href="/{{ lang }}/skill/{{ skill.id }}/edit">
+                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-skill", lang=lang) }}
+                </a>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 
     <div class="card shadow-lg mb-4">

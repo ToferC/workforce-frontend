@@ -8,25 +8,31 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-list-task" aria-hidden="true"></i> {{ work.workDescription | title }}
-            <span class="align-middle">{{ viz::status_chip(status=work.workStatus) }}</span>
-        </h1>
-        {% if role == "operator" or role == "admin" %}
-        <div class="mb-2">
-            <a class="btn btn-primary" href="/{{ lang }}/work/{{ work.id }}/edit">
-                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-work", lang=lang) }}
-            </a>
-            {% if work.role %}
-            <a class="btn btn-warning" href="/{{ lang }}/work/{{ work.id }}/assign">
-                <i class="bi bi-arrow-left-right" aria-hidden="true"></i> Reassign
-            </a>
-            {% else %}
-            <a class="btn btn-success" href="/{{ lang }}/work/{{ work.id }}/assign">
-                <i class="bi bi-person-plus" aria-hidden="true"></i> Assign
-            </a>
+        <div class="entity-header__bar">
+            <div class="entity-header__identity">
+                <h1 class="entity-header__title">
+                    {{ work.workDescription | title }}
+                    {{ viz::status_chip(status=work.workStatus) }}
+                </h1>
+            </div>
+
+            {% if role == "operator" or role == "admin" %}
+            <div class="entity-header__actions">
+                <a class="btn btn-primary btn-sm" href="/{{ lang }}/work/{{ work.id }}/edit">
+                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-work", lang=lang) }}
+                </a>
+                {% if work.role %}
+                <a class="btn btn-warning btn-sm" href="/{{ lang }}/work/{{ work.id }}/assign">
+                    <i class="bi bi-arrow-left-right" aria-hidden="true"></i> Reassign
+                </a>
+                {% else %}
+                <a class="btn btn-success btn-sm" href="/{{ lang }}/work/{{ work.id }}/assign">
+                    <i class="bi bi-person-plus" aria-hidden="true"></i> Assign
+                </a>
+                {% endif %}
+            </div>
             {% endif %}
         </div>
-        {% endif %}
     </div>
 
     {% set assignee_qualified = false %}

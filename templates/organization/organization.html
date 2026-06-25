@@ -7,38 +7,39 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
-        <h1 class="display-4 mb-2"><i class="bi bi-building" aria-hidden="true"></i>
-            {% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}
-            {% if organization.retiredAt %}<span class="badge bg-warning text-dark align-middle">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
-        </h1>
-        <p class="lead text-muted">{% if lang == "fr" %}{{ organization.acronymFr }}{% else %}{{ organization.acronymEn }}{% endif %}</p>
+        <div class="entity-header__bar">
+            <div class="entity-header__identity">
+                <h1 class="entity-header__title">
+                    {% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}
+                    {% if organization.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+                </h1>
+                <p class="entity-header__subtitle">{% if lang == "fr" %}{{ organization.acronymFr }}{% else %}{{ organization.acronymEn }}{% endif %}</p>
+            </div>
 
-        <div class="mb-2">
-            <a class="btn btn-outline-secondary" href="/{{ lang }}/organization/{{ organization.id }}/org_chart">
-                <i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="org-chart", lang=lang) }}
-            </a>
+            <div class="entity-header__actions">
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/organization/{{ organization.id }}/org_chart">
+                    <i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="org-chart", lang=lang) }}
+                </a>
+                {% if role == "operator" or role == "admin" %}
+                <a class="btn btn-primary btn-sm" href="/{{ lang }}/organization/{{ organization.id }}/edit">
+                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-organization", lang=lang) }}
+                </a>
+                <a class="btn btn-outline-primary btn-sm" href="/{{ lang }}/org_tier/new?organization={{ organization.id }}">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-top-tier", lang=lang) }}
+                </a>
+                {% if organization.retiredAt %}
+                <form method="post" action="/{{ lang }}/organization/{{ organization.id }}/restore">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
+                </form>
+                {% else %}
+                <a class="btn btn-outline-danger btn-sm" href="/{{ lang }}/organization/{{ organization.id }}/retire">
+                    <i class="bi bi-building-x" aria-hidden="true"></i> {{ fluent(key="retire-organization", lang=lang) }}
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
         </div>
-
-        {% if role == "operator" or role == "admin" %}
-        <div class="mb-2">
-            <a class="btn btn-primary" href="/{{ lang }}/organization/{{ organization.id }}/edit">
-                <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-organization", lang=lang) }}
-            </a>
-            <a class="btn btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ organization.id }}">
-                <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-top-tier", lang=lang) }}
-            </a>
-            {% if organization.retiredAt %}
-            <form method="post" action="/{{ lang }}/organization/{{ organization.id }}/restore" class="d-inline m-0">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="btn btn-outline-success"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
-            </form>
-            {% else %}
-            <a class="btn btn-outline-danger" href="/{{ lang }}/organization/{{ organization.id }}/retire">
-                <i class="bi bi-building-x" aria-hidden="true"></i> {{ fluent(key="retire-organization", lang=lang) }}
-            </a>
-            {% endif %}
-        </div>
-        {% endif %}
     </div>
 
     <div class="detail-layout">
