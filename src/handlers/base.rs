@@ -11,6 +11,24 @@ pub async fn raw_index() -> impl Responder {
     return HttpResponse::Found().header("Location", "/en").finish()
 }
 
+// Public, informational page describing the project. No authentication or API
+// calls — it only renders static, translated copy.
+#[get("/{lang}/about")]
+pub async fn about(
+    data: web::Data<AppData>,
+    params: web::Path<String>,
+
+    id: Option<Identity>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = params.into_inner();
+    let session = req.get_session();
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let rendered = data.tmpl.render("about.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
 // The language segment is constrained to en|fr so that requests like
 // /favicon.ico or /robots.txt do not get swallowed by this handler (which
 // would clear the session and break the login CSRF token).
