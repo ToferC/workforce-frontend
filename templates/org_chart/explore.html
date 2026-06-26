@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}
+    <title>{{ fluent(key="org-chart-explore", lang=lang) }} - {% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}</title>
+{% endblock title %}
+
+{% block breadcrumb %}
+<div class="container pt-2">
+    <gcds-breadcrumbs hide-canada-link="true">
+        <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
+        <gcds-breadcrumbs-item href="/{{ lang }}/organization/{{ organization_id }}">{% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}</gcds-breadcrumbs-item>
+        <gcds-breadcrumbs-item href="/{{ lang }}/organization/{{ organization_id }}/org_chart/explore">{{ fluent(key="org-chart-explore", lang=lang) }}</gcds-breadcrumbs-item>
+    </gcds-breadcrumbs>
+</div>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="org-chart-explore", lang=lang) }} —
+            {% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}
+        </h1>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/organization/{{ organization_id }}/org_chart">
+                <i class="bi bi-list-nested" aria-hidden="true"></i> {{ fluent(key="list-view", lang=lang) }}
+            </a>
+            <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/organization/{{ organization_id }}">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> {{ fluent(key="back-to-organization", lang=lang) }}
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Visual tree -->
+        <div class="col-lg-8 col-12">
+            <div class="card shadow-sm">
+                <div class="card-body p-2">
+                    <div id="orgchart"
+                         data-org-name="{% if lang == 'fr' %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}"
+                         data-lang="{{ lang }}"
+                         data-organization-id="{{ organization_id }}"
+                         style="height:72vh;width:100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side panel (detail wiring arrives in a later phase) -->
+        <div class="col-lg-4 col-12">
+            <div class="position-sticky" style="top:1rem;">
+                <div id="tier-detail" class="card shadow-sm">
+                    <div class="card-header">
+                        <h2 class="h5 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ fluent(key="how-to-explore", lang=lang) }}</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-2">{{ fluent(key="org-chart-explore-help", lang=lang) }}</p>
+                        <ul class="list-unstyled mb-0 small">
+                            <li><span class="text-muted">{{ fluent(key="organization", lang=lang) }}:</span>
+                                {% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}</li>
+                            <li><span class="text-muted">{{ fluent(key="tier-count", lang=lang) }}:</span> {{ tier_count }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/json" id="orgchart-data">{{ orgchart_data | json_encode() | safe }}</script>
+{% endblock content %}
+
+{% block scripts %}
+<script src="/static/js/org_chart_explore.js"></script>
+{% endblock scripts %}

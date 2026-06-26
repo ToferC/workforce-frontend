@@ -20,6 +20,9 @@
                 <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/organization/{{ org_tier.organization.id }}/org_chart">
                     <i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="org-chart", lang=lang) }}
                 </a>
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/organization/{{ org_tier.organization.id }}/org_chart/explore">
+                    <i class="bi bi-diagram-3-fill" aria-hidden="true"></i> {{ fluent(key="visual-view", lang=lang) }}
+                </a>
                 {% if role == "operator" or role == "admin" %}
                 <a class="btn btn-primary btn-sm" href="/{{ lang }}/org_tier/{{ org_tier.id }}/edit">
                     <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-org-tier", lang=lang) }}
