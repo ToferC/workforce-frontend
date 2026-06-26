@@ -64,9 +64,11 @@ breakdown for the panel for free).
   colored by an effort band (empty / light / moderate / heavy) read from the GC
   theme tokens; tiers keep the neutral structural color; team labels show
   headcount; a legend is shown in the side panel.
-- **Phase 3 — Team detail panel.** `team_chart_panel` partial from `TeamById`
-  (roles → people → work, capability counts) loaded into the side panel on team
-  click; deep-link `?tier=` / `?team=`.
+- **Phase 3 — Role/people drill-down (done).** Each team box has a control that
+  lazy-loads its roles and people as further boxes under it, from a new
+  `team_members_json` endpoint (`/{lang}/team/{id}/members.json`, built from
+  `TeamById`). Occupied roles link to the role and person; vacant roles are
+  flagged. This is the expensive leaf data, fetched only when a team is expanded.
 - **Phase 4 — Heatmap legend, a11y, polish.** Legend; `aria.enabled`; a
   "List view" toggle that swaps in the existing builder accordion as the
   keyboard/screen-reader path; dark-mode verification via `themechange`.
