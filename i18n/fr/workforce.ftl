@@ -231,6 +231,11 @@ teams = Équipes
 
 ## Org Chart Builder
 org-chart = Organigramme
+org-chart-explore = Explorateur d'organigramme
+org-chart-explore-help = Cliquez sur un niveau pour le développer ou le réduire. Glissez pour vous déplacer et défilez pour zoomer. Les équipes apparaissent sous leur niveau.
+how-to-explore = Comment explorer
+visual-view = Vue visuelle
+list-view = Vue liste
 org-chart-help = Cliquez sur le bouton d'information d'un niveau pour voir ses détails ici. Développez les niveaux à droite pour explorer les niveaux enfants, les équipes, les rôles et les personnes.
 back-to-organization = Retour à l'organisation
 tier-info = Détails du niveau

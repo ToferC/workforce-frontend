@@ -250,3 +250,136 @@ pub async fn render_node_response(
 
     response
 }
+
+// ── Visual org chart explorer (Phase 1) ─────────────────────────────────────
+// A read-only counterpart to the builder. The whole tier+team skeleton is built
+// from a single OrgTiersByOrgId query and handed to an ECharts tree on the
+// client; team stats and the people behind roles load lazily in later phases.
+
+/// A flattened, language-resolved tier used to build the chart JSON without
+/// depending on the long generated GraphQL types.
+struct TierLite {
+    id: String,
+    name: String,
+    tier_level: i64,
+    retired: bool,
+    parent_id: Option<String>,
+    teams: Vec<(String, String)>, // (id, name)
+}
+
+/// Recursively build one tier's ECharts tree node: child tiers (sorted by level
+/// then name) followed by its team leaf nodes (sorted by name).
+fn build_tier_node(
+    idx: usize,
+    lite: &[TierLite],
+    by_parent: &BTreeMap<String, Vec<usize>>,
+) -> serde_json::Value {
+    let t = &lite[idx];
+
+    let mut children: Vec<serde_json::Value> = Vec::new();
+    if let Some(kids) = by_parent.get(&t.id) {
+        let mut kids = kids.clone();
+        kids.sort_by(|&a, &b| {
+            lite[a].tier_level.cmp(&lite[b].tier_level).then(lite[a].name.cmp(&lite[b].name))
+        });
+        for k in kids {
+            children.push(build_tier_node(k, lite, by_parent));
+        }
+    }
+
+    let mut teams = t.teams.clone();
+    teams.sort_by(|a, b| a.1.cmp(&b.1));
+    for (team_id, team_name) in teams {
+        children.push(json!({
+            "id": team_id,
+            "name": team_name,
+            "kind": "team",
+        }));
+    }
+
+    json!({
+        "id": t.id,
+        "name": t.name,
+        "kind": "tier",
+        "tierLevel": t.tier_level,
+        "retired": t.retired,
+        "children": children,
+    })
+}
+
+/// Read-only visual explorer for one organization's structure.
+#[get("/{lang}/organization/{organization_id}/org_chart/explore")]
+pub async fn org_chart_explore(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, organization_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let organization = match get_organization_by_id(organization_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.organization_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return HttpResponse::Found()
+                .append_header(("Location", format!("/{}", &lang)))
+                .finish();
+        },
+    };
+
+    let tiers = match get_org_tiers_by_org_id(organization_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.org_tiers_by_org_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return HttpResponse::Found()
+                .append_header(("Location", format!("/{}/organization/{}", &lang, &organization_id)))
+                .finish();
+        },
+    };
+
+    // Flatten with names resolved to the active language.
+    let lite: Vec<TierLite> = tiers.iter().map(|t| TierLite {
+        id: t.id.to_string(),
+        name: if lang == "fr" { t.name_fr.clone() } else { t.name_en.clone() },
+        tier_level: t.tier_level,
+        retired: t.retired_at.is_some(),
+        parent_id: t.parent_organization_tier.as_ref().map(|p| p.id.to_string()),
+        teams: t.teams.iter().map(|tm| (tm.id.to_string(), tm.name_english.clone())).collect(),
+    }).collect();
+
+    // Index children by parent id; roots have no parent.
+    let mut by_parent: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+    let mut roots: Vec<usize> = Vec::new();
+    for (i, t) in lite.iter().enumerate() {
+        match &t.parent_id {
+            Some(pid) => by_parent.entry(pid.clone()).or_default().push(i),
+            None => roots.push(i),
+        }
+    }
+    roots.sort_by(|&a, &b| {
+        lite[a].tier_level.cmp(&lite[b].tier_level).then(lite[a].name.cmp(&lite[b].name))
+    });
+
+    let root_nodes: Vec<serde_json::Value> = roots.iter()
+        .map(|&i| build_tier_node(i, &lite, &by_parent))
+        .collect();
+
+    // The organization name for the synthetic root is read by the client from a
+    // data attribute on the container, so we only ship the tier children here.
+    let chart_data = json!({ "children": root_nodes });
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("organization", &organization);
+    ctx.insert("organization_id", &organization_id);
+    ctx.insert("orgchart_data", &chart_data);
+    ctx.insert("tier_count", &tiers.len());
+
+    let rendered = data.tmpl.render("org_chart/explore.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}

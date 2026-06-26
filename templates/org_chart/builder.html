@@ -13,9 +13,14 @@
             <i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="org-chart", lang=lang) }} —
             {% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}
         </h1>
-        <a class="btn btn-outline-secondary" href="/{{ lang }}/organization/{{ organization_id }}">
-            <i class="bi bi-arrow-left" aria-hidden="true"></i> {{ fluent(key="back-to-organization", lang=lang) }}
-        </a>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <a class="btn btn-outline-secondary" href="/{{ lang }}/organization/{{ organization_id }}/org_chart/explore">
+                <i class="bi bi-diagram-3-fill" aria-hidden="true"></i> {{ fluent(key="visual-view", lang=lang) }}
+            </a>
+            <a class="btn btn-outline-secondary" href="/{{ lang }}/organization/{{ organization_id }}">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> {{ fluent(key="back-to-organization", lang=lang) }}
+            </a>
+        </div>
     </div>
 
     <div class="row">
