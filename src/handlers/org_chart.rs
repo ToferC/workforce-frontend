@@ -11,7 +11,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, domain_group, domain_short_label, level_weight};
-use crate::graphql::{get_organization_by_id, get_org_tiers_by_org_id, get_org_tier_by_id, get_org_tier_node};
+use crate::graphql::{get_organization_by_id, get_org_tiers_by_org_id, get_org_tier_by_id, get_org_tier_node, get_team_by_id};
 use crate::security::{self, MinimumRole};
 
 /// Full-page builder view for one organization. The tree starts with the
@@ -398,4 +398,56 @@ pub async fn org_chart_explore(
 
     let rendered = data.tmpl.render("org_chart/explore.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
+}
+
+/// JSON: the roles and people of one team, for the explorer's lazy drill-down.
+/// Occupied roles carry their person; vacant roles are flagged. This is the
+/// expensive leaf data, so it's only fetched when a team box is expanded.
+#[get("/{lang}/team/{team_id}/members.json")]
+pub async fn team_members_json(
+    data: web::Data<AppData>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, team_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let team = match get_team_by_id(team_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.team_by_id,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(json!({ "error": e.to_string() }));
+        },
+    };
+
+    let mut members: Vec<serde_json::Value> = Vec::new();
+    for role in &team.occupied_roles {
+        let person = role.person.as_ref().map(|p| json!({
+            "id": p.id,
+            "name": format!("{} {}", p.given_name, p.family_name),
+        }));
+        members.push(json!({
+            "kind": "role",
+            "id": role.id,
+            "title": role.title_english,
+            "effort": role.effort,
+            "vacant": false,
+            "person": person,
+        }));
+    }
+    for role in &team.vacant_roles {
+        members.push(json!({
+            "kind": "role",
+            "id": role.id,
+            "title": role.title_english,
+            "vacant": true,
+            "person": serde_json::Value::Null,
+        }));
+    }
+
+    HttpResponse::Ok().json(members)
 }

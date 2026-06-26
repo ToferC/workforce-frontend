@@ -1,0 +1,177 @@
+/* Vertical, box-based org chart for the explorer.
+   A classic top-down "pure CSS tree": nested <ul>/<li> where each node is a
+   box and CSS pseudo-elements draw the connector lines. Connector colours and
+   the capacity accent come from the GC theme tokens so the chart tracks the
+   light/dark theme. The JS in org_chart_explore.js builds the DOM. */
+
+.orgchart-wrap {
+    overflow: auto;
+    max-height: 76vh;
+    padding: 1rem 0.5rem 1.5rem;
+}
+
+.orgchart {
+    text-align: center;
+    min-width: max-content;
+    margin: 0 auto;
+}
+
+.orgchart ul {
+    position: relative;
+    padding: 20px 0 0 0;
+    margin: 0;
+    list-style: none;
+    white-space: nowrap;
+}
+
+.orgchart > ul {
+    padding-top: 0;
+}
+
+.orgchart li {
+    display: inline-block;
+    vertical-align: top;
+    list-style: none;
+    position: relative;
+    padding: 20px 8px 0 8px;
+}
+
+/* Connectors: the horizontal line above each node and the vertical drop. */
+.orgchart li::before,
+.orgchart li::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 50%;
+    border-top: 2px solid var(--border-color);
+    width: 50%;
+    height: 20px;
+}
+.orgchart li::after {
+    right: auto;
+    left: 50%;
+    border-left: 2px solid var(--border-color);
+}
+.orgchart li:only-child::after,
+.orgchart li:only-child::before {
+    display: none;
+}
+.orgchart li:only-child {
+    padding-top: 0;
+}
+.orgchart li:first-child::before,
+.orgchart li:last-child::after {
+    border: 0 none;
+}
+.orgchart li:last-child::before {
+    border-right: 2px solid var(--border-color);
+    border-radius: 0 6px 0 0;
+}
+.orgchart li:first-child::after {
+    border-radius: 6px 0 0 0;
+}
+.orgchart ul ul::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    border-left: 2px solid var(--border-color);
+    width: 0;
+    height: 20px;
+}
+
+/* A collapsed node hides its subtree (and the drop line to it). */
+.orgchart li.collapsed > ul {
+    display: none;
+}
+
+/* ── Node boxes ─────────────────────────────────────────────────────────── */
+.oc-node {
+    display: inline-block;
+    position: relative;
+    border: 1px solid var(--border-color-light);
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    min-width: 130px;
+    max-width: 230px;
+    box-shadow: var(--shadow-sm);
+    white-space: normal;
+    text-align: left;
+    vertical-align: top;
+}
+
+.oc-node__title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+.oc-node__title a {
+    text-decoration: none;
+    color: var(--text-primary);
+}
+.oc-node__title a:hover {
+    text-decoration: underline;
+}
+.oc-node__meta {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-top: 0.15rem;
+}
+
+.oc-node--org {
+    border-color: var(--color-primary);
+}
+.oc-node--org .oc-node__title {
+    font-size: 1rem;
+}
+
+.oc-node--tier {
+    background: var(--bg-secondary);
+}
+
+/* Team boxes carry the capacity heatmap as a coloured top border. */
+.oc-node--team {
+    border-top: 4px solid var(--border-color);
+}
+.oc-node--team.cap-empty {
+    border-top-color: var(--border-color);
+}
+.oc-node--team.cap-light {
+    border-top-color: var(--color-success);
+}
+.oc-node--team.cap-moderate {
+    border-top-color: var(--color-warning);
+}
+.oc-node--team.cap-heavy {
+    border-top-color: var(--color-danger);
+}
+
+.oc-node--role {
+    min-width: 120px;
+}
+.oc-node--vacant {
+    border-style: dashed;
+}
+
+/* Expand / collapse and "show members" controls. */
+.oc-toggle {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    line-height: 1;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    cursor: pointer;
+    z-index: 1;
+}
+.oc-toggle:hover {
+    background: var(--bg-tertiary);
+}

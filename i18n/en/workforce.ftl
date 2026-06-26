@@ -232,10 +232,16 @@ teams = Teams
 ## Org Chart Builder
 org-chart = Org Chart
 org-chart-explore = Org Chart Explorer
-org-chart-explore-help = Click a tier to expand or collapse it. Drag to pan and scroll to zoom. Teams appear under their tier.
+org-chart-explore-help = Click the + on a tier to expand it, or on a team to load its roles and people. Box colour shows team capacity.
 how-to-explore = How to explore
 visual-view = Visual view
 list-view = List view
+people-label = people
+effort-label = effort
+tier-label = Tier
+expand = Expand
+collapse = Collapse
+show-members = Show roles and people
 cap-legend = Team capacity (active effort)
 cap-empty = Empty / no load
 cap-light = Light
