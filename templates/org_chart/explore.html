@@ -15,6 +15,7 @@
 {% endblock breadcrumb %}
 
 {% block content %}
+<link rel="stylesheet" href="/static/css/orgchart.css">
 <div class="col-12 px-md-4 px-2 py-4">
 
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -32,37 +33,30 @@
         </div>
     </div>
 
-    <div class="row g-4">
-        <!-- Visual tree -->
-        <div class="col-lg-8 col-12">
-            <div class="card shadow-sm">
-                <div class="card-body p-2">
-                    <div id="orgchart"
-                         data-org-name="{% if lang == 'fr' %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}"
-                         data-lang="{{ lang }}"
-                         data-organization-id="{{ organization_id }}"
-                         style="height:72vh;width:100%"></div>
-                </div>
-            </div>
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="small text-muted">{{ fluent(key="org-chart-explore-help", lang=lang) }}</span>
+            <span class="d-flex align-items-center gap-3 small flex-wrap">
+                <span class="fw-semibold"><i class="bi bi-palette" aria-hidden="true"></i> {{ fluent(key="cap-legend", lang=lang) }}:</span>
+                <span><span class="legend-swatch" style="background:var(--border-color)"></span> {{ fluent(key="cap-empty", lang=lang) }}</span>
+                <span><span class="legend-swatch" style="background:var(--color-success)"></span> {{ fluent(key="cap-light", lang=lang) }}</span>
+                <span><span class="legend-swatch" style="background:var(--color-warning)"></span> {{ fluent(key="cap-moderate", lang=lang) }}</span>
+                <span><span class="legend-swatch" style="background:var(--color-danger)"></span> {{ fluent(key="cap-heavy", lang=lang) }}</span>
+            </span>
         </div>
-
-        <!-- Side panel (detail wiring arrives in a later phase) -->
-        <div class="col-lg-4 col-12">
-            <div class="position-sticky" style="top:1rem;">
-                <div id="tier-detail" class="card shadow-sm">
-                    <div class="card-header">
-                        <h2 class="h5 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ fluent(key="how-to-explore", lang=lang) }}</h2>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted mb-2">{{ fluent(key="org-chart-explore-help", lang=lang) }}</p>
-                        <ul class="list-unstyled mb-0 small">
-                            <li><span class="text-muted">{{ fluent(key="organization", lang=lang) }}:</span>
-                                {% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}</li>
-                            <li><span class="text-muted">{{ fluent(key="tier-count", lang=lang) }}:</span> {{ tier_count }}</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+        <div class="card-body p-0">
+            <div id="orgchart"
+                 data-org-name="{% if lang == 'fr' %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}"
+                 data-lang="{{ lang }}"
+                 data-organization-id="{{ organization_id }}"
+                 data-l-people="{{ fluent(key='people-label', lang=lang) }}"
+                 data-l-effort="{{ fluent(key='effort-label', lang=lang) }}"
+                 data-l-tier="{{ fluent(key='tier-label', lang=lang) }}"
+                 data-l-vacant="{{ fluent(key='vacant', lang=lang) }}"
+                 data-l-noroles="{{ fluent(key='no-roles', lang=lang) }}"
+                 data-l-expand="{{ fluent(key='expand', lang=lang) }}"
+                 data-l-collapse="{{ fluent(key='collapse', lang=lang) }}"
+                 data-l-members="{{ fluent(key='show-members', lang=lang) }}"></div>
         </div>
     </div>
 </div>

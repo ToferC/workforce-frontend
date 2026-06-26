@@ -11,7 +11,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, domain_group, domain_short_label, level_weight};
-use crate::graphql::{get_organization_by_id, get_org_tiers_by_org_id, get_org_tier_by_id, get_org_tier_node};
+use crate::graphql::{get_organization_by_id, get_org_tiers_by_org_id, get_org_tier_by_id, get_org_tier_node, get_team_by_id};
 use crate::security::{self, MinimumRole};
 
 /// Full-page builder view for one organization. The tree starts with the
@@ -264,7 +264,16 @@ struct TierLite {
     tier_level: i64,
     retired: bool,
     parent_id: Option<String>,
-    teams: Vec<(String, String)>, // (id, name)
+    teams: Vec<TeamLite>,
+}
+
+/// A team stub for the chart: identity plus the cheap server-computed capacity
+/// aggregates used for the heatmap. People/roles are loaded lazily elsewhere.
+struct TeamLite {
+    id: String,
+    name: String,
+    headcount: i64,
+    effort: i64,
 }
 
 /// Recursively build one tier's ECharts tree node: child tiers (sorted by level
@@ -287,13 +296,15 @@ fn build_tier_node(
         }
     }
 
-    let mut teams = t.teams.clone();
-    teams.sort_by(|a, b| a.1.cmp(&b.1));
-    for (team_id, team_name) in teams {
+    let mut teams: Vec<&TeamLite> = t.teams.iter().collect();
+    teams.sort_by(|a, b| a.name.cmp(&b.name));
+    for team in teams {
         children.push(json!({
-            "id": team_id,
-            "name": team_name,
+            "id": team.id,
+            "name": team.name,
             "kind": "team",
+            "headcount": team.headcount,
+            "effort": team.effort,
         }));
     }
 
@@ -350,7 +361,12 @@ pub async fn org_chart_explore(
         tier_level: t.tier_level,
         retired: t.retired_at.is_some(),
         parent_id: t.parent_organization_tier.as_ref().map(|p| p.id.to_string()),
-        teams: t.teams.iter().map(|tm| (tm.id.to_string(), tm.name_english.clone())).collect(),
+        teams: t.teams.iter().map(|tm| TeamLite {
+            id: tm.id.to_string(),
+            name: tm.name_english.clone(),
+            headcount: tm.headcount,
+            effort: tm.total_effort,
+        }).collect(),
     }).collect();
 
     // Index children by parent id; roots have no parent.
@@ -382,4 +398,56 @@ pub async fn org_chart_explore(
 
     let rendered = data.tmpl.render("org_chart/explore.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
+}
+
+/// JSON: the roles and people of one team, for the explorer's lazy drill-down.
+/// Occupied roles carry their person; vacant roles are flagged. This is the
+/// expensive leaf data, so it's only fetched when a team box is expanded.
+#[get("/{lang}/team/{team_id}/members.json")]
+pub async fn team_members_json(
+    data: web::Data<AppData>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, team_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let team = match get_team_by_id(team_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.team_by_id,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(json!({ "error": e.to_string() }));
+        },
+    };
+
+    let mut members: Vec<serde_json::Value> = Vec::new();
+    for role in &team.occupied_roles {
+        let person = role.person.as_ref().map(|p| json!({
+            "id": p.id,
+            "name": format!("{} {}", p.given_name, p.family_name),
+        }));
+        members.push(json!({
+            "kind": "role",
+            "id": role.id,
+            "title": role.title_english,
+            "effort": role.effort,
+            "vacant": false,
+            "person": person,
+        }));
+    }
+    for role in &team.vacant_roles {
+        members.push(json!({
+            "kind": "role",
+            "id": role.id,
+            "title": role.title_english,
+            "vacant": true,
+            "person": serde_json::Value::Null,
+        }));
+    }
+
+    HttpResponse::Ok().json(members)
 }

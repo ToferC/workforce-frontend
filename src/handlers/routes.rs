@@ -120,6 +120,7 @@ use crate::handlers::{
     // org chart builder
     org_chart_builder,
     org_chart_explore,
+    team_members_json,
     org_tier_node_partial,
     org_tier_panel_partial,
 
@@ -300,6 +301,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
 
     // org chart builder
     config.service(org_chart_explore);
+    config.service(team_members_json);
     config.service(org_chart_builder);
     config.service(org_tier_node_partial);
     config.service(org_tier_panel_partial);
