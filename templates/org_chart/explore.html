@@ -60,6 +60,15 @@
                                 {% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}</li>
                             <li><span class="text-muted">{{ fluent(key="tier-count", lang=lang) }}:</span> {{ tier_count }}</li>
                         </ul>
+
+                        <hr>
+                        <p class="small fw-semibold mb-2"><i class="bi bi-palette" aria-hidden="true"></i> {{ fluent(key="cap-legend", lang=lang) }}</p>
+                        <ul class="list-unstyled small mb-0">
+                            <li><span class="legend-swatch" style="background:var(--border-color)"></span> {{ fluent(key="cap-empty", lang=lang) }}</li>
+                            <li><span class="legend-swatch" style="background:var(--color-success)"></span> {{ fluent(key="cap-light", lang=lang) }} (1–20)</li>
+                            <li><span class="legend-swatch" style="background:var(--color-warning)"></span> {{ fluent(key="cap-moderate", lang=lang) }} (21–50)</li>
+                            <li><span class="legend-swatch" style="background:var(--color-danger)"></span> {{ fluent(key="cap-heavy", lang=lang) }} (51+)</li>
+                        </ul>
                     </div>
                 </div>
             </div>

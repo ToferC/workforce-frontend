@@ -23,8 +23,10 @@ query OrgTiersByOrgId($id:UUID!) {
       }
     }
     teams {
-      nameEnglish
       id
+      nameEnglish
+      headcount
+      totalEffort
     }
   }
 }

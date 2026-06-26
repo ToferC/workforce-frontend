@@ -34,6 +34,59 @@
     };
   }
 
+  // Capacity heatmap bands, keyed off a team's total active effort. Colors are
+  // read from the GC design tokens so they track the light/dark theme.
+  function readTokens() {
+    var s = getComputedStyle(document.documentElement);
+    function tok(name, fallback) {
+      var v = s.getPropertyValue(name);
+      return (v && v.trim()) || fallback;
+    }
+    return {
+      neutral: tok("--border-color", "#8c8c8c"),
+      light: tok("--color-success", "#196636"),
+      moderate: tok("--color-warning", "#f2ad0d"),
+      heavy: tok("--color-danger", "#b3192e"),
+      structural: tok("--color-primary", "#1f497a"),
+    };
+  }
+
+  function bandColor(effort, t) {
+    if (!effort || effort <= 0) return t.neutral; // unstaffed / no load
+    if (effort <= 20) return t.light;
+    if (effort <= 50) return t.moderate;
+    return t.heavy;
+  }
+
+  function bandLabel(effort) {
+    if (!effort || effort <= 0) return "Empty";
+    if (effort <= 20) return "Light";
+    if (effort <= 50) return "Moderate";
+    return "Heavy";
+  }
+
+  // Walk the tree and paint each node: teams by capacity band, tiers/org with
+  // the neutral structural color.
+  function colorize(node, t) {
+    if (node.kind === "team") {
+      node.itemStyle = { color: bandColor(node.effort, t) };
+      node.symbolSize = 11;
+    } else if (!node.itemStyle) {
+      node.itemStyle = { color: t.structural };
+    }
+    (node.children || []).forEach(function (c) {
+      colorize(c, t);
+    });
+  }
+
+  function nodeLabel(p) {
+    var d = p.data || {};
+    if (d.kind === "team") {
+      return d.name + "  ·  " + (d.headcount || 0);
+    }
+    return d.name;
+  }
+
   function render() {
     var el = document.getElementById("orgchart");
     if (!el || typeof echarts === "undefined") return;
@@ -45,6 +98,9 @@
       chart.dispose();
     }
 
+    var tokens = readTokens();
+    colorize(root, tokens);
+
     var isDark = document.documentElement.getAttribute("data-theme") !== "light";
     chart = echarts.init(el, isDark ? "dark" : null, { renderer: "canvas" });
 
@@ -54,9 +110,17 @@
         triggerOn: "mousemove",
         formatter: function (p) {
           var d = p.data || {};
-          if (d.kind === "team") return "Team: " + d.name;
-          if (d.kind === "tier") return d.name + " (tier L" + (d.tierLevel != null ? d.tierLevel : "?") + ")";
-          return d.name;
+          if (d.kind === "team") {
+            return (
+              "<strong>" + d.name + "</strong><br/>" +
+              (d.headcount || 0) + " people · effort " + (d.effort || 0) +
+              " (" + bandLabel(d.effort) + " load)"
+            );
+          }
+          if (d.kind === "tier") {
+            return "<strong>" + d.name + "</strong><br/>tier L" + (d.tierLevel != null ? d.tierLevel : "?");
+          }
+          return "<strong>" + d.name + "</strong>";
         },
       },
       series: [
@@ -80,9 +144,15 @@
             verticalAlign: "middle",
             align: "right",
             fontSize: 12,
+            formatter: nodeLabel,
           },
           leaves: {
-            label: { position: "right", verticalAlign: "middle", align: "left" },
+            label: {
+              position: "right",
+              verticalAlign: "middle",
+              align: "left",
+              formatter: nodeLabel,
+            },
           },
           emphasis: { focus: "descendant" },
           animationDuration: 300,

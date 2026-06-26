@@ -264,7 +264,16 @@ struct TierLite {
     tier_level: i64,
     retired: bool,
     parent_id: Option<String>,
-    teams: Vec<(String, String)>, // (id, name)
+    teams: Vec<TeamLite>,
+}
+
+/// A team stub for the chart: identity plus the cheap server-computed capacity
+/// aggregates used for the heatmap. People/roles are loaded lazily elsewhere.
+struct TeamLite {
+    id: String,
+    name: String,
+    headcount: i64,
+    effort: i64,
 }
 
 /// Recursively build one tier's ECharts tree node: child tiers (sorted by level
@@ -287,13 +296,15 @@ fn build_tier_node(
         }
     }
 
-    let mut teams = t.teams.clone();
-    teams.sort_by(|a, b| a.1.cmp(&b.1));
-    for (team_id, team_name) in teams {
+    let mut teams: Vec<&TeamLite> = t.teams.iter().collect();
+    teams.sort_by(|a, b| a.name.cmp(&b.name));
+    for team in teams {
         children.push(json!({
-            "id": team_id,
-            "name": team_name,
+            "id": team.id,
+            "name": team.name,
             "kind": "team",
+            "headcount": team.headcount,
+            "effort": team.effort,
         }));
     }
 
@@ -350,7 +361,12 @@ pub async fn org_chart_explore(
         tier_level: t.tier_level,
         retired: t.retired_at.is_some(),
         parent_id: t.parent_organization_tier.as_ref().map(|p| p.id.to_string()),
-        teams: t.teams.iter().map(|tm| (tm.id.to_string(), tm.name_english.clone())).collect(),
+        teams: t.teams.iter().map(|tm| TeamLite {
+            id: tm.id.to_string(),
+            name: tm.name_english.clone(),
+            headcount: tm.headcount,
+            effort: tm.total_effort,
+        }).collect(),
     }).collect();
 
     // Index children by parent id; roots have no parent.

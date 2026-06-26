@@ -65,6 +65,16 @@
 .h5 { font-size: 1.25rem; }
 .h6 { font-size: 1rem; }
 
+/* Small colour swatch for chart/heatmap legends. */
+.legend-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
 /* ── Badges (colour comes from the .bg-* utilities above) ──────────────── */
 .badge {
     display: inline-block;
