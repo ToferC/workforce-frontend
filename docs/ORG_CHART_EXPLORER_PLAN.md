@@ -69,9 +69,13 @@ breakdown for the panel for free).
   `team_members_json` endpoint (`/{lang}/team/{id}/members.json`, built from
   `TeamById`). Occupied roles link to the role and person; vacant roles are
   flagged. This is the expensive leaf data, fetched only when a team is expanded.
-- **Phase 4 — Heatmap legend, a11y, polish.** Legend; `aria.enabled`; a
-  "List view" toggle that swaps in the existing builder accordion as the
-  keyboard/screen-reader path; dark-mode verification via `themechange`.
+- **Phase 4 — Viewport, zoom, capabilities (done).** Near-full-height chart
+  area; zoom in/out/reset controls (and Ctrl/⌘ + wheel) via a CSS transform on
+  the tree; tier boxes show their `primaryDomain` as a chip; person boxes show
+  their top 3 capabilities (by validated/self level) as domain-coloured chips
+  (capabilities added to the `TeamById` person selection for the drill-down).
+- **Still open.** A "List view" / accessible fallback toggle that swaps in the
+  builder accordion as the keyboard/screen-reader path.
 
 ## Capacity heatmap
 

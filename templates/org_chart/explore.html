@@ -45,7 +45,7 @@
             </span>
         </div>
         <div class="card-body p-0">
-            <div id="orgchart"
+            <div id="orgchart" class="oc-host"
                  data-org-name="{% if lang == 'fr' %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}"
                  data-lang="{{ lang }}"
                  data-organization-id="{{ organization_id }}"
@@ -56,7 +56,10 @@
                  data-l-noroles="{{ fluent(key='no-roles', lang=lang) }}"
                  data-l-expand="{{ fluent(key='expand', lang=lang) }}"
                  data-l-collapse="{{ fluent(key='collapse', lang=lang) }}"
-                 data-l-members="{{ fluent(key='show-members', lang=lang) }}"></div>
+                 data-l-members="{{ fluent(key='show-members', lang=lang) }}"
+                 data-l-zoomin="{{ fluent(key='zoom-in', lang=lang) }}"
+                 data-l-zoomout="{{ fluent(key='zoom-out', lang=lang) }}"
+                 data-l-zoomreset="{{ fluent(key='zoom-reset', lang=lang) }}"></div>
         </div>
     </div>
 </div>

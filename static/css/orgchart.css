@@ -4,9 +4,16 @@
    the capacity accent come from the GC theme tokens so the chart tracks the
    light/dark theme. The JS in org_chart_explore.js builds the DOM. */
 
+/* The host fills nearly the whole viewport height and anchors the zoom
+   controls. */
+.oc-host {
+    position: relative;
+}
+
 .orgchart-wrap {
     overflow: auto;
-    max-height: 76vh;
+    height: calc(100vh - 205px);
+    min-height: 460px;
     padding: 1rem 0.5rem 1.5rem;
 }
 
@@ -14,6 +21,48 @@
     text-align: center;
     min-width: max-content;
     margin: 0 auto;
+    transform-origin: top center;
+    transition: transform 0.08s ease-out;
+}
+
+/* Zoom controls, pinned to the top-right of the chart area. */
+.oc-zoom {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.oc-zoom button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    line-height: 1;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+}
+.oc-zoom button:hover {
+    background: var(--bg-tertiary);
+}
+
+/* Capability chips inside boxes (tier primary domain, person top capabilities). */
+.oc-node__caps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 0.3rem;
+}
+.oc-node__caps .badge {
+    font-size: 0.6rem;
+    font-weight: 500;
+    padding: 0.15em 0.4em;
 }
 
 .orgchart ul {
