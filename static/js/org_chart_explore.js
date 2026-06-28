@@ -31,6 +31,21 @@
     return d.innerHTML;
   }
 
+  // A domain-coloured capability chip (reuses the .domain-chip / .domain-* CSS).
+  function chip(label, group) {
+    var s = el("span", "badge domain-chip domain-" + (group || "corp"));
+    s.textContent = label;
+    return s;
+  }
+
+  function capsRow(items) {
+    var row = el("div", "oc-node__caps");
+    items.forEach(function (c) {
+      if (c && c.label) row.appendChild(chip(c.label, c.group));
+    });
+    return row;
+  }
+
   var LANG = "en";
   // Localized labels, populated from the container's data-l-* attributes
   // (rendered through Fluent server-side) so the JS-built boxes stay bilingual.
@@ -43,6 +58,9 @@
     expand: "Expand",
     collapse: "Collapse",
     members: "Show roles and people",
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    zoomReset: "Reset zoom",
   };
 
   // ── Box builders ──────────────────────────────────────────────────────────
@@ -60,6 +78,9 @@
       var meta = el("div", "oc-node__meta");
       meta.textContent = L.tier + " " + (node.tierLevel != null ? node.tierLevel : "?");
       b.appendChild(meta);
+      if (node.primaryLabel) {
+        b.appendChild(capsRow([{ label: node.primaryLabel, group: node.primaryGroup }]));
+      }
       return b;
     } else if (node.kind === "team") {
       b.classList.add("oc-node--team", band(node.effort));
@@ -92,6 +113,9 @@
         esc(m.person.name) + "</a> · " + esc(L.effort) + " " + (m.effort || 0);
     }
     b.appendChild(meta);
+    if (!m.vacant && m.person && m.person.capabilities && m.person.capabilities.length) {
+      b.appendChild(capsRow(m.person.capabilities));
+    }
     return b;
   }
 
@@ -212,6 +236,9 @@
       expand: d.lExpand || L.expand,
       collapse: d.lCollapse || L.collapse,
       members: d.lMembers || L.members,
+      zoomIn: d.lZoomin || L.zoomIn,
+      zoomOut: d.lZoomout || L.zoomOut,
+      zoomReset: d.lZoomreset || L.zoomReset,
     };
 
     var payload;
@@ -228,6 +255,7 @@
     };
 
     host.innerHTML = "";
+    host.classList.add("oc-host");
     var wrap = el("div", "orgchart-wrap");
     var chart = el("div", "orgchart");
     var ul = el("ul");
@@ -235,6 +263,46 @@
     chart.appendChild(ul);
     wrap.appendChild(chart);
     host.appendChild(wrap);
+    host.appendChild(zoomControls(chart, wrap));
+  }
+
+  // ── Zoom ────────────────────────────────────────────────────────────────
+  function zoomControls(chart, wrap) {
+    var zoom = 1;
+    var MIN = 0.4,
+      MAX = 2;
+
+    function apply() {
+      chart.style.transform = "scale(" + zoom + ")";
+    }
+    function set(z) {
+      zoom = Math.min(MAX, Math.max(MIN, Math.round(z * 10) / 10));
+      apply();
+    }
+
+    function btn(symbol, label, fn) {
+      var b = el("button", null, symbol);
+      b.type = "button";
+      b.setAttribute("aria-label", label);
+      b.title = label;
+      b.addEventListener("click", fn);
+      return b;
+    }
+
+    var box = el("div", "oc-zoom");
+    box.appendChild(btn("+", L.zoomIn, function () { set(zoom + 0.1); }));
+    box.appendChild(btn("−", L.zoomOut, function () { set(zoom - 0.1); }));
+    box.appendChild(btn("⤢", L.zoomReset, function () { set(1); }));
+
+    // Ctrl/⌘ + wheel to zoom over the chart.
+    wrap.addEventListener("wheel", function (e) {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        set(zoom + (e.deltaY < 0 ? 0.1 : -0.1));
+      }
+    }, { passive: false });
+
+    return box;
   }
 
   if (document.readyState === "loading") {

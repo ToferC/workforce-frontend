@@ -264,6 +264,8 @@ struct TierLite {
     tier_level: i64,
     retired: bool,
     parent_id: Option<String>,
+    primary_label: String,
+    primary_group: String,
     teams: Vec<TeamLite>,
 }
 
@@ -314,6 +316,8 @@ fn build_tier_node(
         "kind": "tier",
         "tierLevel": t.tier_level,
         "retired": t.retired,
+        "primaryLabel": t.primary_label,
+        "primaryGroup": t.primary_group,
         "children": children,
     })
 }
@@ -355,18 +359,26 @@ pub async fn org_chart_explore(
     };
 
     // Flatten with names resolved to the active language.
-    let lite: Vec<TierLite> = tiers.iter().map(|t| TierLite {
+    let lite: Vec<TierLite> = tiers.iter().map(|t| {
+        let primary = serde_json::to_value(&t.primary_domain)
+            .ok()
+            .and_then(|v| v.as_str().map(String::from))
+            .unwrap_or_default();
+        TierLite {
         id: t.id.to_string(),
         name: if lang == "fr" { t.name_fr.clone() } else { t.name_en.clone() },
         tier_level: t.tier_level,
         retired: t.retired_at.is_some(),
         parent_id: t.parent_organization_tier.as_ref().map(|p| p.id.to_string()),
+        primary_label: domain_short_label(&primary).to_string(),
+        primary_group: domain_group(&primary).to_string(),
         teams: t.teams.iter().map(|tm| TeamLite {
             id: tm.id.to_string(),
             name: tm.name_english.clone(),
             headcount: tm.headcount,
             effort: tm.total_effort,
         }).collect(),
+        }
     }).collect();
 
     // Index children by parent id; roots have no parent.
@@ -426,10 +438,31 @@ pub async fn team_members_json(
 
     let mut members: Vec<serde_json::Value> = Vec::new();
     for role in &team.occupied_roles {
-        let person = role.person.as_ref().map(|p| json!({
-            "id": p.id,
-            "name": format!("{} {}", p.given_name, p.family_name),
-        }));
+        let person = role.person.as_ref().map(|p| {
+            // Person's top 3 capabilities, ranked by (validated, else
+            // self-identified) level, rendered as domain-coloured chips.
+            let mut scored: Vec<(i64, serde_json::Value)> = p.capabilities.iter().map(|c| {
+                let domain = serde_json::to_value(&c.domain)
+                    .ok()
+                    .and_then(|v| v.as_str().map(String::from))
+                    .unwrap_or_default();
+                let level = c.validated_level.as_ref().or(Some(&c.self_identified_level));
+                let weight = level
+                    .and_then(|l| serde_json::to_value(l).ok())
+                    .and_then(|v| v.as_str().map(|s| level_weight(s)))
+                    .unwrap_or(0);
+                let name = if lang == "fr" { c.name_fr.clone() } else { c.name_en.clone() };
+                (weight, json!({ "label": name, "group": domain_group(&domain) }))
+            }).collect();
+            scored.sort_by(|a, b| b.0.cmp(&a.0));
+            let caps: Vec<serde_json::Value> = scored.into_iter().take(3).map(|(_, v)| v).collect();
+
+            json!({
+                "id": p.id,
+                "name": format!("{} {}", p.given_name, p.family_name),
+                "capabilities": caps,
+            })
+        });
         members.push(json!({
             "kind": "role",
             "id": role.id,

@@ -32,6 +32,13 @@ query TeamById($id:UUID!) {
         givenName
         familyName
         id
+        capabilities {
+          nameEn
+          nameFr
+          domain
+          validatedLevel
+          selfIdentifiedLevel
+        }
       }
       work {
         id
