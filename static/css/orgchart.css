@@ -196,6 +196,41 @@
     border-top-color: var(--color-danger);
 }
 
+/* Leadership tiers (L0–L3) fold in their leadership team, so they read as a
+   unit: a primary left accent marks them as a leader's office, and they carry
+   the same capacity heatmap on top as a team box. */
+.oc-node--leadership {
+    border-left: 4px solid var(--color-primary);
+    border-top: 4px solid var(--border-color);
+}
+.oc-node--leadership.cap-light {
+    border-top-color: var(--color-success);
+}
+.oc-node--leadership.cap-moderate {
+    border-top-color: var(--color-warning);
+}
+.oc-node--leadership.cap-heavy {
+    border-top-color: var(--color-danger);
+}
+
+/* Working tiers (L4) are a thin grouping above the actual working teams. */
+.oc-node--working {
+    border-style: dashed;
+    background: var(--bg-secondary);
+}
+
+/* Level + unit-kind cues in a tier box's meta line. */
+.oc-level {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.oc-kind {
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.66rem;
+    color: var(--text-secondary);
+}
+
 .oc-node--role {
     min-width: 120px;
 }

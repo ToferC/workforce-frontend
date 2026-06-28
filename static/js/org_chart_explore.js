@@ -58,6 +58,8 @@
     expand: "Expand",
     collapse: "Collapse",
     members: "Show roles and people",
+    leadership: "Leadership team",
+    workingTier: "Working teams",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     zoomReset: "Reset zoom",
@@ -73,11 +75,32 @@
       title.textContent = node.name;
     } else if (node.kind === "tier") {
       b.classList.add("oc-node--tier");
+      // Leadership tiers (L0–L3) fold their leadership team into this box;
+      // working tiers (L4) hold working teams as their own boxes below.
+      var leadership = node.leadership;
+      b.classList.add(leadership ? "oc-node--leadership" : "oc-node--working");
+      // A leadership box doubles as its leadership team, so colour it by the
+      // team's capacity band like a team box.
+      if (leadership && node.mergedTeams && node.mergedTeams.length) {
+        b.classList.add(band(node.effort));
+      }
       title.textContent = node.name;
       b.appendChild(title);
+
       var meta = el("div", "oc-node__meta");
-      meta.textContent = L.tier + " " + (node.tierLevel != null ? node.tierLevel : "?");
+      var lvl = node.tierLevel != null ? node.tierLevel : "?";
+      var kindLabel = leadership ? L.leadership : L.workingTier;
+      meta.innerHTML =
+        '<span class="oc-level">' + L.tier + " " + esc(lvl) + "</span> " +
+        '<span class="oc-kind">' + esc(kindLabel) + "</span>";
+      // For a merged leadership box, surface the folded-in team's headcount.
+      if (leadership && node.mergedTeams && node.mergedTeams.length) {
+        meta.innerHTML +=
+          " · " + (node.headcount || 0) + " " + esc(L.people) +
+          " · " + esc(L.effort) + " " + (node.effort || 0);
+      }
       b.appendChild(meta);
+
       if (node.primaryLabel) {
         b.appendChild(capsRow([{ label: node.primaryLabel, group: node.primaryGroup }]));
       }
@@ -119,30 +142,47 @@
     return b;
   }
 
+  // The teams whose members a node lazily loads: a working team is itself; a
+  // leadership tier loads the team(s) merged into its box. Everything else has
+  // no lazy members (its structure is in the eager skeleton).
+  function teamIdsFor(node) {
+    if (node.kind === "team") return [node.id];
+    if (node.kind === "tier" && node.mergedTeams && node.mergedTeams.length) {
+      return node.mergedTeams.map(function (t) { return t.id; });
+    }
+    return [];
+  }
+
   // ── Tree builders ─────────────────────────────────────────────────────────
   function buildNode(node, depth) {
     var li = el("li");
     var b = box(node);
     li.appendChild(b);
 
+    // Eager skeleton children (sub-tiers and working teams).
     var kids = node.children || [];
+    var ul = null;
     if (kids.length) {
-      var ul = el("ul");
+      ul = el("ul");
       kids.forEach(function (c) {
         ul.appendChild(buildNode(c, depth + 1));
       });
       li.appendChild(ul);
-      // Collapse deeper tiers by default so large orgs stay readable.
-      if (depth >= 2) li.classList.add("collapsed");
-      b.appendChild(collapseToggle(li));
     }
 
-    if (node.kind === "team") {
-      b.appendChild(membersToggle(li, node));
+    var teamIds = teamIdsFor(node);
+    var hasMembers = teamIds.length > 0;
+
+    if (kids.length || hasMembers) {
+      // Collapse deeper levels by default so large orgs stay readable.
+      if (depth >= 2) li.classList.add("collapsed");
+      b.appendChild(nodeToggle(li, ul, teamIds, hasMembers));
     }
     return li;
   }
 
+  // A simple collapse toggle for an already-built subtree (used for member
+  // sub-hierarchies under a role).
   function collapseToggle(li) {
     var t = el("button", "oc-toggle");
     t.type = "button";
@@ -161,60 +201,81 @@
     return t;
   }
 
-  function membersToggle(li, node) {
+  // The single expand/collapse toggle for a skeleton node. It reveals the
+  // eager children and, on first open, lazily loads the node's team members
+  // (roles + people, nested by their reporting lines) into the same subtree.
+  function nodeToggle(li, ul, teamIds, hasMembers) {
     var t = el("button", "oc-toggle");
     t.type = "button";
-    t.textContent = "+";
-    t.setAttribute("aria-label", L.members);
-    t.setAttribute("aria-expanded", "false");
+    function sync() {
+      var collapsed = li.classList.contains("collapsed");
+      t.textContent = collapsed ? "+" : "−";
+      t.setAttribute("aria-expanded", String(!collapsed));
+      t.setAttribute("aria-label", hasMembers ? L.members : (collapsed ? L.expand : L.collapse));
+    }
+    sync();
     t.addEventListener("click", function (e) {
       e.stopPropagation();
-      if (li.dataset.loaded) {
-        li.classList.toggle("collapsed");
-        var open = !li.classList.contains("collapsed");
-        t.textContent = open ? "−" : "+";
-        t.setAttribute("aria-expanded", String(open));
+      var willOpen = li.classList.contains("collapsed");
+      if (willOpen && hasMembers && !li.dataset.membersLoaded) {
+        loadMembers(li, ul, teamIds, t, sync);
         return;
       }
-      loadMembers(li, node, t);
+      li.classList.toggle("collapsed");
+      sync();
     });
     return t;
   }
 
-  function loadMembers(li, node, toggle) {
+  // Append member boxes (and their nested direct reports) to a <ul>.
+  function appendMembers(ul, members) {
+    members.forEach(function (m) {
+      var mli = el("li");
+      mli.appendChild(memberBox(m));
+      var kids = m.children || [];
+      if (kids.length) {
+        var sub = el("ul");
+        appendMembers(sub, kids);
+        mli.appendChild(sub);
+        mli.appendChild(collapseToggle(mli));
+      }
+      ul.appendChild(mli);
+    });
+  }
+
+  function loadMembers(li, ul, teamIds, toggle, sync) {
     toggle.textContent = "…"; // ellipsis while loading
     toggle.disabled = true;
-    fetch("/" + LANG + "/team/" + node.id + "/members.json", {
-      headers: { Accept: "application/json" },
-    })
-      .then(function (r) {
+    Promise.all(teamIds.map(function (id) {
+      return fetch("/" + LANG + "/team/" + id + "/members.json", {
+        headers: { Accept: "application/json" },
+      }).then(function (r) {
         return r.ok ? r.json() : Promise.reject(r.status);
-      })
-      .then(function (members) {
-        var ul = el("ul");
-        if (!members || !members.length) {
+      });
+    }))
+      .then(function (lists) {
+        var members = [];
+        lists.forEach(function (l) { if (l && l.length) members = members.concat(l); });
+        if (!ul) {
+          ul = el("ul");
+          li.appendChild(ul);
+        }
+        if (!members.length) {
           var li0 = el("li");
           li0.appendChild(el("div", "oc-node oc-node--role", '<div class="oc-node__meta">' + esc(L.noRoles) + "</div>"));
           ul.appendChild(li0);
         } else {
-          members.forEach(function (m) {
-            var mli = el("li");
-            mli.appendChild(memberBox(m));
-            ul.appendChild(mli);
-          });
+          appendMembers(ul, members);
         }
-        li.appendChild(ul);
-        li.dataset.loaded = "1";
+        li.dataset.membersLoaded = "1";
         li.classList.remove("collapsed");
-        toggle.textContent = "−";
         toggle.disabled = false;
-        toggle.setAttribute("aria-expanded", "true");
+        sync();
       })
       .catch(function () {
         toggle.textContent = "!";
         toggle.disabled = false;
         toggle.setAttribute("aria-label", "Failed to load — click to retry");
-        delete li.dataset.loaded;
       });
   }
 
@@ -236,6 +297,8 @@
       expand: d.lExpand || L.expand,
       collapse: d.lCollapse || L.collapse,
       members: d.lMembers || L.members,
+      leadership: d.lLeadership || L.leadership,
+      workingTier: d.lWorkingtier || L.workingTier,
       zoomIn: d.lZoomin || L.zoomIn,
       zoomOut: d.lZoomout || L.zoomOut,
       zoomReset: d.lZoomreset || L.zoomReset,
