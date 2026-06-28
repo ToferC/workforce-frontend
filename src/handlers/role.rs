@@ -8,7 +8,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang, level_weight, chart_json};
-use crate::graphql::{get_role_by_id, get_role_matches, all_roles, all_organizations, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement, get_person_by_id, update_work};
+use crate::graphql::{get_role_by_id, get_role_matches, all_roles, all_organizations, all_products, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement, get_person_by_id, update_work};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
@@ -259,7 +259,7 @@ pub async fn role_by_id(
             DEFAULT_MIN_COVERAGE,
             DEFAULT_MAX_GAP_PER_REQ,
             MATCH_LIMIT,
-            bearer,
+            bearer.clone(),
             &data.api_url,
             Arc::clone(&data.client),
         ).await {
@@ -276,6 +276,18 @@ pub async fn role_by_id(
         }
         ctx.insert("min_coverage_pct", &((DEFAULT_MIN_COVERAGE * 100.0).round() as i64));
         ctx.insert("max_gap_per_req", &DEFAULT_MAX_GAP_PER_REQ);
+    }
+
+    // Surface the products this role is accountable for. The API exposes the
+    // relationship only from the product side (Product.productOwner), so fetch
+    // the catalogue and keep the ones owned by this role. Failures here are
+    // non-fatal — the rest of the page still renders.
+    if let Ok(resp) = all_products(bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        let owned: Vec<_> = resp.all_products
+            .iter()
+            .filter(|p| p.product_owner.id == role_id)
+            .collect();
+        ctx.insert("owned_products", &owned);
     }
 
     ctx.insert("role_record", &r.role_by_id);
