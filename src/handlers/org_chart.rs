@@ -278,14 +278,26 @@ struct TeamLite {
     effort: i64,
 }
 
-/// Recursively build one tier's ECharts tree node: child tiers (sorted by level
-/// then name) followed by its team leaf nodes (sorted by name).
+/// Tiers at or above this level are leadership levels (L0 DM/CDS … L3
+/// Director/Colonel): their "team" is a small leadership team that merges into
+/// the tier box. Tier 4 is where the actual working teams live, and those stay
+/// as their own boxes that drill down to roles and people.
+const WORKING_TIER_LEVEL: i64 = 4;
+
+/// Recursively build one tier's org-chart node.
+///
+/// Child tiers (sorted by level then name) are always nested below as their own
+/// boxes. Teams are handled by level: for a leadership tier they are *merged*
+/// into this box (`mergedTeams`, with headcount/effort aggregated onto the
+/// tier), so the tier and its leadership team read as one unit; for a working
+/// tier they become their own team leaf boxes (sorted by name).
 fn build_tier_node(
     idx: usize,
     lite: &[TierLite],
     by_parent: &BTreeMap<String, Vec<usize>>,
 ) -> serde_json::Value {
     let t = &lite[idx];
+    let leadership = t.tier_level < WORKING_TIER_LEVEL;
 
     let mut children: Vec<serde_json::Value> = Vec::new();
     if let Some(kids) = by_parent.get(&t.id) {
@@ -300,14 +312,31 @@ fn build_tier_node(
 
     let mut teams: Vec<&TeamLite> = t.teams.iter().collect();
     teams.sort_by(|a, b| a.name.cmp(&b.name));
+
+    // Leadership tiers fold their team(s) into the box; working tiers keep them
+    // as separate working-team boxes.
+    let mut merged_teams: Vec<serde_json::Value> = Vec::new();
+    let mut head_total: i64 = 0;
+    let mut effort_total: i64 = 0;
     for team in teams {
-        children.push(json!({
-            "id": team.id,
-            "name": team.name,
-            "kind": "team",
-            "headcount": team.headcount,
-            "effort": team.effort,
-        }));
+        if leadership {
+            head_total += team.headcount;
+            effort_total += team.effort;
+            merged_teams.push(json!({
+                "id": team.id,
+                "name": team.name,
+                "headcount": team.headcount,
+                "effort": team.effort,
+            }));
+        } else {
+            children.push(json!({
+                "id": team.id,
+                "name": team.name,
+                "kind": "team",
+                "headcount": team.headcount,
+                "effort": team.effort,
+            }));
+        }
     }
 
     json!({
@@ -315,9 +344,14 @@ fn build_tier_node(
         "name": t.name,
         "kind": "tier",
         "tierLevel": t.tier_level,
+        "leadership": leadership,
         "retired": t.retired,
         "primaryLabel": t.primary_label,
         "primaryGroup": t.primary_group,
+        // Aggregated across the merged leadership team(s); 0 for working tiers.
+        "headcount": head_total,
+        "effort": effort_total,
+        "mergedTeams": merged_teams,
         "children": children,
     })
 }
@@ -436,7 +470,13 @@ pub async fn team_members_json(
         },
     };
 
-    let mut members: Vec<serde_json::Value> = Vec::new();
+    // Build leaf nodes keyed by role id, remembering each role's reports_to so
+    // we can reconstruct the intra-team reporting hierarchy below. Order is
+    // preserved (occupied first, then vacant) for stable roots.
+    let mut nodes: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
+    let mut reports: std::collections::HashMap<String, Option<String>> = std::collections::HashMap::new();
+    let mut order: Vec<String> = Vec::new();
+
     for role in &team.occupied_roles {
         let person = role.person.as_ref().map(|p| {
             // Person's top 3 capabilities, ranked by (validated, else
@@ -463,7 +503,8 @@ pub async fn team_members_json(
                 "capabilities": caps,
             })
         });
-        members.push(json!({
+        let id = role.id.to_string();
+        nodes.insert(id.clone(), json!({
             "kind": "role",
             "id": role.id,
             "title": role.title_english,
@@ -471,16 +512,68 @@ pub async fn team_members_json(
             "vacant": false,
             "person": person,
         }));
+        reports.insert(id.clone(), role.reports_to_id.clone());
+        order.push(id);
     }
     for role in &team.vacant_roles {
-        members.push(json!({
+        let id = role.id.to_string();
+        nodes.insert(id.clone(), json!({
             "kind": "role",
             "id": role.id,
             "title": role.title_english,
             "vacant": true,
             "person": serde_json::Value::Null,
         }));
+        reports.insert(id.clone(), role.reports_to_id.clone());
+        order.push(id);
     }
 
-    HttpResponse::Ok().json(members)
+    // A role is a child of its manager only when that manager is another role on
+    // this same team; otherwise (reports_to is null, or points at a manager on
+    // another team — e.g. the team owner) it is a root of this team's subtree.
+    let member_ids: std::collections::HashSet<&String> = order.iter().collect();
+    let mut children: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    let mut roots: Vec<String> = Vec::new();
+    for id in &order {
+        match reports.get(id).cloned().flatten() {
+            Some(pid) if pid != *id && member_ids.contains(&pid) => {
+                children.entry(pid).or_default().push(id.clone());
+            }
+            _ => roots.push(id.clone()),
+        }
+    }
+
+    let mut visited: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut out: Vec<serde_json::Value> = Vec::new();
+    for r in &roots {
+        if visited.insert(r.clone()) {
+            out.push(assemble_member(r, &nodes, &children, &mut visited));
+        }
+    }
+
+    HttpResponse::Ok().json(out)
+}
+
+/// Attach a role's direct reports (recursively) as its `children`, so the
+/// explorer can render the reporting hierarchy inside a team. `visited` guards
+/// against any cycle in the data so this can't recurse forever.
+fn assemble_member(
+    id: &str,
+    nodes: &std::collections::HashMap<String, serde_json::Value>,
+    children: &std::collections::HashMap<String, Vec<String>>,
+    visited: &mut std::collections::HashSet<String>,
+) -> serde_json::Value {
+    let mut node = nodes.get(id).cloned().unwrap_or(serde_json::Value::Null);
+    let mut kid_vals: Vec<serde_json::Value> = Vec::new();
+    if let Some(kids) = children.get(id) {
+        for k in kids {
+            if visited.insert(k.clone()) {
+                kid_vals.push(assemble_member(k, nodes, children, visited));
+            }
+        }
+    }
+    if let Some(obj) = node.as_object_mut() {
+        obj.insert("children".to_string(), serde_json::Value::Array(kid_vals));
+    }
+    node
 }

@@ -512,6 +512,8 @@ pub async fn create_role_post(
             occupational_level: form.occupational_level.trim().parse::<i64>().ok(),
             start_datestamp: start.unwrap(),
             end_date: None,
+            // Reporting line is managed separately (defaults to the team owner).
+            reports_to: None,
         };
 
         match create_role(new_role, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
