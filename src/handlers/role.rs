@@ -8,7 +8,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang, level_weight, chart_json};
-use crate::graphql::{get_role_by_id, get_role_matches, all_roles, all_organizations, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement, get_person_by_id, update_work};
+use crate::graphql::{get_role_by_id, get_role_matches, all_roles, all_organizations, get_team_by_id, get_people_by_name, create_role, update_role, assign_person_to_role, vacate_role, get_skill_by_id, create_requirement, update_requirement, get_person_by_id, update_work, create_role_offer};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
@@ -729,6 +729,14 @@ pub struct TransferPreviewParams {
     pub person_id: String,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct OfferRoleForm {
+    pub csrf_token: String,
+    pub person_id: String,
+    #[serde(default)]
+    pub message: String,
+}
+
 /// Render the transfer-confirmation modal (HTMX) or a full confirmation page
 /// (plain navigation fallback) for assigning `person_id` to this role. Shows
 /// the role(s) the person currently holds and the work attached to them so an
@@ -901,6 +909,51 @@ pub async fn vacate_role_post(
             security::add_flash(&session, "danger", &e.to_string());
         },
     };
+
+    redirect_to(format!("/{}/role/{}", &lang, &role_id))
+}
+
+/// Offer this (vacant) role to a candidate who sits outside the caller's managed
+/// area. Instead of an immediate transfer, this creates a RoleOffer the
+/// candidate's current manager must accept. The matching panel shows this action
+/// only for out-of-area candidates.
+#[post("/{lang}/role/{role_id}/offer")]
+pub async fn offer_role_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<OfferRoleForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+    }
+
+    if form.person_id.trim().is_empty() {
+        security::add_flash(&session, "danger", by_lang(&lang, "No person selected.", "Aucune personne sélectionnée."));
+        return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+    }
+
+    let message = match form.message.trim() {
+        "" => None,
+        m => Some(m.to_string()),
+    };
+
+    match create_role_offer(role_id.clone(), form.person_id.clone(), message, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang,
+            "Offer sent — the candidate's manager will be asked to approve the transfer.",
+            "Offre envoyée — le gestionnaire du candidat sera invité à approuver le transfert.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    }
 
     redirect_to(format!("/{}/role/{}", &lang, &role_id))
 }
