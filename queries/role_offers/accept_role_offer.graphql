@@ -1,0 +1,6 @@
+mutation AcceptRoleOffer($offerId: UUID!, $note: String) {
+  acceptRoleOffer(offerId: $offerId, note: $note) {
+    id
+    status
+  }
+}

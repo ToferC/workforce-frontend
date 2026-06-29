@@ -244,6 +244,22 @@ collapse = Collapse
 show-members = Show roles and people
 leadership-team = Leadership team
 working-teams = Working teams
+
+# Manager panel / transfer offers
+manage-title = Manager panel
+manage-help = Review transfer offers for your team. Accept an incoming offer to move the person onto the offering team; decline to keep them.
+manage-incoming = Incoming offers (awaiting your decision)
+manage-outgoing = Offers you have made
+manage-no-incoming = No offers awaiting your decision.
+manage-no-outgoing = You have not made any offers.
+offer-to = To
+offer-from = From
+offer-offered-by = Offered by
+offer-approver = Approver
+offer-note-label = Optional note
+offer-accept = Accept
+offer-decline = Decline
+offer-withdraw = Withdraw
 zoom-in = Zoom in
 zoom-out = Zoom out
 zoom-reset = Reset zoom

@@ -244,6 +244,22 @@ collapse = Réduire
 show-members = Afficher les rôles et les personnes
 leadership-team = Équipe de direction
 working-teams = Équipes opérationnelles
+
+# Panneau du gestionnaire / offres de transfert
+manage-title = Panneau du gestionnaire
+manage-help = Examinez les offres de transfert pour votre équipe. Acceptez une offre entrante pour transférer la personne vers l'équipe offrante; refusez pour la conserver.
+manage-incoming = Offres entrantes (en attente de votre décision)
+manage-outgoing = Offres que vous avez faites
+manage-no-incoming = Aucune offre en attente de votre décision.
+manage-no-outgoing = Vous n'avez fait aucune offre.
+offer-to = Vers
+offer-from = De
+offer-offered-by = Offerte par
+offer-approver = Approbateur
+offer-note-label = Note facultative
+offer-accept = Accepter
+offer-decline = Refuser
+offer-withdraw = Retirer
 zoom-in = Zoom avant
 zoom-out = Zoom arrière
 zoom-reset = Réinitialiser le zoom

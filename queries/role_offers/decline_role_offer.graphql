@@ -1,0 +1,6 @@
+mutation DeclineRoleOffer($offerId: UUID!, $note: String) {
+  declineRoleOffer(offerId: $offerId, note: $note) {
+    id
+    status
+  }
+}

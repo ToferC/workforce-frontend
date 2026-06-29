@@ -97,6 +97,9 @@
 
             <gcds-nav-group menu-label="{{ session_user }}" open-trigger="{{ session_user }}">
                 <gcds-nav-link href="/{{ lang }}/user/{{ session_user }}">{{ fluent(key="profile", lang=lang) }}</gcds-nav-link>
+                {% if role == "operator" or role == "admin" %}
+                <gcds-nav-link href="/{{ lang }}/manage">{{ fluent(key="manage-title", lang=lang) }}</gcds-nav-link>
+                {% endif %}
                 <gcds-nav-link href="/{{ lang }}/log_out">{{ fluent(key="logout", lang=lang) }}</gcds-nav-link>
                 {% if role == "admin" %}
                 <gcds-nav-link href="/{{ lang }}/user_index">{{ fluent(key="user-index", lang=lang) }}</gcds-nav-link>

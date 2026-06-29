@@ -300,6 +300,10 @@ type Mutation {
 	team.
 	"""
 	setRoleReportsTo(roleId: UUID!, reportsToRoleId: UUID): Role!
+	createRoleOffer(roleId: UUID!, personId: UUID!, message: String): RoleOffer!
+	acceptRoleOffer(offerId: UUID!, note: String): RoleOffer!
+	declineRoleOffer(offerId: UUID!, note: String): RoleOffer!
+	withdrawRoleOffer(offerId: UUID!, note: String): RoleOffer!
 	createCapability(data: NewCapability!): Capability!
 	"""
 	An operator may update a capability.
@@ -1073,7 +1077,77 @@ enum PublicationStatus {
 	CANCELLED
 }
 
+"""
+Lifecycle of a transfer offer.
+"""
+enum RoleOfferStatus {
+	PENDING
+	ACCEPTED
+	DECLINED
+	WITHDRAWN
+	EXPIRED
+	COMPLETED
+}
+
+"""
+An offer to move a person into a (vacant) role, pending the approval of the
+candidate's current manager.
+"""
+type RoleOffer {
+	id: UUID!
+	status: RoleOfferStatus!
+	message: String
+	decisionNote: String
+	createdAt: NaiveDateTime!
+	updatedAt: NaiveDateTime!
+	decidedAt: NaiveDateTime
+	expiresAt: NaiveDateTime
+	role: Role!
+	person: Person!
+	offeredByRole: Role!
+	fromRole: Role
+	approverRole: Role
+	decidedByRole: Role
+}
+
+"""
+An append-only record of one mutating action taken through the API.
+"""
+type AuditEvent {
+	id: UUID!
+	occurredAt: NaiveDateTime!
+	actorUserId: UUID
+	actorRoleId: UUID
+	action: String!
+	entityType: String!
+	entityId: UUID
+	summary: String
+	payload: String
+	correlationId: UUID
+	actorRole: Role
+}
+
 type Query {
+	"""
+	Pending transfer offers awaiting my decision (I manage the candidate).
+	"""
+	incomingRoleOffers: [RoleOffer!]!
+	"""
+	Transfer offers I have made (any status).
+	"""
+	outgoingRoleOffers: [RoleOffer!]!
+	"""
+	A single transfer offer by id.
+	"""
+	roleOfferById(id: UUID!): RoleOffer!
+	"""
+	Most recent audit events across the system, newest first. Admin only.
+	"""
+	recentAuditEvents(limit: Int! = 50): [AuditEvent!]!
+	"""
+	Audit history for a single entity, newest first. Admin only.
+	"""
+	auditEventsForEntity(entityType: String!, entityId: UUID!, limit: Int! = 50): [AuditEvent!]!
 	"""
 	Returns count number of Capabilities in the system
 	"""

@@ -124,6 +124,12 @@ use crate::handlers::{
     org_tier_node_partial,
     org_tier_panel_partial,
 
+    // manager panel
+    manage_panel,
+    accept_offer_post,
+    decline_offer_post,
+    withdraw_offer_post,
+
     // team
     team_by_id,
     team_index,
@@ -305,6 +311,12 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(org_chart_builder);
     config.service(org_tier_node_partial);
     config.service(org_tier_panel_partial);
+
+    // manager panel
+    config.service(manage_panel);
+    config.service(accept_offer_post);
+    config.service(decline_offer_post);
+    config.service(withdraw_offer_post);
 
     // team
     // "new" must be registered before the {team_id} catch-all

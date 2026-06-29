@@ -1,0 +1,6 @@
+mutation WithdrawRoleOffer($offerId: UUID!, $note: String) {
+  withdrawRoleOffer(offerId: $offerId, note: $note) {
+    id
+    status
+  }
+}
