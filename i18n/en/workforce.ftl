@@ -507,3 +507,5 @@ select-a-skill = — Select a skill —
 select-a-task = — Select a task —
 your-team = Your team
 all-roles = All roles
+created-by-role = Created by role
+unassigned = Unassigned

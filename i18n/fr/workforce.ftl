@@ -507,3 +507,5 @@ select-a-skill = — Sélectionner une compétence —
 select-a-task = — Sélectionner une tâche —
 your-team = Votre équipe
 all-roles = Tous les rôles
+created-by-role = Rôle créateur
+unassigned = Non assigné

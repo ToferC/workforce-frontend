@@ -6,10 +6,11 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles, all_roles, get_me};
+use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles, all_roles, get_me, get_task_by_id, get_team_by_id};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::task::{work_status_options, priority_options};
+use super::team::team_role_options;
 use super::capability::CAPABILITY_LEVELS;
 
 fn capability_level_options() -> serde_json::Value {
@@ -40,6 +41,10 @@ pub struct WorkForm {
     pub priority: String,
     #[serde(default)]
     pub skill_id: String,
+    // Set only by the task-scoped create form, where the work may optionally
+    // be assigned to a role on the task's team (blank = leave unassigned).
+    #[serde(default)]
+    pub role_id: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -61,6 +66,20 @@ async fn skill_options(bearer: &str, data: &AppData) -> serde_json::Value {
             json!({"value": s.id, "label": format!("{} ({})", s.name_en, domain)})
         }).collect::<Vec<_>>()))
         .unwrap_or_else(|_| json!([]))
+}
+
+/// Resolve {value,label} role options for the team that owns a task, via the
+/// task's creating role. Lets task-scoped work be assigned to a role on the
+/// same team. Returns an empty list if anything in the chain is unavailable.
+async fn task_team_role_options(task_id: &str, bearer: &str, data: &AppData) -> serde_json::Value {
+    let team_id = match get_task_by_id(task_id.to_string(), bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.task_by_id.created_by.team.id,
+        Err(_) => return json!([]),
+    };
+    match get_team_by_id(team_id, bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => team_role_options(&serde_json::to_value(&r.team_by_id).unwrap_or_else(|_| json!({}))),
+        Err(_) => json!([]),
+    }
 }
 
 fn work_from_form(form: &WorkForm, id: Option<&str>) -> serde_json::Value {
@@ -224,12 +243,15 @@ pub async fn create_vacant_work_form(
     };
 
     let skills = skill_options(&auth.bearer, &data).await;
+    let role_options = task_team_role_options(&task_id, &auth.bearer, &data).await;
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &false);
     ctx.insert("vacant", &true);
     ctx.insert("task_id", &task_id);
     ctx.insert("skill_id", &"");
+    ctx.insert("role_id", &"");
+    ctx.insert("role_options", &role_options);
     ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING", "priority": "MEDIUM"}));
     ctx.insert("skill_options", &skills);
     ctx.insert("skill_domains", &skill_domain_options());
@@ -269,7 +291,8 @@ pub async fn create_vacant_work_post(
 
     let new_work = create_work::NewWork {
         task_id: task_id.clone(),
-        role_id: None,
+        // Optional: assign to a role on the task's team, or leave unassigned.
+        role_id: if form.role_id.trim().is_empty() { None } else { Some(form.role_id.clone()) },
         skill_id: form.skill_id.clone(),
         work_description: form.work_description.trim().to_string(),
         url: if form.url.trim().is_empty() { None } else { Some(form.url.trim().to_string()) },
@@ -288,11 +311,14 @@ pub async fn create_vacant_work_post(
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
             let skills = skill_options(&auth.bearer, &data).await;
+            let role_options = task_team_role_options(&task_id, &auth.bearer, &data).await;
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
             ctx.insert("edit", &false);
             ctx.insert("vacant", &true);
             ctx.insert("task_id", &task_id);
             ctx.insert("skill_id", &form.skill_id);
+            ctx.insert("role_id", &form.role_id);
+            ctx.insert("role_options", &role_options);
             ctx.insert("work", &work_from_form(&form, None));
             ctx.insert("skill_options", &skills);
             ctx.insert("skill_domains", &skill_domain_options());
