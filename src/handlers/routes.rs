@@ -172,6 +172,8 @@ use crate::handlers::{
     create_task_form,
     create_task_post,
     create_product_task_form,
+    create_team_task_form,
+    create_team_task_post,
     edit_task_form,
     edit_task_post,
 
@@ -363,6 +365,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(create_task_form);
     config.service(create_task_post);
     config.service(create_product_task_form);
+    config.service(create_team_task_form);
+    config.service(create_team_task_post);
     config.service(edit_task_form);
     config.service(edit_task_post);
     config.service(task_by_id);

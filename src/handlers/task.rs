@@ -7,10 +7,11 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_task_by_id, all_tasks, create_task, update_task, get_product_by_id};
+use crate::graphql::{get_task_by_id, all_tasks, create_task, update_task, get_product_by_id, get_team_by_id};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::product::product_options;
+use super::team::team_role_options;
 
 /// WorkStatus enum values (used by both tasks and work).
 pub const WORK_STATUSES: [&str; 5] = ["PLANNING", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"];
@@ -55,6 +56,10 @@ pub struct TaskForm {
     pub completed_date: String,
     #[serde(default)]
     pub product_id: String,
+    // Set only by the team-scoped create form, where the creating role is
+    // chosen from the team's roles instead of taken from the URL.
+    #[serde(default)]
+    pub created_by_role_id: String,
 }
 
 fn task_from_form(form: &TaskForm, id: Option<&str>) -> serde_json::Value {
@@ -72,6 +77,7 @@ fn task_from_form(form: &TaskForm, id: Option<&str>) -> serde_json::Value {
         "priority": form.priority,
         "completedDate": form.completed_date,
         "productId": form.product_id,
+        "createdByRoleId": form.created_by_role_id,
     })
 }
 
@@ -350,4 +356,117 @@ pub async fn create_product_task_form(
 
     let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
+}
+
+/// Show the task creation form scoped to a team. The creating role is chosen
+/// from a dropdown of the team's own roles (occupied and vacant) rather than
+/// taken from the URL.
+#[get("/{lang}/team/{team_id}/task/new")]
+pub async fn create_team_task_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, team_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let team = match get_team_by_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => serde_json::to_value(&r.team_by_id).unwrap_or_else(|_| json!({})),
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/team/{}", &lang, &team_id));
+        },
+    };
+
+    let today = chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string();
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("edit", &false);
+    ctx.insert("role_options", &team_role_options(&team));
+    ctx.insert("form_action", &format!("/{}/team/{}/task/new", &lang, &team_id));
+    ctx.insert("cancel_url", &format!("/{}/team/{}", &lang, &team_id));
+    ctx.insert("task", &json!({
+        "title": "", "domain": "", "intendedOutcome": "", "finalOutcome": "", "approvalTier": 1,
+        "url": "", "startDatestamp": today, "targetCompletionDate": today, "taskStatus": "PLANNING", "priority": "MEDIUM",
+        "completedDate": "", "productId": "", "createdByRoleId": "",
+    }));
+    ctx.insert("skill_domains", &skill_domain_options());
+    ctx.insert("work_statuses", &work_status_options());
+    ctx.insert("priorities", &priority_options());
+    ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
+
+    let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/team/{team_id}/task/new")]
+pub async fn create_team_task_post(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<TaskForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, team_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/team/{}/task/new", &lang, &team_id));
+    }
+
+    if form.created_by_role_id.trim().is_empty() {
+        security::add_flash(&session, "danger", by_lang(&lang, "Select a creating role on this team.", "Sélectionnez un rôle créateur dans cette équipe."));
+        return redirect_to(format!("/{}/team/{}/task/new", &lang, &team_id));
+    }
+
+    let new_task = create_task::NewTask {
+        created_by_role_id: form.created_by_role_id.clone(),
+        title: form.title.trim().to_string(),
+        domain: serde_json::from_value(json!(form.domain)).expect("SkillDomain deserialization is infallible"),
+        intended_outcome: form.intended_outcome.trim().to_string(),
+        approval_tier: form.approval_tier,
+        url: form.url.trim().to_string(),
+        start_datestamp: parse_date(&form.start_date).unwrap_or_else(|| chrono::Utc::now().naive_utc()),
+        target_completion_date: parse_date(&form.target_completion_date).unwrap_or_else(|| chrono::Utc::now().naive_utc()),
+        task_status: serde_json::from_value(json!(form.task_status)).expect("WorkStatus deserialization is infallible"),
+        priority: serde_json::from_value(json!(form.priority)).expect("Priority deserialization is infallible"),
+        product_id: if form.product_id.trim().is_empty() { None } else { Some(form.product_id.clone()) },
+    };
+
+    match create_task(new_task, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(response) => {
+            security::add_flash(&session, "success", by_lang(&lang, "Task created.", "Tâche créée."));
+            redirect_to(format!("/{}/task/{}", &lang, response.create_task.id))
+        },
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            let team = get_team_by_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
+                .map(|r| serde_json::to_value(&r.team_by_id).unwrap_or_else(|_| json!({})))
+                .unwrap_or_else(|_| json!({}));
+            let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("edit", &false);
+            ctx.insert("role_options", &team_role_options(&team));
+            ctx.insert("form_action", &format!("/{}/team/{}/task/new", &lang, &team_id));
+            ctx.insert("cancel_url", &format!("/{}/team/{}", &lang, &team_id));
+            ctx.insert("task", &task_from_form(&form, None));
+            ctx.insert("skill_domains", &skill_domain_options());
+            ctx.insert("work_statuses", &work_status_options());
+            ctx.insert("priorities", &priority_options());
+            ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
+            let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
+            HttpResponse::Ok().body(rendered)
+        },
+    }
 }

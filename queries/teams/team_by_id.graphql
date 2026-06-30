@@ -64,6 +64,23 @@ query TeamById($id:UUID!) {
       reportsToId
       rank
       militaryOccupation
+      effort
+      work {
+        id
+        workDescription
+        workStatus
+        effort
+        task {
+          id
+          title
+          taskStatus
+          product {
+            id
+            nameEn
+            nameFr
+          }
+        }
+      }
     }
     owner {
       id

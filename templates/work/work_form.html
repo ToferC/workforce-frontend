@@ -50,6 +50,10 @@
                 {{ forms::csrf(token=csrf_token) }}
                 {{ forms::error_summary() }}
                 {% if not edit and not vacant %}{{ forms::select(name="task_id", label=label_task, options=task_options, blank_label=fluent(key="select-a-task", lang=lang)) }}{% endif %}
+                {% if vacant and role_options is defined %}
+                {# Task-scoped creation: optionally assign to a role on the task's team #}
+                {{ forms::select(name="role_id", label=fluent(key="assign-to-role", lang=lang), options=role_options, selected=role_id | default(value=""), required=false, blank_label=fluent(key="unassigned", lang=lang)) }}
+                {% endif %}
                 {{ forms::textarea(name="work_description", label=label_desc, value=work.workDescription) }}
                 {{ forms::text_input(name="url", label=label_url, value=work.url, type="url", required=false) }}
                 <div class="row">

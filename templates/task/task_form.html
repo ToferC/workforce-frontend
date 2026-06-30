@@ -53,6 +53,10 @@
             <form method="post" action="{{ form_action | safe }}">
                 {{ forms::csrf(token=csrf_token) }}
                 {{ forms::error_summary() }}
+                {% if role_options is defined %}
+                {# Team-scoped creation: pick the creating role from this team's roles #}
+                {{ forms::select(name="created_by_role_id", label=fluent(key="created-by-role", lang=lang), options=role_options, selected=task.createdByRoleId | default(value=""), blank_label=fluent(key="select-a-role", lang=lang)) }}
+                {% endif %}
                 {{ forms::select(name="product_id", label=label_product, options=product_options, selected=task.productId | default(value=""), required=false, blank_label=blank_product) }}
                 {{ forms::text_input(name="title", label=label_title, value=task.title) }}
                 <div class="row">

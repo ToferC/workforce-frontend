@@ -9,7 +9,6 @@ use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_team_by_id, all_teams, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership, restore_team};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{parent_tier_options, skill_domain_options, OwnerForm};
-use super::product::role_options;
 
 #[derive(Deserialize, Debug)]
 pub struct TeamForm {
@@ -54,6 +53,31 @@ fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
 
 fn is_htmx(req: &HttpRequest) -> bool {
     req.headers().get("HX-Request").is_some()
+}
+
+/// Build a JSON array of {value, label} from a team's own roles (occupied
+/// first, then vacant) for selects that must be scoped to the team — e.g.
+/// assigning the owning role, or choosing the creating/assigned role for a
+/// task or work item. Expects the camelCase-serialized team JSON returned by
+/// `get_team_by_id`. Label format: "Given Family — Title" for filled roles,
+/// "Vacant — Title" for unfilled.
+pub fn team_role_options(team: &serde_json::Value) -> serde_json::Value {
+    let mut opts: Vec<serde_json::Value> = Vec::new();
+    if let Some(roles) = team["occupiedRoles"].as_array() {
+        for r in roles {
+            let prefix = match (r["person"]["givenName"].as_str(), r["person"]["familyName"].as_str()) {
+                (Some(g), Some(f)) => format!("{} {} \u{2014} ", g, f),
+                _ => String::new(),
+            };
+            opts.push(json!({"value": r["id"], "label": format!("{}{}", prefix, r["titleEnglish"].as_str().unwrap_or(""))}));
+        }
+    }
+    if let Some(roles) = team["vacantRoles"].as_array() {
+        for r in roles {
+            opts.push(json!({"value": r["id"], "label": format!("Vacant \u{2014} {}", r["titleEnglish"].as_str().unwrap_or(""))}));
+        }
+    }
+    json!(opts)
 }
 
 fn team_from_form(form: &TeamForm, id: Option<&str>) -> serde_json::Value {
@@ -101,39 +125,48 @@ pub async fn team_by_id(
         .collect();
     ctx.insert("domain_summary", &domain_summary);
 
-    // Delivery at a glance: distinct products and tasks this team's members
-    // contribute to, plus the active work underway. Traverses each occupied
-    // role's work -> task -> product so the team page links out to delivery.
+    // Delivery at a glance: distinct products and tasks this team contributes
+    // to, plus the active work underway. Traverses every role's (occupied and
+    // vacant) work -> task -> product so the products section references any
+    // product the team's tasks or work feed into, not just those reachable
+    // through filled positions.
+    let team_json = serde_json::to_value(team).unwrap_or_else(|_| json!({}));
     let mut products: std::collections::BTreeMap<String, serde_json::Value> = std::collections::BTreeMap::new();
     let mut tasks: std::collections::BTreeMap<String, serde_json::Value> = std::collections::BTreeMap::new();
     let mut active_work: Vec<serde_json::Value> = Vec::new();
     let mut work_count = 0;
 
-    for role in &team.occupied_roles {
-        let person_name = role.person.as_ref()
-            .map(|p| format!("{} {}", p.given_name, p.family_name))
-            .unwrap_or_default();
-        for w in &role.work {
-            work_count += 1;
-            let status = serde_json::to_value(&w.work_status).unwrap_or(json!(""));
-            let t = &w.task;
-            let task_status = serde_json::to_value(&t.task_status).unwrap_or(json!(""));
-            tasks.entry(t.id.clone()).or_insert_with(|| json!({
-                "id": t.id, "title": t.title, "status": task_status,
-            }));
-            if let Some(p) = &t.product {
-                products.entry(p.id.clone()).or_insert_with(|| json!({
-                    "id": p.id, "nameEn": p.name_en, "nameFr": p.name_fr,
+    let mut roles: Vec<&serde_json::Value> = Vec::new();
+    if let Some(r) = team_json["occupiedRoles"].as_array() { roles.extend(r); }
+    if let Some(r) = team_json["vacantRoles"].as_array() { roles.extend(r); }
+
+    for role in roles {
+        let person_name = match (role["person"]["givenName"].as_str(), role["person"]["familyName"].as_str()) {
+            (Some(g), Some(f)) => format!("{} {}", g, f),
+            _ => by_lang(&lang, "Unassigned", "Non assigné").to_string(),
+        };
+        if let Some(work) = role["work"].as_array() {
+            for w in work {
+                work_count += 1;
+                let t = &w["task"];
+                tasks.entry(t["id"].as_str().unwrap_or("").to_string()).or_insert_with(|| json!({
+                    "id": t["id"], "title": t["title"], "status": t["taskStatus"],
                 }));
-            }
-            if status.as_str() == Some("IN_PROGRESS") {
-                active_work.push(json!({
-                    "id": w.id,
-                    "description": w.work_description,
-                    "status": status,
-                    "effort": w.effort,
-                    "person": person_name,
-                }));
+                let p = &t["product"];
+                if let Some(pid) = p["id"].as_str() {
+                    products.entry(pid.to_string()).or_insert_with(|| json!({
+                        "id": p["id"], "nameEn": p["nameEn"], "nameFr": p["nameFr"],
+                    }));
+                }
+                if w["workStatus"].as_str() == Some("IN_PROGRESS") {
+                    active_work.push(json!({
+                        "id": w["id"],
+                        "description": w["workDescription"],
+                        "status": w["workStatus"],
+                        "effort": w["effort"],
+                        "person": person_name,
+                    }));
+                }
             }
         }
     }
@@ -466,7 +499,10 @@ pub async fn assign_team_owner_form(
         },
     };
 
-    let role_options = role_options(&auth.bearer, &data).await;
+    // Owner must be a role on this team — query the team's own roles rather
+    // than every role in the org.
+    let team_json = serde_json::to_value(&r.team_by_id).unwrap_or_else(|_| json!({}));
+    let role_options = team_role_options(&team_json);
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("team", &r.team_by_id);
