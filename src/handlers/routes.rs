@@ -70,6 +70,7 @@ use crate::handlers::{
     assign_role_post,
     transfer_preview,
     vacate_role_post,
+    offer_role_post,
     create_requirement_form,
     create_requirement_post,
     retire_requirement_post,
@@ -123,6 +124,13 @@ use crate::handlers::{
     team_members_json,
     org_tier_node_partial,
     org_tier_panel_partial,
+
+    // manager panel
+    manage_panel,
+    accept_offer_post,
+    decline_offer_post,
+    withdraw_offer_post,
+    activity_view,
 
     // team
     team_by_id,
@@ -246,6 +254,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(assign_role_post);
     config.service(transfer_preview);
     config.service(vacate_role_post);
+    config.service(offer_role_post);
     config.service(role_index);
     config.service(create_requirement_form);
     config.service(create_requirement_post);
@@ -305,6 +314,13 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(org_chart_builder);
     config.service(org_tier_node_partial);
     config.service(org_tier_panel_partial);
+
+    // manager panel
+    config.service(manage_panel);
+    config.service(accept_offer_post);
+    config.service(decline_offer_post);
+    config.service(withdraw_offer_post);
+    config.service(activity_view);
 
     // team
     // "new" must be registered before the {team_id} catch-all

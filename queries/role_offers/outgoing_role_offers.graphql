@@ -1,0 +1,21 @@
+query OutgoingRoleOffers {
+  outgoingRoleOffers {
+    id
+    status
+    message
+    decisionNote
+    createdAt
+    decidedAt
+    role {
+      id
+      titleEnglish
+      team { id nameEnglish }
+    }
+    person { id givenName familyName }
+    approverRole {
+      id
+      titleEnglish
+      person { id givenName familyName }
+    }
+  }
+}

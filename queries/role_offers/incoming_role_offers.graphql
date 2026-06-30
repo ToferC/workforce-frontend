@@ -1,0 +1,24 @@
+query IncomingRoleOffers {
+  incomingRoleOffers {
+    id
+    status
+    message
+    createdAt
+    role {
+      id
+      titleEnglish
+      team { id nameEnglish }
+    }
+    person { id givenName familyName }
+    fromRole {
+      id
+      titleEnglish
+      team { id nameEnglish }
+    }
+    offeredByRole {
+      id
+      titleEnglish
+      person { id givenName familyName }
+    }
+  }
+}
