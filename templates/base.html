@@ -103,6 +103,7 @@
                 <gcds-nav-link href="/{{ lang }}/log_out">{{ fluent(key="logout", lang=lang) }}</gcds-nav-link>
                 {% if role == "admin" %}
                 <gcds-nav-link href="/{{ lang }}/user_index">{{ fluent(key="user-index", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/activity">{{ fluent(key="activity-title", lang=lang) }}</gcds-nav-link>
                 {% endif %}
             </gcds-nav-group>
             {% else %}

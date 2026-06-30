@@ -13,6 +13,7 @@ use crate::{AppData, by_lang, generate_basic_context};
 use crate::graphql::{
     incoming_role_offers, outgoing_role_offers,
     accept_role_offer, decline_role_offer, withdraw_role_offer,
+    recent_audit_events,
 };
 use crate::security::{self, MinimumRole};
 
@@ -77,6 +78,37 @@ pub async fn manage_panel(
     HttpResponse::Ok().body(rendered)
 }
 
+/// Admin activity log: the most recent audited changes across the system.
+#[get("/{lang}/activity")]
+pub async fn activity_view(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<String>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Admin) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let events = match recent_audit_events(100, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.recent_audit_events,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            Vec::new()
+        }
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("events", &events);
+
+    let rendered = data.tmpl.render("manage/activity.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
 fn note_opt(form: &OfferDecisionForm) -> Option<String> {
     form.note.as_ref().map(|n| n.trim().to_string()).filter(|n| !n.is_empty())
 }
@@ -102,9 +134,18 @@ pub async fn accept_offer_post(
     }
 
     match accept_role_offer(offer_id, note_opt(&form), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
-        Ok(_) => security::add_flash(&session, "success", by_lang(&lang,
-            "Offer accepted — the person has been transferred.",
-            "Offre acceptée — la personne a été transférée.")),
+        Ok(resp) => {
+            security::add_flash(&session, "success", by_lang(&lang,
+                "Offer accepted — the person has been transferred.",
+                "Offre acceptée — la personne a été transférée."));
+            let o = resp.accept_role_offer;
+            let to = o.offered_by_role.person.as_ref().map(|p| p.email.clone());
+            let html = format!(
+                "<p>Your offer of “{}” to {} {} was accepted; they have been transferred.</p>",
+                o.role.title_english, o.person.given_name, o.person.family_name,
+            );
+            crate::notifications::send_offer_email(to.as_deref(), "Your transfer offer was accepted", &html).await;
+        },
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     }
     redirect_to(format!("/{}/manage", &lang))
@@ -131,8 +172,17 @@ pub async fn decline_offer_post(
     }
 
     match decline_role_offer(offer_id, note_opt(&form), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
-        Ok(_) => security::add_flash(&session, "success", by_lang(&lang,
-            "Offer declined.", "Offre refusée.")),
+        Ok(resp) => {
+            security::add_flash(&session, "success", by_lang(&lang,
+                "Offer declined.", "Offre refusée."));
+            let o = resp.decline_role_offer;
+            let to = o.offered_by_role.person.as_ref().map(|p| p.email.clone());
+            let html = format!(
+                "<p>Your offer of “{}” to {} {} was declined.</p>",
+                o.role.title_english, o.person.given_name, o.person.family_name,
+            );
+            crate::notifications::send_offer_email(to.as_deref(), "Your transfer offer was declined", &html).await;
+        },
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     }
     redirect_to(format!("/{}/manage", &lang))
@@ -159,8 +209,17 @@ pub async fn withdraw_offer_post(
     }
 
     match withdraw_role_offer(offer_id, note_opt(&form), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
-        Ok(_) => security::add_flash(&session, "success", by_lang(&lang,
-            "Offer withdrawn.", "Offre retirée.")),
+        Ok(resp) => {
+            security::add_flash(&session, "success", by_lang(&lang,
+                "Offer withdrawn.", "Offre retirée."));
+            let o = resp.withdraw_role_offer;
+            let to = o.approver_role.as_ref().and_then(|r| r.person.as_ref()).map(|p| p.email.clone());
+            let html = format!(
+                "<p>The offer of “{}” to {} {} has been withdrawn; no action is needed.</p>",
+                o.role.title_english, o.person.given_name, o.person.family_name,
+            );
+            crate::notifications::send_offer_email(to.as_deref(), "Transfer offer withdrawn", &html).await;
+        },
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     }
     redirect_to(format!("/{}/manage", &lang))

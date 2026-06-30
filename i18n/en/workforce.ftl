@@ -260,6 +260,17 @@ offer-note-label = Optional note
 offer-accept = Accept
 offer-decline = Decline
 offer-withdraw = Withdraw
+
+# Activity log (admin)
+activity-title = Activity log
+activity-help = Recent changes recorded across the system.
+activity-empty = No activity recorded yet.
+activity-when = When
+activity-action = Action
+activity-entity = Entity
+activity-summary = Summary
+activity-actor = By
+activity-system = System
 zoom-in = Zoom in
 zoom-out = Zoom out
 zoom-reset = Reset zoom

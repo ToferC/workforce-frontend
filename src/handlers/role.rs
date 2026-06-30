@@ -949,9 +949,21 @@ pub async fn offer_role_post(
     };
 
     match create_role_offer(role_id.clone(), form.person_id.clone(), message, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
-        Ok(_) => security::add_flash(&session, "success", by_lang(&lang,
-            "Offer sent — the candidate's manager will be asked to approve the transfer.",
-            "Offre envoyée — le gestionnaire du candidat sera invité à approuver le transfert.")),
+        Ok(resp) => {
+            security::add_flash(&session, "success", by_lang(&lang,
+                "Offer sent — the candidate's manager will be asked to approve the transfer.",
+                "Offre envoyée — le gestionnaire du candidat sera invité à approuver le transfert."));
+
+            // Notify the approving manager (no-op unless notifications are
+            // enabled — see notifications::send_offer_email).
+            let offer = resp.create_role_offer;
+            let to = offer.approver_role.as_ref().and_then(|r| r.person.as_ref()).map(|p| p.email.clone());
+            let html = format!(
+                "<p>{} {} has been offered the role “{}”. Review the offer in your manager panel.</p>",
+                offer.person.given_name, offer.person.family_name, offer.role.title_english,
+            );
+            crate::notifications::send_offer_email(to.as_deref(), "New transfer offer to review", &html).await;
+        },
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     }
 

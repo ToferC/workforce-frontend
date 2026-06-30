@@ -2,5 +2,11 @@ mutation CreateRoleOffer($roleId: UUID!, $personId: UUID!, $message: String) {
   createRoleOffer(roleId: $roleId, personId: $personId, message: $message) {
     id
     status
+    role { titleEnglish }
+    person { givenName familyName }
+    approverRole {
+      titleEnglish
+      person { givenName familyName email }
+    }
   }
 }

@@ -260,6 +260,17 @@ offer-note-label = Note facultative
 offer-accept = Accepter
 offer-decline = Refuser
 offer-withdraw = Retirer
+
+# Journal d'activité (admin)
+activity-title = Journal d'activité
+activity-help = Modifications récentes enregistrées dans le système.
+activity-empty = Aucune activité enregistrée pour le moment.
+activity-when = Quand
+activity-action = Action
+activity-entity = Entité
+activity-summary = Résumé
+activity-actor = Par
+activity-system = Système
 zoom-in = Zoom avant
 zoom-out = Zoom arrière
 zoom-reset = Réinitialiser le zoom

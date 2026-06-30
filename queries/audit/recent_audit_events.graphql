@@ -1,0 +1,15 @@
+query RecentAuditEvents($limit: Int!) {
+  recentAuditEvents(limit: $limit) {
+    id
+    occurredAt
+    action
+    entityType
+    entityId
+    summary
+    actorRole {
+      id
+      titleEnglish
+      person { id givenName familyName }
+    }
+  }
+}

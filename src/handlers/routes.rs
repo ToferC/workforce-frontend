@@ -130,6 +130,7 @@ use crate::handlers::{
     accept_offer_post,
     decline_offer_post,
     withdraw_offer_post,
+    activity_view,
 
     // team
     team_by_id,
@@ -319,6 +320,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(accept_offer_post);
     config.service(decline_offer_post);
     config.service(withdraw_offer_post);
+    config.service(activity_view);
 
     // team
     // "new" must be registered before the {team_id} catch-all
