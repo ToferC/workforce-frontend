@@ -30,6 +30,17 @@ pub async fn all_products(bearer: String, api_url: &str, client: Arc<Client>) ->
     post_graphql::<AllProducts>(&client, api_url, &bearer, all_products::Variables {}).await
 }
 
+/// Lean list for owner/product `<select>`s: id + names only. Avoids the full
+/// `all_products` payload — notably the `effort` field, which the API computes
+/// by aggregating each product's work server-side.
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/products/product_options.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct ProductOptions;
+
+pub async fn all_product_options(bearer: String, api_url: &str, client: Arc<Client>) -> Result<product_options::ResponseData, ApiError> {
+    post_graphql::<ProductOptions>(&client, api_url, &bearer, product_options::Variables {}).await
+}
+
 #[derive(GraphQLQuery, Serialize, Deserialize)]
 #[graphql(schema_path = "schema.graphql", query_path = "queries/analytics/delivery_treemap.graphql", response_derives = "Debug, Serialize, PartialEq")]
 pub struct DeliveryTreemap;

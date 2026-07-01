@@ -234,7 +234,11 @@ pub async fn edit_task_form(
         Err(response) => return response,
     };
 
-    let r = match get_task_by_id(task_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    let (task_res, product_opts) = futures::join!(
+        get_task_by_id(task_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        product_options(&auth.bearer, &data),
+    );
+    let r = match task_res {
         Ok(r) => r,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -248,7 +252,7 @@ pub async fn edit_task_form(
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("work_statuses", &work_status_options());
     ctx.insert("priorities", &priority_options());
-    ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
+    ctx.insert("product_options", &product_opts);
 
     let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -328,7 +332,11 @@ pub async fn create_product_task_form(
         Err(response) => return response,
     };
 
-    let product = match get_product_by_id(product_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    let (product_res, product_opts) = futures::join!(
+        get_product_by_id(product_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        product_options(&auth.bearer, &data),
+    );
+    let product = match product_res {
         Ok(r) => r.product_by_id,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -352,7 +360,7 @@ pub async fn create_product_task_form(
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("work_statuses", &work_status_options());
     ctx.insert("priorities", &priority_options());
-    ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
+    ctx.insert("product_options", &product_opts);
 
     let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -376,7 +384,11 @@ pub async fn create_team_task_form(
         Err(response) => return response,
     };
 
-    let team = match get_team_by_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    let (team_res, product_opts) = futures::join!(
+        get_team_by_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        product_options(&auth.bearer, &data),
+    );
+    let team = match team_res {
         Ok(r) => serde_json::to_value(&r.team_by_id).unwrap_or_else(|_| json!({})),
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -399,7 +411,7 @@ pub async fn create_team_task_form(
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("work_statuses", &work_status_options());
     ctx.insert("priorities", &priority_options());
-    ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
+    ctx.insert("product_options", &product_opts);
 
     let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -452,7 +464,11 @@ pub async fn create_team_task_post(
         },
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
-            let team = get_team_by_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
+            let (team_res, product_opts) = futures::join!(
+                get_team_by_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+                product_options(&auth.bearer, &data),
+            );
+            let team = team_res
                 .map(|r| serde_json::to_value(&r.team_by_id).unwrap_or_else(|_| json!({})))
                 .unwrap_or_else(|_| json!({}));
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
@@ -464,7 +480,7 @@ pub async fn create_team_task_post(
             ctx.insert("skill_domains", &skill_domain_options());
             ctx.insert("work_statuses", &work_status_options());
             ctx.insert("priorities", &priority_options());
-            ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
+            ctx.insert("product_options", &product_opts);
             let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
             HttpResponse::Ok().body(rendered)
         },

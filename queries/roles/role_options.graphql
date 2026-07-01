@@ -1,0 +1,8 @@
+query RoleOptions {
+  allRoles {
+    id
+    titleEnglish
+    person { id givenName familyName }
+    team { id nameEnglish }
+  }
+}

@@ -122,6 +122,18 @@ pub async fn all_roles(bearer: String, api_url: &str, client: Arc<Client>) -> Re
     post_graphql::<AllRoles>(&client, api_url, &bearer, all_roles::Variables {}).await
 }
 
+/// Lean list for role `<select>`s: just the fields needed to build a
+/// "Given Family — Title (Team)" label. Drops the team's organization,
+/// French title, and military occupation/rank that `all_roles` also pulls per
+/// row but that pickers never render.
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/roles/role_options.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct RoleOptions;
+
+pub async fn all_role_options(bearer: String, api_url: &str, client: Arc<Client>) -> Result<role_options::ResponseData, ApiError> {
+    post_graphql::<RoleOptions>(&client, api_url, &bearer, role_options::Variables {}).await
+}
+
 #[derive(GraphQLQuery, Serialize, Deserialize)]
 #[graphql(schema_path = "schema.graphql", query_path = "queries/roles/vacant_roles.graphql", response_derives = "Debug, Serialize, PartialEq")]
 pub struct VacantRoles;
