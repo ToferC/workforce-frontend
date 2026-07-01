@@ -30,8 +30,20 @@ pub async fn get_team_by_id(id: UUID, bearer: String, api_url: &str, client: Arc
 )]
 pub struct AllTeams;
 
-pub async fn all_teams(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_teams::ResponseData, ApiError> {
+pub async fn all_teams(
+    search: Option<String>,
+    include_retired: bool,
+    limit: Option<i64>,
+    offset: i64,
+    bearer: String,
+    api_url: &str,
+    client: Arc<Client>,
+) -> Result<all_teams::ResponseData, ApiError> {
     post_graphql::<AllTeams>(&client, api_url, &bearer, all_teams::Variables {
+        search,
+        include_retired,
+        limit,
+        offset,
     }).await
 }
 

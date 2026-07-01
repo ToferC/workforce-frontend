@@ -572,7 +572,13 @@ pub struct IndexParams {
     pub retired: String,
     #[serde(default)]
     pub q: String,
+    #[serde(default)]
+    pub page: String,
 }
+
+/// Teams shown per page. The API now filters and paginates server-side, so this
+/// bounds the rows fetched per request rather than truncating a full list.
+const TEAMS_PAGE_SIZE: i64 = 50;
 
 #[get("/{lang}/teams")]
 pub async fn team_index(
@@ -592,25 +598,30 @@ pub async fn team_index(
     };
 
     let show_retired = params.retired == "1";
-    let query = params.q.trim().to_lowercase();
-    let teams = all_teams(bearer, &data.api_url, Arc::clone(&data.client)).await
-        .map(|r| r.all_teams)
-        .unwrap_or_default();
+    let search = {
+        let q = params.q.trim();
+        if q.is_empty() { None } else { Some(q.to_string()) }
+    };
+    // 1-based page from the query string, clamped to >= 1.
+    let page = params.page.trim().parse::<i64>().unwrap_or(1).max(1);
+    let offset = (page - 1) * TEAMS_PAGE_SIZE;
 
-    // Team.retiredAt is a non-null String using "Still Active" as the
-    // not-retired sentinel; hide retired teams unless ?retired=1
-    let matched: Vec<_> = teams.iter()
-        .filter(|t| show_retired || t.retired_at == "Still Active")
-        .filter(|t| query.is_empty()
-            || t.name_english.to_lowercase().contains(&query)
-            || t.name_french.to_lowercase().contains(&query))
-        .collect();
-    let total = matched.len();
-    let visible: Vec<_> = matched.into_iter().take(super::person::INDEX_PAGE_CAP).collect();
+    // The API filters (search + retired) and paginates server-side, so we only
+    // fetch the current page plus the total count for the page controls.
+    let r = all_teams(search, show_retired, Some(TEAMS_PAGE_SIZE), offset, bearer, &data.api_url, Arc::clone(&data.client)).await;
+    let (teams, total) = match r {
+        Ok(r) => (r.all_teams, r.teams_count),
+        Err(_) => (Vec::new(), 0),
+    };
 
-    ctx.insert("teams", &visible);
+    let total_pages = ((total + TEAMS_PAGE_SIZE - 1) / TEAMS_PAGE_SIZE).max(1);
+
+    ctx.insert("teams", &teams);
     ctx.insert("total", &total);
-    ctx.insert("truncated", &(total > super::person::INDEX_PAGE_CAP));
+    ctx.insert("page", &page);
+    ctx.insert("total_pages", &total_pages);
+    ctx.insert("has_prev", &(page > 1));
+    ctx.insert("has_next", &(page < total_pages));
     ctx.insert("q", &params.q);
     ctx.insert("show_retired", &show_retired);
 

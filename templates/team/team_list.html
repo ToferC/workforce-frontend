@@ -1,19 +1,39 @@
-{# Team list rows — standalone for HTMX search, included by team_index. #}
-<ul class="list-group list-group-flush" id="team-list">
-    {% for team in teams %}
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-        <a href="/{{ lang }}/team/{{ team.id }}">
-            {% if lang == "fr" %}{{ team.nameFrench }}{% else %}{{ team.nameEnglish }}{% endif %}
-        </a>
-        <span>
-            <span class="text-muted small">{{ team.organizationLevel.nameEn }}</span>
-            {% if team.retiredAt != "Still Active" %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+{# Team list + pagination — standalone for HTMX search, included by team_index.
+   The wrapper carries id="team-list" so an HTMX search swap replaces both the
+   rows and the page controls together. #}
+<div id="team-list">
+    <ul class="list-group list-group-flush">
+        {% for team in teams %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="/{{ lang }}/team/{{ team.id }}">
+                {% if lang == "fr" %}{{ team.nameFrench }}{% else %}{{ team.nameEnglish }}{% endif %}
+            </a>
+            <span>
+                <span class="text-muted small">{{ team.organizationLevel.nameEn }}</span>
+                {% if team.retiredAt != "Still Active" %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+            </span>
+        </li>
+        {% else %}
+        <li class="list-group-item text-muted">{{ fluent(key="no-results", lang=lang) }}</li>
+        {% endfor %}
+    </ul>
+
+    {% if total_pages > 1 %}
+    {% set qs = "q=" ~ q %}{% if show_retired %}{% set qs = qs ~ "&retired=1" %}{% endif %}
+    <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="{{ fluent(key='pagination', lang=lang) }}">
+        <span class="text-muted small">{{ fluent(key="page", lang=lang) }} {{ page }} / {{ total_pages }} ({{ total }})</span>
+        <span class="btn-group">
+            {% if has_prev %}
+            <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/teams?{{ qs }}&page={{ page - 1 }}">
+                <i class="bi bi-chevron-left" aria-hidden="true"></i> {{ fluent(key="previous", lang=lang) }}
+            </a>
+            {% endif %}
+            {% if has_next %}
+            <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/teams?{{ qs }}&page={{ page + 1 }}">
+                {{ fluent(key="next", lang=lang) }} <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            {% endif %}
         </span>
-    </li>
-    {% else %}
-    <li class="list-group-item text-muted">{{ fluent(key="no-results", lang=lang) }}</li>
-    {% endfor %}
-    {% if truncated %}
-    <li class="list-group-item text-muted small">{{ fluent(key="showing-first", lang=lang) }} {{ teams | length }} / {{ total }} — {{ fluent(key="refine-search", lang=lang) }}</li>
+    </nav>
     {% endif %}
-</ul>
+</div>
