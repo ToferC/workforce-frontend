@@ -137,10 +137,13 @@ pub async fn create_work_form(
         Err(response) => return response,
     };
 
-    let tasks = all_tasks(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
+    let (tasks_res, skills) = futures::join!(
+        all_tasks(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        skill_options(&auth.bearer, &data),
+    );
+    let tasks = tasks_res
         .map(|r| json!(r.all_tasks.iter().map(|t| json!({"value": t.id, "label": t.title})).collect::<Vec<_>>()))
         .unwrap_or_else(|_| json!([]));
-    let skills = skill_options(&auth.bearer, &data).await;
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &false);
@@ -205,10 +208,13 @@ pub async fn create_work_post(
         },
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
-            let tasks = all_tasks(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
+            let (tasks_res, skills) = futures::join!(
+                all_tasks(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+                skill_options(&auth.bearer, &data),
+            );
+            let tasks = tasks_res
                 .map(|r| json!(r.all_tasks.iter().map(|t| json!({"value": t.id, "label": t.title})).collect::<Vec<_>>()))
                 .unwrap_or_else(|_| json!([]));
-            let skills = skill_options(&auth.bearer, &data).await;
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
             ctx.insert("edit", &false);
             ctx.insert("vacant", &false);
@@ -242,8 +248,10 @@ pub async fn create_vacant_work_form(
         Err(response) => return response,
     };
 
-    let skills = skill_options(&auth.bearer, &data).await;
-    let role_options = task_team_role_options(&task_id, &auth.bearer, &data).await;
+    let (skills, role_options) = futures::join!(
+        skill_options(&auth.bearer, &data),
+        task_team_role_options(&task_id, &auth.bearer, &data),
+    );
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &false);
@@ -310,8 +318,10 @@ pub async fn create_vacant_work_post(
         },
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
-            let skills = skill_options(&auth.bearer, &data).await;
-            let role_options = task_team_role_options(&task_id, &auth.bearer, &data).await;
+            let (skills, role_options) = futures::join!(
+                skill_options(&auth.bearer, &data),
+                task_team_role_options(&task_id, &auth.bearer, &data),
+            );
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
             ctx.insert("edit", &false);
             ctx.insert("vacant", &true);
@@ -345,7 +355,11 @@ pub async fn edit_work_form(
         Err(response) => return response,
     };
 
-    let r = match get_work_by_id(work_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    let (work_res, skills) = futures::join!(
+        get_work_by_id(work_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        skill_options(&auth.bearer, &data),
+    );
+    let r = match work_res {
         Ok(r) => r,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -354,7 +368,6 @@ pub async fn edit_work_form(
     };
 
     let current_skill_id = r.work_by_id.skill.id.clone();
-    let skills = skill_options(&auth.bearer, &data).await;
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &true);
@@ -443,7 +456,16 @@ pub async fn assign_work_form(
         Err(response) => return response,
     };
 
-    let work = match get_work_by_id(work_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    // These four calls are independent, so issue them concurrently and resolve
+    // each result afterward rather than paying four sequential round-trips.
+    let (work_res, skill_opts, me_res, roles_res) = futures::join!(
+        get_work_by_id(work_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        skill_options(&auth.bearer, &data),
+        get_me(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_roles(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+    );
+
+    let work = match work_res {
         Ok(r) => r.work_by_id,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -453,12 +475,11 @@ pub async fn assign_work_form(
 
     let current_role_id = work.role.as_ref().map(|r| r.id.clone()).unwrap_or_default();
     let current_skill_id = work.skill.id.clone();
-    let skill_opts = skill_options(&auth.bearer, &data).await;
 
     // The operator/admin's own team(s) — roles here are surfaced first so the
     // default action is to assign work to a role on their own team.
     let my_team_ids: std::collections::HashSet<String> =
-        match get_me(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        match me_res {
             Ok(r) => r.me.person
                 .map(|p| p.active_roles.iter().map(|ar| ar.team.id.clone()).collect())
                 .unwrap_or_default(),
@@ -466,7 +487,7 @@ pub async fn assign_work_form(
         };
 
     // Build role options once, split into "your team" and "all roles".
-    let (team_role_opts, role_opts) = match all_roles(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    let (team_role_opts, role_opts) = match roles_res {
         Ok(r) => {
             let mut team: Vec<serde_json::Value> = Vec::new();
             let mut all: Vec<serde_json::Value> = Vec::new();
@@ -605,12 +626,14 @@ pub async fn vacancies(
         None => "".to_string(),
     };
 
-    let roles = vacant_roles(100, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
-        .map(|r| r.vacant_roles)
-        .unwrap_or_default();
+    let (roles_res, work_res) = futures::join!(
+        vacant_roles(100, bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_work(bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+    );
+    let roles = roles_res.map(|r| r.vacant_roles).unwrap_or_default();
 
     // Vacant work is derived from all work with no assigned role.
-    let vacant_work: Vec<_> = all_work(bearer, &data.api_url, Arc::clone(&data.client)).await
+    let vacant_work: Vec<_> = work_res
         .map(|r| r.all_work.into_iter().filter(|w| w.role.is_none()).collect())
         .unwrap_or_default();
 

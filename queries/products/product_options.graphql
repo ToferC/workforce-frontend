@@ -1,0 +1,7 @@
+query ProductOptions {
+  allProducts {
+    id
+    nameEn
+    primaryDomain
+  }
+}

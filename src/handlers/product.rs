@@ -7,8 +7,8 @@ use serde_json::json;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{
-    get_product_by_id, all_products, create_product, update_product,
-    all_roles, all_organizations,
+    get_product_by_id, all_products, all_product_options, create_product, update_product,
+    all_role_options, all_organizations,
 };
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
@@ -26,7 +26,7 @@ fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
 /// product-owner select. Label format: "Given Family — Title (Team)" for
 /// filled roles, "Vacant — Title (Team)" for unfilled.
 pub async fn role_options(bearer: &str, data: &AppData) -> serde_json::Value {
-    match all_roles(bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await {
+    match all_role_options(bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => json!(r.all_roles
             .iter()
             .map(|role| {
@@ -324,7 +324,7 @@ pub async fn edit_product_post(
 
 /// Returns all products as {value, label} pairs for use in task form selects.
 pub async fn product_options(bearer: &str, data: &AppData) -> serde_json::Value {
-    match all_products(bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await {
+    match all_product_options(bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => json!(r.all_products
             .iter()
             .map(|p| {
