@@ -1,5 +1,5 @@
-query AllTeams {
-  allTeams {
+query AllTeams($search: String, $includeRetired: Boolean!, $limit: Int, $offset: Int!) {
+  allTeams(search: $search, includeRetired: $includeRetired, limit: $limit, offset: $offset) {
     id
     nameEnglish
     nameFrench
@@ -7,4 +7,5 @@ query AllTeams {
     organization { id nameEn }
     organizationLevel { id nameEn }
   }
+  teamsCount(search: $search, includeRetired: $includeRetired)
 }

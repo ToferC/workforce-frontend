@@ -509,3 +509,7 @@ your-team = Your team
 all-roles = All roles
 created-by-role = Created by role
 unassigned = Unassigned
+previous = Previous
+next = Next
+page = Page
+pagination = Pagination
