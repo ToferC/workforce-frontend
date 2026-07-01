@@ -76,7 +76,7 @@ pub async fn analytics_section_work(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let work_list = all_work(auth.bearer, &data.api_url, Arc::clone(&data.client))
+    let work_list = all_work(None, false, None, 0, auth.bearer, &data.api_url, Arc::clone(&data.client))
         .await
         .map(|r| r.all_work)
         .unwrap_or_default();

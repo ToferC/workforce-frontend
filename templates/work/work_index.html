@@ -52,10 +52,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% set_global shown = 0 %}
                         {% for work in work_items %}
-                        {% if (filter_status == "" or work.workStatus == filter_status) and (not filter_unassigned or not work.role) %}
-                        {% set_global shown = shown + 1 %}
                         <tr>
                             <td><a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a></td>
                             <td><a href="/{{ lang }}/task/{{ work.task.id }}" class="text-muted small">{{ work.task.title }}</a></td>
@@ -72,15 +69,32 @@
                                 {% endif %}
                             </td>
                         </tr>
-                        {% endif %}
-                        {% endfor %}
-                        {% if shown == 0 %}
+                        {% else %}
                         <tr><td colspan="6" class="text-muted text-center p-4">{{ fluent(key="none-label", lang=lang) }}</td></tr>
-                        {% endif %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
+
+        {% if total_pages > 1 %}
+        {% set qs = "status=" ~ filter_status %}{% if filter_unassigned %}{% set qs = qs ~ "&unassigned=1" %}{% endif %}
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <span class="text-muted small">{{ fluent(key="page", lang=lang) }} {{ page }} / {{ total_pages }} ({{ total }})</span>
+            <span class="btn-group">
+                {% if has_prev %}
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/work?{{ qs }}&page={{ page - 1 }}">
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i> {{ fluent(key="previous", lang=lang) }}
+                </a>
+                {% endif %}
+                {% if has_next %}
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/work?{{ qs }}&page={{ page + 1 }}">
+                    {{ fluent(key="next", lang=lang) }} <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock content %}
