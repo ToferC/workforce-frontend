@@ -574,7 +574,12 @@ pub struct WorkIndexParams {
     pub status: String,
     #[serde(default)]
     pub unassigned: String,
+    #[serde(default)]
+    pub page: String,
 }
+
+/// Work items shown per page. The API now filters and paginates server-side.
+const WORK_PAGE_SIZE: i64 = 50;
 
 /// Index of all work items, with optional filtering by status and by
 /// "unassigned only". Filtering is applied template-side from the full list.
@@ -595,14 +600,29 @@ pub async fn work_index(
         None => "".to_string(),
     };
 
-    let work = all_work(bearer, &data.api_url, Arc::clone(&data.client)).await
-        .map(|r| r.all_work)
-        .unwrap_or_default();
+    let status = if query.status.trim().is_empty() { None } else { Some(query.status.trim().to_string()) };
+    let unassigned = query.unassigned == "1";
+    let page = query.page.trim().parse::<i64>().unwrap_or(1).max(1);
+    let offset = (page - 1) * WORK_PAGE_SIZE;
+
+    // The API filters (status + unassigned) and paginates server-side.
+    let r = all_work(status, unassigned, Some(WORK_PAGE_SIZE), offset, bearer, &data.api_url, Arc::clone(&data.client)).await;
+    let (work, total) = match r {
+        Ok(r) => (r.all_work, r.work_count),
+        Err(_) => (Vec::new(), 0),
+    };
+
+    let total_pages = ((total + WORK_PAGE_SIZE - 1) / WORK_PAGE_SIZE).max(1);
 
     ctx.insert("work_items", &work);
     ctx.insert("work_statuses", &work_status_options());
     ctx.insert("filter_status", &query.status);
-    ctx.insert("filter_unassigned", &(query.unassigned == "1"));
+    ctx.insert("filter_unassigned", &unassigned);
+    ctx.insert("total", &total);
+    ctx.insert("page", &page);
+    ctx.insert("total_pages", &total_pages);
+    ctx.insert("has_prev", &(page > 1));
+    ctx.insert("has_next", &(page < total_pages));
 
     let rendered = data.tmpl.render("work/work_index.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
@@ -628,14 +648,12 @@ pub async fn vacancies(
 
     let (roles_res, work_res) = futures::join!(
         vacant_roles(100, bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        all_work(bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        // Unassigned work only, filtered server-side (no role assigned).
+        all_work(None, true, None, 0, bearer.clone(), &data.api_url, Arc::clone(&data.client)),
     );
     let roles = roles_res.map(|r| r.vacant_roles).unwrap_or_default();
 
-    // Vacant work is derived from all work with no assigned role.
-    let vacant_work: Vec<_> = work_res
-        .map(|r| r.all_work.into_iter().filter(|w| w.role.is_none()).collect())
-        .unwrap_or_default();
+    let vacant_work: Vec<_> = work_res.map(|r| r.all_work).unwrap_or_default();
 
     ctx.insert("vacant_roles", &roles);
     ctx.insert("vacant_work", &vacant_work);

@@ -1,5 +1,5 @@
-query AllWork {
-  allWork {
+query AllWork($status: WorkStatus, $unassignedOnly: Boolean!, $limit: Int, $offset: Int!) {
+  allWork(status: $status, unassignedOnly: $unassignedOnly, limit: $limit, offset: $offset) {
     id
     workDescription
     domain
@@ -21,4 +21,5 @@ query AllWork {
       }
     }
   }
+  workCount(status: $status, unassignedOnly: $unassignedOnly)
 }

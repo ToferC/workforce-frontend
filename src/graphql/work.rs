@@ -26,8 +26,25 @@ pub async fn get_work_by_id(id: UUID, bearer: String, api_url: &str, client: Arc
 #[graphql(schema_path = "schema.graphql", query_path = "queries/work/all_work.graphql", response_derives = "Debug, Serialize, PartialEq")]
 pub struct AllWork;
 
-pub async fn all_work(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_work::ResponseData, ApiError> {
-    post_graphql::<AllWork>(&client, api_url, &bearer, all_work::Variables {}).await
+/// `status` is the WorkStatus enum value as a string (e.g. "IN_PROGRESS"), or
+/// None for no status filter — an unrecognized value is treated as no filter.
+/// `limit` = None returns every matching row (used by the vacancy dashboard).
+pub async fn all_work(
+    status: Option<String>,
+    unassigned_only: bool,
+    limit: Option<i64>,
+    offset: i64,
+    bearer: String,
+    api_url: &str,
+    client: Arc<Client>,
+) -> Result<all_work::ResponseData, ApiError> {
+    let status = status.and_then(|s| serde_json::from_value::<all_work::WorkStatus>(serde_json::json!(s)).ok());
+    post_graphql::<AllWork>(&client, api_url, &bearer, all_work::Variables {
+        status,
+        unassigned_only,
+        limit,
+        offset,
+    }).await
 }
 
 #[derive(GraphQLQuery, Serialize, Deserialize)]
