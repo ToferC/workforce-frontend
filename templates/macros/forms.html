@@ -53,8 +53,12 @@
 </gcds-textarea>
 {% endmacro textarea %}
 
-{# options is a list of {value, label} objects #}
-{% macro select(name, label, options, selected="", required=true, blank_label="", help="", error="") %}
+{# options is a list of {value, label} objects. `attrs` is an optional raw
+   HTML attribute string (e.g. HTMX hx-get/hx-trigger/hx-target) appended to
+   the tag verbatim — gcds-select re-dispatches a native, composed "change"
+   event on itself when its value changes, so hx-trigger="change" works here
+   the same as it would on a plain <select>. #}
+{% macro select(name, label, options, selected="", required=true, blank_label="", help="", error="", attrs="") %}
 <gcds-select
     select-id="{{ name }}"
     name="{{ name }}"
@@ -62,7 +66,8 @@
     {% if selected %}value="{{ selected }}"{% endif %}
     {% if required %}required="true"{% endif %}
     {% if help %}hint="{{ help }}"{% endif %}
-    {% if error %}error-message="{{ error }}"{% endif %}>
+    {% if error %}error-message="{{ error }}"{% endif %}
+    {{ attrs | safe }}>
     {# For a required select the blank entry is a prompt, not a choosable value:
        render it disabled so it can't be submitted, but keep it selected by
        default so picking any real option is an index change that fires

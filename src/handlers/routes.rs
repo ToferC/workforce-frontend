@@ -156,6 +156,7 @@ use crate::handlers::{
     // work
     work_by_id,
     work_index,
+    work_skill_options,
     vacancies,
     create_work_form,
     create_work_post,
@@ -349,6 +350,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
 
     // work — specific sub-paths before {work_id} catch-all
     config.service(work_index);
+    config.service(work_skill_options);
     config.service(vacancies);
     config.service(create_work_form);
     config.service(create_work_post);

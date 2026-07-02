@@ -134,11 +134,23 @@
                     <div class="card-header">
                         <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> Details</h2>
                     </div>
+                    <div class="card-body">
+                        <p>{{ task.intendedOutcome }}</p>
+                        {% if task.finalOutcome %}
+                        <h3 class="h6 text-muted mb-1">Final Outcome</h3>
+                        <p>{{ task.finalOutcome }}</p>
+                        {% endif %}
+                    </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ task.url }}">{{ task.url }}</a></li>
                             <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=task.domain) }}</li>
+                            <li class="list-group-item"><span class="text-muted">Approval Tier:</span> {{ task.approvalTier }}</li>
+                            <li class="list-group-item"><span class="text-muted">Start Date:</span> {{ task.startDatestamp }}</li>
                             <li class="list-group-item"><span class="text-muted">Target Completion:</span> {{ task.targetCompletionDate }}</li>
+                            {% if task.completedDate %}
+                            <li class="list-group-item"><span class="text-muted">Completed:</span> {{ task.completedDate }}</li>
+                            {% endif %}
                             {% if task.product %}
                             <li class="list-group-item">
                                 <span class="text-muted">Product:</span>

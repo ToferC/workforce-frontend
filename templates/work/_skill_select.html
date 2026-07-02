@@ -1,0 +1,14 @@
+{% import "macros/forms.html" as forms %}
+{# Required Skill select for the Work form, scoped to the currently chosen
+   domain. Rendered on initial page load and swapped in whole (outerHTML) by
+   /{lang}/work_skill_options whenever the Domain select above it changes.
+   Expects: domain : the currently selected SkillDomain value (may be "")
+            skill_options : [{value, label}] (skills in that domain)
+            skill_id : current selection, if any #}
+<div id="skill-select-wrapper">
+    {% if domain %}
+    {{ forms::select(name="skill_id", label="Required Skill", options=skill_options, selected=skill_id, required=true, blank_label=fluent(key="select-a-skill", lang=lang)) }}
+    {% else %}
+    {{ forms::select(name="skill_id", label="Required Skill", options=[], selected="", required=true, blank_label=fluent(key="select-domain-prompt", lang=lang)) }}
+    {% endif %}
+</div>
