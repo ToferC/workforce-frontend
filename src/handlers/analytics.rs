@@ -2,12 +2,13 @@ use actix_session::SessionExt;
 use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use actix_identity::Identity;
 use serde_json::json;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use crate::{AppData, generate_basic_context, status_color, chart_json, domain_short_label};
 use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap,
-    team_capability_matrix, talent_movements, capability_growth, capability_supply_demand, all_teams};
+    team_capability_matrix, talent_movements, capability_growth, capability_supply_demand, all_teams,
+    all_org_tiers};
 
 use crate::security::{self, MinimumRole};
 
@@ -641,26 +642,62 @@ pub async fn analytics_mobility_view(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    // Movement events only carry team UUIDs. Resolve those to each team's org
-    // tier so the flow is shown between named org tiers — a reasonable level
-    // of aggregation for a sankey, and never a bare UUID — rather than raw
-    // team-to-team links, which both leak ids into the chart and get unreadable
-    // once there are more than a handful of teams.
-    let (movements_res, teams_res) = futures::future::join(
+    // Movement events only carry team UUIDs. Resolve those to a named org
+    // tier — and specifically to the tier one level below the root(s),
+    // walking up each team's org tier parent chain — rather than each team's
+    // own (often near-1:1-with-team) immediate tier. That keeps the sankey at
+    // a readable, "command level" granularity instead of leaking UUIDs or
+    // drawing hundreds of near-unique team-to-team links.
+    let (movements_res, teams_res, org_tiers_res) = futures::join!(
         talent_movements(None, None, None, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        all_teams(None, false, Some(5000), 0, auth.bearer, &data.api_url, Arc::clone(&data.client)),
-    ).await;
+        all_teams(None, false, Some(5000), 0, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_org_tiers(auth.bearer, &data.api_url, Arc::clone(&data.client)),
+    );
 
     let movements = movements_res.map(|r| r.talent_movements).unwrap_or_default();
-    let team_org_tier: BTreeMap<String, String> = teams_res
+
+    let team_immediate_tier: HashMap<String, String> = teams_res
         .map(|r| r.all_teams.into_iter()
-            .map(|t| (t.id, t.organization_level.name_en))
+            .map(|t| (t.id, t.organization_level.id))
             .collect())
         .unwrap_or_default();
 
+    let mut tier_name: HashMap<String, String> = HashMap::new();
+    let mut tier_parent: HashMap<String, Option<String>> = HashMap::new();
+    if let Ok(r) = org_tiers_res {
+        for t in r.all_org_tiers {
+            tier_parent.insert(t.id.clone(), t.parent_tier);
+            tier_name.insert(t.id, t.name_en);
+        }
+    }
+
+    // Walk a tier's parent chain up to (but not past) the tier just below the
+    // root(s) of the hierarchy.
+    fn top_level_tier_name(
+        tier_id: &str,
+        tier_parent: &HashMap<String, Option<String>>,
+        tier_name: &HashMap<String, String>,
+    ) -> Option<String> {
+        let mut current = tier_id.to_string();
+        loop {
+            match tier_parent.get(&current) {
+                Some(Some(parent)) => {
+                    let parent_is_root = !matches!(tier_parent.get(parent), Some(Some(_)));
+                    if parent_is_root {
+                        break;
+                    }
+                    current = parent.clone();
+                },
+                _ => break,
+            }
+        }
+        tier_name.get(&current).cloned()
+    }
+
     let resolve_tier = |team_id: &Option<String>| -> String {
         team_id.as_ref()
-            .and_then(|id| team_org_tier.get(id).cloned())
+            .and_then(|id| team_immediate_tier.get(id))
+            .and_then(|tier_id| top_level_tier_name(tier_id, &tier_parent, &tier_name))
             .unwrap_or_else(|| "External".to_string())
     };
 

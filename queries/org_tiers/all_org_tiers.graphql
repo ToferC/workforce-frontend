@@ -4,6 +4,7 @@ query AllOrgTiers {
     nameEn
     nameFr
     tierLevel
+    parentTier
     primaryDomain
     retiredAt
     organization {
