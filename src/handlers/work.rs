@@ -55,16 +55,31 @@ pub struct AssignWorkForm {
     pub skill_id: String,
 }
 
-/// Build a JSON {value, label} list for the skill select — labels include domain.
-async fn skill_options(bearer: &str, data: &AppData) -> serde_json::Value {
+/// SkillDomain key (e.g. "SOFTWARE_ENGINEERING") for a generated enum value.
+fn domain_key(domain: &impl serde::Serialize) -> String {
+    serde_json::to_value(domain)
+        .ok()
+        .and_then(|v| v.as_str().map(str::to_string))
+        .unwrap_or_default()
+}
+
+/// Build a JSON {value, label} list of active skills in a single domain, for
+/// the Work form's Required Skill select. Required domain and level are
+/// chosen first; this narrows Skill to that domain instead of offering every
+/// skill across every domain. Returns an empty list if no domain is chosen.
+async fn skill_options_for_domain(domain: &str, bearer: &str, data: &AppData) -> serde_json::Value {
+    if domain.is_empty() {
+        return json!([]);
+    }
     all_skills(bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await
-        .map(|r| json!(r.skills.iter().map(|s| {
-            let domain = serde_json::to_value(&s.domain)
-                .ok()
-                .and_then(|v| v.as_str().map(|d| humanize(d)))
-                .unwrap_or_default();
-            json!({"value": s.id, "label": format!("{} ({})", s.name_en, domain)})
-        }).collect::<Vec<_>>()))
+        .map(|r| {
+            let mut matched: Vec<_> = r.skills.iter()
+                .filter(|s| s.retired_at.is_none())
+                .filter(|s| domain_key(&s.domain) == domain)
+                .collect();
+            matched.sort_by(|a, b| a.name_en.to_lowercase().cmp(&b.name_en.to_lowercase()));
+            json!(matched.iter().map(|s| json!({"value": s.id, "label": s.name_en})).collect::<Vec<_>>())
+        })
         .unwrap_or_else(|_| json!([]))
 }
 
@@ -93,6 +108,43 @@ fn work_from_form(form: &WorkForm, id: Option<&str>) -> serde_json::Value {
         "workStatus": form.work_status,
         "priority": form.priority,
     })
+}
+
+#[derive(Deserialize, Debug)]
+pub struct WorkSkillOptionsParams {
+    #[serde(default)]
+    pub domain: String,
+}
+
+/// HTMX partial: the Required Skill select scoped to a single domain. Loaded
+/// by the Work form's Domain select (see templates/work/_skill_select.html)
+/// and swapped into #skill-select-wrapper whenever the domain changes.
+#[get("/{lang}/work_skill_options")]
+pub async fn work_skill_options(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    params: web::Query<WorkSkillOptionsParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let bearer = match session.get::<String>("bearer").unwrap() {
+        Some(s) => s,
+        None => "".to_string(),
+    };
+
+    let domain = params.domain.trim().to_string();
+    let skills = skill_options_for_domain(&domain, &bearer, &data).await;
+
+    ctx.insert("domain", &domain);
+    ctx.insert("skill_id", &"");
+    ctx.insert("skill_options", &skills);
+
+    let rendered = data.tmpl.render("work/_skill_select.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
 }
 
 #[get("/{lang}/work/{work_id}")]
@@ -139,7 +191,7 @@ pub async fn create_work_form(
 
     let (tasks_res, skills) = futures::join!(
         all_tasks(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        skill_options(&auth.bearer, &data),
+        skill_options_for_domain("", &auth.bearer, &data),
     );
     let tasks = tasks_res
         .map(|r| json!(r.all_tasks.iter().map(|t| json!({"value": t.id, "label": t.title})).collect::<Vec<_>>()))
@@ -150,6 +202,7 @@ pub async fn create_work_form(
     ctx.insert("vacant", &false);
     ctx.insert("role_id", &role_id);
     ctx.insert("skill_id", &"");
+    ctx.insert("domain", &"");
     ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING", "priority": "MEDIUM"}));
     ctx.insert("task_options", &tasks);
     ctx.insert("skill_options", &skills);
@@ -210,7 +263,7 @@ pub async fn create_work_post(
             security::add_flash(&session, "danger", &e.to_string());
             let (tasks_res, skills) = futures::join!(
                 all_tasks(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-                skill_options(&auth.bearer, &data),
+                skill_options_for_domain(&form.domain, &auth.bearer, &data),
             );
             let tasks = tasks_res
                 .map(|r| json!(r.all_tasks.iter().map(|t| json!({"value": t.id, "label": t.title})).collect::<Vec<_>>()))
@@ -220,12 +273,14 @@ pub async fn create_work_post(
             ctx.insert("vacant", &false);
             ctx.insert("role_id", &role_id);
             ctx.insert("skill_id", &form.skill_id);
+            ctx.insert("domain", &form.domain);
             ctx.insert("work", &work_from_form(&form, None));
             ctx.insert("task_options", &tasks);
             ctx.insert("skill_options", &skills);
             ctx.insert("skill_domains", &skill_domain_options());
             ctx.insert("capability_levels", &capability_level_options());
             ctx.insert("work_statuses", &work_status_options());
+            ctx.insert("priorities", &priority_options());
             let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
             HttpResponse::Ok().body(rendered)
         },
@@ -249,7 +304,7 @@ pub async fn create_vacant_work_form(
     };
 
     let (skills, role_options) = futures::join!(
-        skill_options(&auth.bearer, &data),
+        skill_options_for_domain("", &auth.bearer, &data),
         task_team_role_options(&task_id, &auth.bearer, &data),
     );
 
@@ -258,6 +313,7 @@ pub async fn create_vacant_work_form(
     ctx.insert("vacant", &true);
     ctx.insert("task_id", &task_id);
     ctx.insert("skill_id", &"");
+    ctx.insert("domain", &"");
     ctx.insert("role_id", &"");
     ctx.insert("role_options", &role_options);
     ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING", "priority": "MEDIUM"}));
@@ -319,7 +375,7 @@ pub async fn create_vacant_work_post(
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
             let (skills, role_options) = futures::join!(
-                skill_options(&auth.bearer, &data),
+                skill_options_for_domain(&form.domain, &auth.bearer, &data),
                 task_team_role_options(&task_id, &auth.bearer, &data),
             );
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
@@ -327,6 +383,7 @@ pub async fn create_vacant_work_post(
             ctx.insert("vacant", &true);
             ctx.insert("task_id", &task_id);
             ctx.insert("skill_id", &form.skill_id);
+            ctx.insert("domain", &form.domain);
             ctx.insert("role_id", &form.role_id);
             ctx.insert("role_options", &role_options);
             ctx.insert("work", &work_from_form(&form, None));
@@ -334,6 +391,7 @@ pub async fn create_vacant_work_post(
             ctx.insert("skill_domains", &skill_domain_options());
             ctx.insert("capability_levels", &capability_level_options());
             ctx.insert("work_statuses", &work_status_options());
+            ctx.insert("priorities", &priority_options());
             let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
             HttpResponse::Ok().body(rendered)
         },
@@ -355,11 +413,7 @@ pub async fn edit_work_form(
         Err(response) => return response,
     };
 
-    let (work_res, skills) = futures::join!(
-        get_work_by_id(work_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        skill_options(&auth.bearer, &data),
-    );
-    let r = match work_res {
+    let r = match get_work_by_id(work_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -368,10 +422,13 @@ pub async fn edit_work_form(
     };
 
     let current_skill_id = r.work_by_id.skill.id.clone();
+    let current_domain = domain_key(&r.work_by_id.domain);
+    let skills = skill_options_for_domain(&current_domain, &auth.bearer, &data).await;
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &true);
     ctx.insert("skill_id", &current_skill_id);
+    ctx.insert("domain", &current_domain);
     ctx.insert("work", &r.work_by_id);
     ctx.insert("skill_options", &skills);
     ctx.insert("skill_domains", &skill_domain_options());
@@ -425,15 +482,17 @@ pub async fn edit_work_post(
         },
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
-            let skills = skill_options(&auth.bearer, &data).await;
+            let skills = skill_options_for_domain(&form.domain, &auth.bearer, &data).await;
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
             ctx.insert("edit", &true);
             ctx.insert("skill_id", &form.skill_id);
+            ctx.insert("domain", &form.domain);
             ctx.insert("work", &work_from_form(&form, Some(&work_id)));
             ctx.insert("skill_options", &skills);
             ctx.insert("skill_domains", &skill_domain_options());
             ctx.insert("capability_levels", &capability_level_options());
             ctx.insert("work_statuses", &work_status_options());
+            ctx.insert("priorities", &priority_options());
             let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
             HttpResponse::Ok().body(rendered)
         },
@@ -456,22 +515,22 @@ pub async fn assign_work_form(
         Err(response) => return response,
     };
 
-    // These four calls are independent, so issue them concurrently and resolve
-    // each result afterward rather than paying four sequential round-trips.
-    let (work_res, skill_opts, me_res, roles_res) = futures::join!(
-        get_work_by_id(work_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        skill_options(&auth.bearer, &data),
-        get_me(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        all_roles(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-    );
-
-    let work = match work_res {
+    let work = match get_work_by_id(work_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.work_by_id,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
             return redirect_to(format!("/{}", &lang));
         },
     };
+
+    // Skill choices are scoped to the work's (fixed) domain — the remaining
+    // two calls are independent, so issue them concurrently.
+    let work_domain = domain_key(&work.domain);
+    let (skill_opts, me_res, roles_res) = futures::join!(
+        skill_options_for_domain(&work_domain, &auth.bearer, &data),
+        get_me(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_roles(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+    );
 
     let current_role_id = work.role.as_ref().map(|r| r.id.clone()).unwrap_or_default();
     let current_skill_id = work.skill.id.clone();

@@ -57,7 +57,7 @@
                 {{ forms::textarea(name="work_description", label=label_desc, value=work.workDescription) }}
                 {{ forms::text_input(name="url", label=label_url, value=work.url, type="url", required=false) }}
                 <div class="row">
-                    <div class="col-md-6">{{ forms::select(name="domain", label=label_domain, options=skill_domains, selected=work.domain) }}</div>
+                    <div class="col-md-6">{{ forms::select(name="domain", label=label_domain, options=skill_domains, selected=work.domain, blank_label=fluent(key="select-domain-prompt", lang=lang), attrs='hx-get="/' ~ lang ~ '/work_skill_options" hx-trigger="change" hx-target="#skill-select-wrapper" hx-swap="outerHTML"') }}</div>
                     <div class="col-md-6">{{ forms::select(name="capability_level", label=label_level, options=capability_levels, selected=work.capabilityLevel) }}</div>
                 </div>
                 <div class="row">
@@ -65,7 +65,7 @@
                     <div class="col-md-4">{{ forms::select(name="work_status", label=label_status, options=work_statuses, selected=work.workStatus) }}</div>
                     <div class="col-md-4">{{ forms::select(name="priority", label="Priority", options=priorities, selected=work.priority) }}</div>
                 </div>
-                {{ forms::select(name="skill_id", label="Required Skill", options=skill_options, selected=skill_id, required=true, blank_label=fluent(key="select-a-skill", lang=lang)) }}
+                {% include "work/_skill_select.html" %}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>
         </div>

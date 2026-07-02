@@ -65,7 +65,7 @@
                 </div>
                 {{ forms::textarea(name="intended_outcome", label=label_intended, value=task.intendedOutcome) }}
                 {% if edit %}{{ forms::textarea(name="final_outcome", label=label_final, value=task.finalOutcome, required=false) }}{% endif %}
-                {{ forms::text_input(name="url", label=label_url, value=task.url, type="url", required=false) }}
+                {{ forms::text_input(name="url", label=label_url, value=task.url, type="url") }}
                 <div class="row">
                     <div class="col-md-4">{{ forms::date_input(name="start_date", label=label_start, value=task.startDatestamp, required=true) }}</div>
                     <div class="col-md-4">{{ forms::date_input(name="target_completion_date", label=label_target, value=task.targetCompletionDate, required=true) }}</div>
