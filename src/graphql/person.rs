@@ -113,8 +113,27 @@ pub async fn update_affiliation(data: update_affiliation::AffiliationData, beare
 #[graphql(schema_path = "schema.graphql", query_path = "queries/people/all_people.graphql", response_derives = "Debug, Serialize, PartialEq")]
 pub struct AllPeople;
 
-pub async fn all_people(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_people::ResponseData, ApiError> {
-    post_graphql::<AllPeople>(&client, api_url, &bearer, all_people::Variables {}).await
+/// `role_status` is "in_role", "available", or None; `organization_id` is an
+/// org UUID or None. `limit` = None returns every matching row.
+pub async fn all_people(
+    search: Option<String>,
+    organization_id: Option<String>,
+    role_status: Option<String>,
+    include_retired: bool,
+    limit: Option<i64>,
+    offset: i64,
+    bearer: String,
+    api_url: &str,
+    client: Arc<Client>,
+) -> Result<all_people::ResponseData, ApiError> {
+    post_graphql::<AllPeople>(&client, api_url, &bearer, all_people::Variables {
+        search,
+        organization_id,
+        role_status,
+        include_retired,
+        limit,
+        offset,
+    }).await
 }
 
 #[derive(GraphQLQuery, Serialize, Deserialize)]
