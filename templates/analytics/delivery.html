@@ -72,15 +72,38 @@
         </div>
         <div class="card-body">
             {% if summary.rendered_products > 0 %}
+            <div id="treemap-selection" class="small mb-2" style="display:none">
+                <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                Selected: <a id="treemap-selection-link" href="#"></a>
+            </div>
             {{ charts::chart(id="treemap", height="600px") }}
             <script type="application/json" id="treemap-data">{{ chart_option | safe }}</script>
+            <script>
+              (function () {
+                var el = document.getElementById("treemap");
+                var wrap = document.getElementById("treemap-selection");
+                var link = document.getElementById("treemap-selection-link");
+                el.addEventListener("chart:ready", function (e) {
+                  e.detail.on("click", function (params) {
+                    var url = params.data && params.data.url;
+                    if (url) {
+                      link.href = url;
+                      link.textContent = params.name;
+                      wrap.style.display = "";
+                    } else {
+                      wrap.style.display = "none";
+                    }
+                  });
+                });
+              })();
+            </script>
             {% else %}
             <div class="text-muted text-center p-4">No products with tasks to display.</div>
             {% endif %}
         </div>
         <div class="card-footer small text-muted">
-            Rectangle area = work effort. Leaf colour = work status. Click a product or task to zoom in;
-            use the breadcrumb to zoom back out.
+            Rectangle area = work effort. Leaf colour = work status. Click a product or task to zoom in
+            (use the breadcrumb to zoom back out); a link to open that product, task or work item appears above the chart.
         </div>
     </div>
 

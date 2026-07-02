@@ -16,6 +16,13 @@
   It also re-renders on window resize and toggles dark/light backgrounds by reading
   data-theme from <html>.
 
+  Each instance is registered on window.__charts[id] and a "chart:ready" custom
+  event (detail = the echarts instance) is dispatched on the container element,
+  so page-specific scripts can attach their own listeners (e.g. chart.on("click", ...))
+  without the generic macro knowing about page behaviour. Both fire again after a
+  theme change re-creates the instance, so listeners must be re-attached on
+  "chart:ready" rather than assumed to survive.
+
   ECharts is loaded from CDN in base.html. The chartInit helper is defined once
   in base.html to avoid repetition.
 #}
@@ -36,12 +43,17 @@
       var isDark = document.documentElement.getAttribute("data-theme") !== "light";
       var chart = echarts.init(el, isDark ? "dark" : null, { renderer: "canvas" });
       chart.setOption(option);
+      window.__charts = window.__charts || {};
+      window.__charts["{{ id }}"] = chart;
+      el.dispatchEvent(new CustomEvent("chart:ready", { detail: chart }));
       window.addEventListener("resize", function() { chart.resize(); });
       document.addEventListener("themechange", function(e) {
         var newDark = e.detail !== "light";
         chart.dispose();
         chart = echarts.init(el, newDark ? "dark" : null, { renderer: "canvas" });
         chart.setOption(option);
+        window.__charts["{{ id }}"] = chart;
+        el.dispatchEvent(new CustomEvent("chart:ready", { detail: chart }));
       });
     }
     if (document.readyState === "loading") {

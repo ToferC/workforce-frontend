@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::{AppData, generate_basic_context, status_color, chart_json, domain_short_label};
 use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap,
-    team_capability_matrix, talent_movements, capability_growth, capability_supply_demand};
+    team_capability_matrix, talent_movements, capability_growth, capability_supply_demand, all_teams};
 
 use crate::security::{self, MinimumRole};
 
@@ -531,6 +531,7 @@ pub async fn analytics_delivery(
                     "name": work.work_description,
                     "value": effort,
                     "itemStyle": { "color": status_color(&status) },
+                    "url": format!("/{}/work/{}", lang, work.id),
                 }));
             }
 
@@ -543,6 +544,7 @@ pub async fn analytics_delivery(
                 "name": task.title,
                 "value": task_value,
                 "children": work_nodes,
+                "url": format!("/{}/task/{}", lang, task.id),
             }));
         }
 
@@ -569,6 +571,7 @@ pub async fn analytics_delivery(
                 "name": product.name_en,
                 "value": product_value,
                 "children": task_nodes,
+                "url": format!("/{}/product/{}", lang, product.id),
             }));
         }
     }
@@ -638,24 +641,42 @@ pub async fn analytics_mobility_view(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let movements = talent_movements(None, None, None, auth.bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .map(|r| r.talent_movements)
+    // Movement events only carry team UUIDs. Resolve those to each team's org
+    // tier so the flow is shown between named org tiers — a reasonable level
+    // of aggregation for a sankey, and never a bare UUID — rather than raw
+    // team-to-team links, which both leak ids into the chart and get unreadable
+    // once there are more than a handful of teams.
+    let (movements_res, teams_res) = futures::future::join(
+        talent_movements(None, None, None, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_teams(None, false, Some(5000), 0, auth.bearer, &data.api_url, Arc::clone(&data.client)),
+    ).await;
+
+    let movements = movements_res.map(|r| r.talent_movements).unwrap_or_default();
+    let team_org_tier: BTreeMap<String, String> = teams_res
+        .map(|r| r.all_teams.into_iter()
+            .map(|t| (t.id, t.organization_level.name_en))
+            .collect())
         .unwrap_or_default();
 
-    // Build sankey from API-provided movement events
+    let resolve_tier = |team_id: &Option<String>| -> String {
+        team_id.as_ref()
+            .and_then(|id| team_org_tier.get(id).cloned())
+            .unwrap_or_else(|| "External".to_string())
+    };
+
+    // Build sankey from API-provided movement events, aggregated by org tier.
     let mut links: BTreeMap<(String, String), i64> = BTreeMap::new();
-    let mut teams_seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut tiers_seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     let mut kind_counts: BTreeMap<String, i64> = BTreeMap::new();
 
     for m in &movements {
         *kind_counts.entry(m.kind.clone()).or_insert(0) += 1;
 
-        let from = m.from_team_id.clone().unwrap_or_else(|| "External".to_string());
-        let to = m.to_team_id.clone().unwrap_or_else(|| "External".to_string());
+        let from = resolve_tier(&m.from_team_id);
+        let to = resolve_tier(&m.to_team_id);
         if from != to {
-            teams_seen.insert(from.clone());
-            teams_seen.insert(to.clone());
+            tiers_seen.insert(from.clone());
+            tiers_seen.insert(to.clone());
             *links.entry((from, to)).or_insert(0) += 1;
         }
     }
@@ -715,7 +736,7 @@ pub async fn analytics_mobility_view(
         "laterals": laterals,
         "inflows": inflows,
         "outflows": outflows,
-        "teams_involved": teams_seen.len() as i64,
+        "org_tiers_involved": tiers_seen.len() as i64,
     }));
 
     let rendered = data.tmpl.render("analytics/mobility.html", &ctx).unwrap();

@@ -16,7 +16,7 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0"><i class="bi bi-arrow-left-right" aria-hidden="true"></i> Talent Mobility</h1>
-        <span class="text-muted small">Previous team → current team movement</span>
+        <span class="text-muted small">Previous org tier → current org tier movement</span>
     </div>
 
     <!-- KPI Cards -->
@@ -64,8 +64,8 @@
         <div class="col-6 col-md-2">
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-secondary">{{ summary.teams_involved }}</div>
-                    <div class="small text-muted">Teams Involved</div>
+                    <div class="fs-2 fw-bold text-secondary">{{ summary.org_tiers_involved }}</div>
+                    <div class="small text-muted">Org Tiers Involved</div>
                 </div>
             </div>
         </div>
@@ -83,14 +83,15 @@
             {% else %}
             <div class="text-muted text-center p-4">
                 <i class="bi bi-info-circle" aria-hidden="true"></i>
-                No team-to-team moves found. Movement is detected when a person's most recent
+                No cross-org-tier moves found. Movement is detected when a person's most recent
                 prior role was in a different team than their current role.
             </div>
             {% endif %}
         </div>
         <div class="card-footer small text-muted">
-            Each flow links a person's previous team <em>(was)</em> to their current team <em>(now)</em>,
-            sized by the number of people who made that move. Hover a flow to highlight it.
+            Each flow links a person's previous org tier <em>(was)</em> to their current org tier <em>(now)</em>,
+            sized by the number of people who made that move (moves within the same org tier are not shown).
+            Hover a flow to highlight it.
         </div>
     </div>
 
@@ -104,8 +105,8 @@
             <table class="table table-sm table-hover mb-0 align-middle">
                 <thead>
                     <tr>
-                        <th>From (previous team)</th>
-                        <th>To (current team)</th>
+                        <th>From (previous org tier)</th>
+                        <th>To (current org tier)</th>
                         <th class="text-end">People</th>
                     </tr>
                 </thead>
