@@ -846,7 +846,12 @@ pub struct PeopleIndexParams {
     /// an active role.
     #[serde(default)]
     pub status: String,
+    #[serde(default)]
+    pub page: String,
 }
+
+/// People shown per page. The API now filters and paginates server-side.
+const PEOPLE_PAGE_SIZE: i64 = 100;
 
 /// How many rows an index renders before truncating with a "refine search"
 /// hint. Used across the People/Teams/Roles indexes.
@@ -874,38 +879,38 @@ pub async fn person_index(
     };
 
     let show_retired = params.retired == "1";
-    let query = params.q.trim().to_lowercase();
     let selected_org = params.org.trim().to_string();
-    let selected_status = params.status.trim();
-    let people = all_people(bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
-        .map(|r| r.all_people)
-        .unwrap_or_default();
+    let selected_status = params.status.trim().to_string();
+    let search = { let q = params.q.trim(); if q.is_empty() { None } else { Some(q.to_string()) } };
+    let org_filter = if selected_org.is_empty() { None } else { Some(selected_org.clone()) };
+    let status_filter = if selected_status.is_empty() { None } else { Some(selected_status.clone()) };
+    let page = params.page.trim().parse::<i64>().unwrap_or(1).max(1);
+    let offset = (page - 1) * PEOPLE_PAGE_SIZE;
 
-    // allPeople includes retired records (hidden unless ?retired=1) and is
-    // large, so filter by the search term, org, role status, and cap the rows.
-    let matched: Vec<_> = people.iter()
-        .filter(|p| show_retired || p.retired_at.is_none())
-        .filter(|p| query.is_empty() || format!("{} {}", p.given_name, p.family_name).to_lowercase().contains(&query))
-        .filter(|p| selected_org.is_empty() || p.organization.id == selected_org)
-        .filter(|p| match selected_status {
-            "in_role" => !p.active_roles.is_empty(),
-            "available" => p.active_roles.is_empty(),
-            _ => true,
-        })
-        .collect();
-    let total = matched.len();
-    let visible: Vec<_> = matched.into_iter().take(INDEX_PAGE_CAP).collect();
+    // The API filters (search + org + role status + retired) and paginates
+    // server-side; the org dropdown is independent, so fetch it concurrently.
+    let (people_res, orgs_res) = futures::join!(
+        all_people(search, org_filter, status_filter, show_retired, Some(PEOPLE_PAGE_SIZE), offset, bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_organizations(bearer, &data.api_url, Arc::clone(&data.client)),
+    );
+    let (people, total) = match people_res {
+        Ok(r) => (r.all_people, r.people_count),
+        Err(_) => (Vec::new(), 0),
+    };
 
     // Organization filter options, active orgs only, sorted by name.
-    let mut organizations = all_organizations(bearer, &data.api_url, Arc::clone(&data.client)).await
-        .map(|r| r.all_organizations)
-        .unwrap_or_default();
+    let mut organizations = orgs_res.map(|r| r.all_organizations).unwrap_or_default();
     organizations.retain(|o| o.retired_at.is_none());
     organizations.sort_by(|a, b| a.name_en.to_lowercase().cmp(&b.name_en.to_lowercase()));
 
-    ctx.insert("people", &visible);
+    let total_pages = ((total + PEOPLE_PAGE_SIZE - 1) / PEOPLE_PAGE_SIZE).max(1);
+
+    ctx.insert("people", &people);
     ctx.insert("total", &total);
-    ctx.insert("truncated", &(total > INDEX_PAGE_CAP));
+    ctx.insert("page", &page);
+    ctx.insert("total_pages", &total_pages);
+    ctx.insert("has_prev", &(page > 1));
+    ctx.insert("has_next", &(page < total_pages));
     ctx.insert("q", &params.q);
     ctx.insert("show_retired", &show_retired);
     ctx.insert("organizations", &organizations);

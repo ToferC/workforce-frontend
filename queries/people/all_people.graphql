@@ -1,5 +1,5 @@
-query AllPeople {
-  allPeople {
+query AllPeople($search: String, $organizationId: UUID, $roleStatus: String, $includeRetired: Boolean!, $limit: Int, $offset: Int!) {
+  allPeople(search: $search, organizationId: $organizationId, roleStatus: $roleStatus, includeRetired: $includeRetired, limit: $limit, offset: $offset) {
     id
     givenName
     familyName
@@ -7,4 +7,5 @@ query AllPeople {
     organization { id nameEn }
     activeRoles { id }
   }
+  peopleCount(search: $search, organizationId: $organizationId, roleStatus: $roleStatus, includeRetired: $includeRetired)
 }
