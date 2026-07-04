@@ -4,6 +4,7 @@ pub mod graphql;
 pub mod errors;
 pub mod security;
 pub mod notifications;
+pub mod deployment;
 
 use actix_web::Error;
 use tera::{Tera, Context};
@@ -24,6 +25,7 @@ pub struct AppData {
     pub tmpl: Tera,
     pub api_url: String,
     pub client: Arc<Client>,
+    pub deployment: deployment::DeploymentConfig,
 }
 
 /// Generate context, session_user, role and node_names from id and lang
@@ -176,4 +178,3 @@ pub fn extract_session_data(session: &Session) -> (String, String, String) {
 
     (role, user_id, expires_at)
 }
-

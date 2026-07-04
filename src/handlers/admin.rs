@@ -1,23 +1,33 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
 use actix_identity::Identity;
+use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
-use crate::{AppData, by_lang, generate_basic_context, security};
-use crate::security::MinimumRole;
 use crate::graphql::{
-    all_users, get_user_by_id, create_user, update_user,
-    disable_user, enable_user, invite_user, record_flags, resolve_record_flag,
+    all_users, create_user, disable_user, enable_user, get_user_by_id, invite_user, record_flags,
+    resolve_record_flag, update_user,
 };
+use crate::security::MinimumRole;
+use crate::{by_lang, generate_basic_context, security, AppData};
 
 fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found().append_header(("Location", location)).finish()
+    HttpResponse::Found()
+        .append_header(("Location", location))
+        .finish()
 }
 
 fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(session, "danger", by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."));
+    security::add_flash(
+        session,
+        "danger",
+        by_lang(
+            lang,
+            "Invalid form token. Please try again.",
+            "Jeton de formulaire invalide. Veuillez réessayer.",
+        ),
+    );
 }
 
 fn role_options() -> serde_json::Value {
@@ -34,6 +44,78 @@ fn account_type_options() -> serde_json::Value {
         {"value": "HUMAN", "label": "Human"},
         {"value": "AGENT", "label": "Agent (service account)"},
     ])
+}
+
+// ── Deployment sync ──────────────────────────────────────────────────────────
+
+#[get("/{lang}/admin/deploy")]
+pub async fn admin_deploy(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    if let Err(response) = security::require_role(&session, &lang, MinimumRole::Admin) {
+        return response;
+    }
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("deployment_base_configured", &data.deployment.is_base_configured());
+    ctx.insert("deployment_all_configured", &data.deployment.is_all_configured());
+    ctx.insert("deployment_targets", &data.deployment.targets());
+
+    let rendered = data.tmpl.render("admin/deploy.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+#[post("/{lang}/admin/deploy/{target}/sync")]
+pub async fn admin_deploy_sync(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<CsrfOnlyForm>,
+    req: HttpRequest,
+) -> impl Responder {
+    let (lang, target) = path_params.into_inner();
+    let session = req.get_session();
+
+    if let Err(response) = security::require_role(&session, &lang, MinimumRole::Admin) {
+        return response;
+    }
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/admin/deploy", &lang));
+    }
+
+    let targets = if target == "all" {
+        vec!["api".to_string(), "frontend".to_string()]
+    } else {
+        vec![target]
+    };
+
+    for target in targets {
+        match data.deployment.trigger_pipeline(&target, Arc::clone(&data.client)).await {
+            Ok(run) => {
+                let link = run.links.and_then(|links| links.web).map(|web| web.href);
+                let label = if target == "api" {
+                    "Workforce API"
+                } else {
+                    "Workforce frontend"
+                };
+                let message = match link {
+                    Some(link) => format!("{} sync queued in Azure DevOps: {}", label, link),
+                    None => format!("{} sync queued in Azure DevOps as run {}.", label, run.id),
+                };
+                security::add_flash(&session, "success", &message);
+            },
+            Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        };
+    }
+
+    redirect_to(format!("/{}/admin/deploy", &lang))
 }
 
 // ── User list ────────────────────────────────────────────────────────────────

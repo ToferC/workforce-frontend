@@ -12,7 +12,7 @@ use reqwest::Client;
 use std::sync::Arc;
 
 use frontend::handlers;
-use frontend::AppData;
+use frontend::{deployment::DeploymentConfig, AppData};
 
 use fluent_templates::{FluentLoader, static_loader};
 // https://lib.rs/crates/fluent-templates
@@ -71,6 +71,7 @@ async fn main() -> std::io::Result<()> {
     // Set API target
 
     let api_url = format!("{}", api_target);
+    let deployment = DeploymentConfig::from_env();
     
     println!("Serving on http://{}:{}", &host, &port);
     println!("Targeting API on {}", &api_url);
@@ -83,6 +84,7 @@ async fn main() -> std::io::Result<()> {
         tmpl: tera,
         api_url: api_url,
         client: client,
+        deployment,
     });
 
     HttpServer::new(move || {
