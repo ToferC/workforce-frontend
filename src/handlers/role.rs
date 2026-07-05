@@ -851,6 +851,11 @@ pub async fn assign_role_post(
                     effort: None,
                     work_status: None,
                     priority: None,
+                    // Bulk reassignment only moves the role; dates and blocked
+                    // context are left untouched.
+                    due_date: None,
+                    blocked_reason: None,
+                    blocked_on_role_id: None,
                 };
                 if update_work(work_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await.is_ok() {
                     reassign_count += 1;

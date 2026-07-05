@@ -65,6 +65,35 @@
                     <div class="col-md-4">{{ forms::select(name="work_status", label=label_status, options=work_statuses, selected=work.workStatus) }}</div>
                     <div class="col-md-4">{{ forms::select(name="priority", label="Priority", options=priorities, selected=work.priority) }}</div>
                 </div>
+                <div class="row">
+                    <div class="col-md-4">{{ forms::date_input(name="due_date", label=fluent(key="due-date", lang=lang), value=work.dueDate | default(value="") | truncate(length=10, end="")) }}</div>
+                </div>
+
+                {# Proposal 2 — blocked context. Server-rendered hidden unless the
+                   work is BLOCKED; the script below toggles it when the status
+                   select changes. Without JS it stays as server-rendered and the
+                   fields still submit (the API ignores blocked context on
+                   non-blocked work). #}
+                <div id="blocked-fields" class="card border-warning mb-3"{% if work.workStatus != "BLOCKED" %} style="display:none"{% endif %}>
+                    <div class="card-body">
+                        <p class="small text-muted mb-2"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="blocked-help", lang=lang) }}</p>
+                        {{ forms::textarea(name="blocked_reason", label=fluent(key="blocked-reason", lang=lang), value=work.blockedReason | default(value=""), required=false) }}
+                        {% if blocked_role_options is defined %}
+                        {{ forms::select(name="blocked_on_role_id", label=fluent(key="blocked-on-role", lang=lang), options=blocked_role_options, selected=work.blockedOnRole.id | default(value=""), required=false, blank_label=fluent(key="blocked-on-none", lang=lang)) }}
+                        {% endif %}
+                    </div>
+                </div>
+                <script>
+                  (function () {
+                    var sel = document.querySelector('gcds-select[name="work_status"]');
+                    var panel = document.getElementById("blocked-fields");
+                    if (!sel || !panel) return;
+                    sel.addEventListener("change", function () {
+                      panel.style.display = (sel.value === "BLOCKED") ? "" : "none";
+                    });
+                  })();
+                </script>
+
                 {% include "work/_skill_select.html" %}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>

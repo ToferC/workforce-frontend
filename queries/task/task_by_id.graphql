@@ -27,6 +27,8 @@ query TaskById($id:UUID!) {
       effort
       priority
       workStatus
+      dueDate
+      blockedSince
       role {
         id
         titleEnglish

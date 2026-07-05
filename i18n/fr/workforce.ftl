@@ -513,3 +513,17 @@ previous = Précédent
 next = Suivant
 page = Page
 pagination = Pagination
+
+# Suivi du travail (niveau 1 : dates + contexte de blocage)
+due-date = Date d'échéance
+overdue = En retard
+started = Commencé
+completed = Terminé
+blocked-label = Bloqué
+blocked-since = depuis
+blocked-reason = Pourquoi est-ce bloqué ?
+blocked-on-role = En attente de (rôle)
+blocked-on-none = — Aucun rôle en particulier —
+blocked-help = Ce travail est bloqué. Indiquez pourquoi et, au besoin, le rôle attendu, afin d'assurer un suivi.
+waiting-on = En attente de
+vacant-position = poste vacant

@@ -9,7 +9,7 @@ use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles, all_roles, get_me, get_task_by_id, get_team_by_id};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
-use super::task::{work_status_options, priority_options};
+use super::task::{work_status_options, priority_options, parse_date};
 use super::team::team_role_options;
 use super::capability::CAPABILITY_LEVELS;
 
@@ -45,6 +45,14 @@ pub struct WorkForm {
     // be assigned to a role on the task's team (blank = leave unassigned).
     #[serde(default)]
     pub role_id: String,
+    // Proposal 1 — target completion date for this item (YYYY-MM-DD; blank = none).
+    #[serde(default)]
+    pub due_date: String,
+    // Proposal 2 — blocked context; only meaningful when work_status is BLOCKED.
+    #[serde(default)]
+    pub blocked_reason: String,
+    #[serde(default)]
+    pub blocked_on_role_id: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -97,6 +105,16 @@ async fn task_team_role_options(task_id: &str, bearer: &str, data: &AppData) -> 
     }
 }
 
+/// A work item is overdue when its due date has passed and it is still open
+/// (not completed or cancelled). Used to badge late work (Proposal 1).
+fn is_overdue(due_date: Option<chrono::NaiveDateTime>, status: &str) -> bool {
+    match due_date {
+        Some(d) => d.date() < chrono::Utc::now().date_naive()
+            && status != "COMPLETED" && status != "CANCELLED",
+        None => false,
+    }
+}
+
 fn work_from_form(form: &WorkForm, id: Option<&str>) -> serde_json::Value {
     json!({
         "id": id,
@@ -107,6 +125,14 @@ fn work_from_form(form: &WorkForm, id: Option<&str>) -> serde_json::Value {
         "effort": form.effort,
         "workStatus": form.work_status,
         "priority": form.priority,
+        "dueDate": form.due_date,
+        "blockedReason": form.blocked_reason,
+        // Preserve the chosen "waiting on" role across a failed submit.
+        "blockedOnRole": if form.blocked_on_role_id.trim().is_empty() {
+            serde_json::Value::Null
+        } else {
+            json!({"id": form.blocked_on_role_id})
+        },
     })
 }
 
@@ -167,6 +193,8 @@ pub async fn work_by_id(
         .await
         .expect("Unable to get work");
 
+    let status = domain_key(&r.work_by_id.work_status);
+    ctx.insert("work_overdue", &is_overdue(r.work_by_id.due_date, &status));
     ctx.insert("work", &r.work_by_id);
 
     let rendered = data.tmpl.render("work/work.html", &ctx).unwrap();
@@ -203,7 +231,7 @@ pub async fn create_work_form(
     ctx.insert("role_id", &role_id);
     ctx.insert("skill_id", &"");
     ctx.insert("domain", &"");
-    ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING", "priority": "MEDIUM"}));
+    ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING", "priority": "MEDIUM", "dueDate": ""}));
     ctx.insert("task_options", &tasks);
     ctx.insert("skill_options", &skills);
     ctx.insert("skill_domains", &skill_domain_options());
@@ -252,6 +280,7 @@ pub async fn create_work_post(
         effort: form.effort,
         work_status: serde_json::from_value(json!(form.work_status)).expect("WorkStatus deserialization is infallible"),
         priority: serde_json::from_value(json!(form.priority)).expect("Priority deserialization is infallible"),
+        due_date: parse_date(&form.due_date),
     };
 
     match create_work(new_work, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
@@ -316,7 +345,7 @@ pub async fn create_vacant_work_form(
     ctx.insert("domain", &"");
     ctx.insert("role_id", &"");
     ctx.insert("role_options", &role_options);
-    ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING", "priority": "MEDIUM"}));
+    ctx.insert("work", &json!({"workDescription": "", "url": "", "domain": "", "capabilityLevel": "", "effort": 1, "workStatus": "PLANNING", "priority": "MEDIUM", "dueDate": ""}));
     ctx.insert("skill_options", &skills);
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("capability_levels", &capability_level_options());
@@ -365,6 +394,7 @@ pub async fn create_vacant_work_post(
         effort: form.effort,
         work_status: serde_json::from_value(json!(form.work_status)).expect("WorkStatus deserialization is infallible"),
         priority: serde_json::from_value(json!(form.priority)).expect("Priority deserialization is infallible"),
+        due_date: parse_date(&form.due_date),
     };
 
     match create_work(new_work, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
@@ -423,7 +453,12 @@ pub async fn edit_work_form(
 
     let current_skill_id = r.work_by_id.skill.id.clone();
     let current_domain = domain_key(&r.work_by_id.domain);
-    let skills = skill_options_for_domain(&current_domain, &auth.bearer, &data).await;
+    // The "waiting on" picker for the BLOCKED reveal lists all active roles so
+    // a blocker can point at any position across the org (Proposal 2).
+    let (skills, blocked_role_options) = futures::join!(
+        skill_options_for_domain(&current_domain, &auth.bearer, &data),
+        super::product::role_options(&auth.bearer, &data),
+    );
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &true);
@@ -431,6 +466,7 @@ pub async fn edit_work_form(
     ctx.insert("domain", &current_domain);
     ctx.insert("work", &r.work_by_id);
     ctx.insert("skill_options", &skills);
+    ctx.insert("blocked_role_options", &blocked_role_options);
     ctx.insert("skill_domains", &skill_domain_options());
     ctx.insert("capability_levels", &capability_level_options());
     ctx.insert("work_statuses", &work_status_options());
@@ -473,6 +509,11 @@ pub async fn edit_work_post(
         effort: Some(form.effort),
         work_status: Some(serde_json::from_value(json!(form.work_status)).expect("WorkStatus deserialization is infallible")),
         priority: Some(serde_json::from_value(json!(form.priority)).expect("Priority deserialization is infallible")),
+        due_date: parse_date(&form.due_date),
+        // Blocked context is only meaningful while BLOCKED; the API also clears
+        // it automatically when the work leaves BLOCKED.
+        blocked_reason: if form.blocked_reason.trim().is_empty() { None } else { Some(form.blocked_reason.trim().to_string()) },
+        blocked_on_role_id: if form.blocked_on_role_id.trim().is_empty() { None } else { Some(form.blocked_on_role_id.clone()) },
     };
 
     match update_work(work_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
@@ -482,13 +523,17 @@ pub async fn edit_work_post(
         },
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
-            let skills = skill_options_for_domain(&form.domain, &auth.bearer, &data).await;
+            let (skills, blocked_role_options) = futures::join!(
+                skill_options_for_domain(&form.domain, &auth.bearer, &data),
+                super::product::role_options(&auth.bearer, &data),
+            );
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
             ctx.insert("edit", &true);
             ctx.insert("skill_id", &form.skill_id);
             ctx.insert("domain", &form.domain);
             ctx.insert("work", &work_from_form(&form, Some(&work_id)));
             ctx.insert("skill_options", &skills);
+            ctx.insert("blocked_role_options", &blocked_role_options);
             ctx.insert("skill_domains", &skill_domain_options());
             ctx.insert("capability_levels", &capability_level_options());
             ctx.insert("work_statuses", &work_status_options());
@@ -613,6 +658,10 @@ pub async fn assign_work_post(
         effort: None,
         work_status: None,
         priority: None,
+        // Assignment leaves dates and blocked context untouched.
+        due_date: None,
+        blocked_reason: None,
+        blocked_on_role_id: None,
     };
 
     match update_work(work_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
@@ -673,7 +722,16 @@ pub async fn work_index(
 
     let total_pages = ((total + WORK_PAGE_SIZE - 1) / WORK_PAGE_SIZE).max(1);
 
-    ctx.insert("work_items", &work);
+    // Annotate each row with an `overdue` flag for the list badge (Proposal 1).
+    let work_items: Vec<serde_json::Value> = work.into_iter().map(|w| {
+        let status = domain_key(&w.work_status);
+        let overdue = is_overdue(w.due_date, &status);
+        let mut v = serde_json::to_value(&w).unwrap_or_else(|_| json!({}));
+        v["overdue"] = json!(overdue);
+        v
+    }).collect();
+
+    ctx.insert("work_items", &work_items);
     ctx.insert("work_statuses", &work_status_options());
     ctx.insert("filter_status", &query.status);
     ctx.insert("filter_unassigned", &unassigned);

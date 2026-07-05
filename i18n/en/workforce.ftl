@@ -513,3 +513,17 @@ previous = Previous
 next = Next
 page = Page
 pagination = Pagination
+
+# Work tracking (Tier 1: dates + blocked context)
+due-date = Due date
+overdue = Overdue
+started = Started
+completed = Completed
+blocked-label = Blocked
+blocked-since = since
+blocked-reason = Why is this blocked?
+blocked-on-role = Waiting on (role)
+blocked-on-none = — Not waiting on a specific role —
+blocked-help = This work is blocked. Note why, and optionally the role you are waiting on, so it can be followed up.
+waiting-on = Waiting on
+vacant-position = vacant position
