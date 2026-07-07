@@ -80,13 +80,17 @@
                             <a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a>
                         </div>
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item px-0 small d-flex align-items-center gap-1">
+                            <li class="list-group-item px-0 small d-flex align-items-center gap-1 flex-wrap">
                                 <span class="text-muted">Domain:</span>
                                 {{ viz::domain_chip(domain=work.domain) }}
                                 {{ viz::level_chip(level=work.capabilityLevel) }}
                                 {{ viz::effort_meter(value=work.effort) }}
                                 {% if work.priority %}{{ viz::priority_chip(priority=work.priority) }}{% endif %}
+                                {% if work.workStatus == "BLOCKED" %}<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="blocked-label", lang=lang) }}</span>{% endif %}
                             </li>
+                            {% if work.dueDate %}
+                            <li class="list-group-item px-0 small"><span class="text-muted">{{ fluent(key="due-date", lang=lang) }}:</span> {{ work.dueDate | truncate(length=10, end="") }}</li>
+                            {% endif %}
                             {% if work.url %}
                             <li class="list-group-item px-0 small"><span class="text-muted">Website:</span> <a href="{{ work.url }}">{{ work.url }}</a></li>
                             {% endif %}

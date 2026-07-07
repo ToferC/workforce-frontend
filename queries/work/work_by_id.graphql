@@ -8,6 +8,28 @@ query WorkById($id:UUID!) {
     effort
     workStatus
     priority
+    dueDate
+    startedAt
+    completedAt
+    blockedReason
+    blockedSince
+    blockedOnRole {
+      id
+      titleEnglish
+      militaryOccupation
+      rank
+      team {
+        id
+        nameEnglish
+      }
+      person {
+        id
+        givenName
+        familyName
+        email
+        phone
+      }
+    }
     task {
       id
       title

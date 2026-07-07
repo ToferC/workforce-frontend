@@ -7,6 +7,8 @@ query AllWork($status: WorkStatus, $unassignedOnly: Boolean!, $limit: Int, $offs
     effort
     workStatus
     priority
+    dueDate
+    blockedSince
     task {
       id
       title

@@ -45,6 +45,33 @@
     <div class="detail-layout">
         <!-- Main pane: assignment & candidates -->
         <div class="detail-main">
+            <!-- Blocked callout (Proposal 2) -->
+            {% if work.workStatus == "BLOCKED" %}
+            <div class="card border-warning shadow-lg mb-4">
+                <div class="card-body">
+                    <h2 class="h5 text-warning mb-2">
+                        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                        {{ fluent(key="blocked-label", lang=lang) }}{% if work.blockedSince %} &mdash; {{ fluent(key="blocked-since", lang=lang) }} {{ work.blockedSince | truncate(length=10, end="") }}{% endif %}
+                    </h2>
+                    {% if work.blockedReason %}<p class="mb-2">{{ work.blockedReason }}</p>{% endif %}
+                    {% if work.blockedOnRole %}
+                    <p class="mb-0">
+                        <span class="text-muted">{{ fluent(key="waiting-on", lang=lang) }}:</span>
+                        <a href="/{{ lang }}/role/{{ work.blockedOnRole.id }}">{{ work.blockedOnRole.titleEnglish }}</a>
+                        {% if work.blockedOnRole.person %}
+                        &mdash; <a href="/{{ lang }}/person/{{ work.blockedOnRole.person.id }}">{{ work.blockedOnRole.person.givenName }} {{ work.blockedOnRole.person.familyName }}</a>
+                        {% if work.blockedOnRole.person.email %} &middot; <a href="mailto:{{ work.blockedOnRole.person.email }}">{{ work.blockedOnRole.person.email }}</a>{% endif %}
+                        {% if work.blockedOnRole.person.phone %} &middot; {{ work.blockedOnRole.person.phone }}{% endif %}
+                        {% else %}
+                        &mdash; <span class="text-muted">{{ fluent(key="vacant-position", lang=lang) }}</span>
+                        {% endif %}
+                        {% if work.blockedOnRole.team %} &middot; <a href="/{{ lang }}/team/{{ work.blockedOnRole.team.id }}">{{ work.blockedOnRole.team.nameEnglish }}</a>{% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Assigned To -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex align-items-center justify-content-between">
@@ -159,6 +186,15 @@
                                 <span class="text-muted">Priority:</span>
                                 {{ viz::priority_chip(priority=work.priority) }}
                             </li>
+                            <li class="list-group-item">
+                                <span class="text-muted">{{ fluent(key="due-date", lang=lang) }}:</span>
+                                {% if work.dueDate %}
+                                {{ work.dueDate | truncate(length=10, end="") }}
+                                {% if work_overdue %}<span class="badge bg-danger ms-1">{{ fluent(key="overdue", lang=lang) }}</span>{% endif %}
+                                {% else %}<span class="text-muted">&mdash;</span>{% endif %}
+                            </li>
+                            {% if work.startedAt %}<li class="list-group-item"><span class="text-muted">{{ fluent(key="started", lang=lang) }}:</span> {{ work.startedAt | truncate(length=10, end="") }}</li>{% endif %}
+                            {% if work.completedAt %}<li class="list-group-item"><span class="text-muted">{{ fluent(key="completed", lang=lang) }}:</span> {{ work.completedAt | truncate(length=10, end="") }}</li>{% endif %}
                             <li class="list-group-item"><span class="text-muted">Required Skill:</span> {{ work.skill.nameEn }}</li>
                             <li class="list-group-item">
                                 <span class="text-muted">Task:</span>
