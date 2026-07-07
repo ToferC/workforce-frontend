@@ -527,3 +527,5 @@ blocked-on-none = — Aucun rôle en particulier —
 blocked-help = Ce travail est bloqué. Indiquez pourquoi et, au besoin, le rôle attendu, afin d'assurer un suivi.
 waiting-on = En attente de
 vacant-position = poste vacant
+status-history = Historique des statuts
+no-status-history = Aucun changement de statut enregistré pour l'instant.
