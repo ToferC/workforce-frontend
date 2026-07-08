@@ -73,6 +73,7 @@
             <gcds-nav-link href="/{{ lang }}/about">{{ fluent(key="about", lang=lang) }}</gcds-nav-link>
 
             {% if session_user != "" %}
+            <gcds-nav-link href="/{{ lang }}/my/work">{{ fluent(key="my-work", lang=lang) }}</gcds-nav-link>
             <gcds-nav-group menu-label="{{ fluent(key='explore', lang=lang) }}" open-trigger="{{ fluent(key='explore', lang=lang) }}">
                 <gcds-nav-link href="/{{ lang }}/organizations">{{ fluent(key="organizations", lang=lang) }}</gcds-nav-link>
                 <gcds-nav-link href="/{{ lang }}/org_tiers">{{ fluent(key="org-tiers", lang=lang) }}</gcds-nav-link>

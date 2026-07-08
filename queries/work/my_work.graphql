@@ -1,0 +1,33 @@
+# Proposal 5 — "My Work": every work item across the signed-in person's active
+# roles, so they have a single worklist instead of hunting role by role.
+query MyWork {
+  me {
+    person {
+      id
+      givenName
+      familyName
+      activeRoles {
+        id
+        titleEnglish
+        team { id nameEnglish }
+        work {
+          id
+          workDescription
+          domain
+          capabilityLevel
+          effort
+          workStatus
+          priority
+          dueDate
+          blockedSince
+          blockedReason
+          task {
+            id
+            title
+            product { id nameEn nameFr }
+          }
+        }
+      }
+    }
+  }
+}

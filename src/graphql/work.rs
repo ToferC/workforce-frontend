@@ -62,3 +62,11 @@ pub struct UpdateWork;
 pub async fn update_work(data: update_work::WorkData, bearer: String, api_url: &str, client: Arc<Client>) -> Result<update_work::ResponseData, ApiError> {
     post_graphql::<UpdateWork>(&client, api_url, &bearer, update_work::Variables { data }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/work/my_work.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct MyWork;
+
+pub async fn my_work(bearer: String, api_url: &str, client: Arc<Client>) -> Result<my_work::ResponseData, ApiError> {
+    post_graphql::<MyWork>(&client, api_url, &bearer, my_work::Variables {}).await
+}

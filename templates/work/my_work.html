@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
+
+{% block title %}<title>{{ fluent(key="my-work", lang=lang) }}</title>{% endblock title %}
+
+{% block breadcrumb %}
+<div class="container pt-2">
+    <gcds-breadcrumbs hide-canada-link="true">
+        <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
+        <gcds-breadcrumbs-item href="/{{ lang }}/my/work">{{ fluent(key="my-work", lang=lang) }}</gcds-breadcrumbs-item>
+    </gcds-breadcrumbs>
+</div>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="h3 mb-0"><i class="bi bi-person-workspace" aria-hidden="true"></i> {{ fluent(key="my-work", lang=lang) }}</h1>
+        {% if has_person %}<span class="text-muted">{{ person_name }}</span>{% endif %}
+    </div>
+
+    {% if not has_person %}
+    <div class="card shadow-sm"><div class="card-body text-muted">{{ fluent(key="my-work-no-person", lang=lang) }}</div></div>
+    {% else %}
+
+    <!-- Summary -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4">
+            <div class="card shadow-sm h-100 text-center"><div class="card-body py-3">
+                <div class="fs-2 fw-bold text-primary">{{ summary.total }}</div>
+                <div class="small text-muted">{{ fluent(key="my-work-total", lang=lang) }}</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card shadow-sm h-100 text-center"><div class="card-body py-3">
+                <div class="fs-2 fw-bold {% if summary.overdue > 0 %}text-danger{% else %}text-muted{% endif %}">{{ summary.overdue }}</div>
+                <div class="small text-muted">{{ fluent(key="overdue", lang=lang) }}</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card shadow-sm h-100 text-center"><div class="card-body py-3">
+                <div class="fs-2 fw-bold {% if summary.blocked > 0 %}text-warning{% else %}text-muted{% endif %}">{{ summary.blocked }}</div>
+                <div class="small text-muted">{{ fluent(key="blocked-label", lang=lang) }}</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card shadow-lg mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>{{ fluent(key="work-description", lang=lang) }}</th>
+                            <th>{{ fluent(key="task", lang=lang) }}</th>
+                            <th>{{ fluent(key="my-work-role", lang=lang) }}</th>
+                            <th>{{ fluent(key="due-date", lang=lang) }}</th>
+                            <th class="text-center">{{ fluent(key="effort", lang=lang) }}</th>
+                            <th>{{ fluent(key="status", lang=lang) }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for w in work_items %}
+                        <tr>
+                            <td>
+                                <a href="/{{ lang }}/work/{{ w.id }}">{{ w.workDescription }}</a>
+                                <div class="d-flex align-items-center gap-1 flex-wrap mt-1">
+                                    {{ viz::domain_chip(domain=w.domain) }}
+                                    {{ viz::priority_chip(priority=w.priority) }}
+                                </div>
+                            </td>
+                            <td class="small">
+                                <a href="/{{ lang }}/task/{{ w.task.id }}" class="text-muted">{{ w.task.title }}</a>
+                                {% if w.task.product %}
+                                <div><a href="/{{ lang }}/product/{{ w.task.product.id }}" class="text-muted">{% if lang == "fr" %}{{ w.task.product.nameFr }}{% else %}{{ w.task.product.nameEn }}{% endif %}</a></div>
+                                {% endif %}
+                            </td>
+                            <td class="small">
+                                <a href="/{{ lang }}/role/{{ w.roleId }}">{{ w.roleTitle }}</a>
+                                <div class="text-muted">{{ w.teamName }}</div>
+                            </td>
+                            <td class="small">
+                                {% if w.dueDate %}
+                                {{ w.dueDate | truncate(length=10, end="") }}
+                                {% if w.overdue %}<span class="badge bg-danger ms-1">{{ fluent(key="overdue", lang=lang) }}</span>{% endif %}
+                                {% else %}<span class="text-muted">&mdash;</span>{% endif %}
+                            </td>
+                            <td class="text-center">{{ viz::effort_meter(value=w.effort) }}</td>
+                            <td>
+                                {{ viz::status_chip(status=w.workStatus) }}
+                                {% if w.workStatus == "BLOCKED" and w.blockedReason %}
+                                <div class="text-muted small mt-1"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ w.blockedReason }}</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-muted text-center p-4">{{ fluent(key="my-work-empty", lang=lang) }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock content %}
