@@ -45,3 +45,35 @@ pub struct UpdateTask;
 pub async fn update_task(data: update_task::TaskData, bearer: String, api_url: &str, client: Arc<Client>) -> Result<update_task::ResponseData, ApiError> {
     post_graphql::<UpdateTask>(&client, api_url, &bearer, update_task::Variables { data }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/task/submit_task_for_approval.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct SubmitTaskForApproval;
+
+pub async fn submit_task_for_approval(task_id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<submit_task_for_approval::ResponseData, ApiError> {
+    post_graphql::<SubmitTaskForApproval>(&client, api_url, &bearer, submit_task_for_approval::Variables { task_id }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/task/approve_task.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct ApproveTask;
+
+pub async fn approve_task(task_id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<approve_task::ResponseData, ApiError> {
+    post_graphql::<ApproveTask>(&client, api_url, &bearer, approve_task::Variables { task_id }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/task/reject_task.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct RejectTask;
+
+pub async fn reject_task(task_id: String, reason: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<reject_task::ResponseData, ApiError> {
+    post_graphql::<RejectTask>(&client, api_url, &bearer, reject_task::Variables { task_id, reason }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/task/pending_approvals.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct PendingApprovals;
+
+pub async fn pending_approvals(limit: Option<i64>, bearer: String, api_url: &str, client: Arc<Client>) -> Result<pending_approvals::ResponseData, ApiError> {
+    post_graphql::<PendingApprovals>(&client, api_url, &bearer, pending_approvals::Variables { limit }).await
+}

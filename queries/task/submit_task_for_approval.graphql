@@ -1,0 +1,3 @@
+mutation SubmitTaskForApproval($taskId: UUID!) {
+  submitTaskForApproval(taskId: $taskId) { id }
+}

@@ -181,6 +181,10 @@ use crate::handlers::{
     create_team_task_post,
     edit_task_form,
     edit_task_post,
+    submit_task_approval_post,
+    approve_task_post,
+    reject_task_post,
+    approvals_queue,
 
     // product
     product_by_id,
@@ -379,6 +383,10 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(create_team_task_post);
     config.service(edit_task_form);
     config.service(edit_task_post);
+    config.service(approvals_queue);
+    config.service(submit_task_approval_post);
+    config.service(approve_task_post);
+    config.service(reject_task_post);
     config.service(task_by_id);
 
     // product — "new" must be registered before the {product_id} catch-all
