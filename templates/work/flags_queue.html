@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}<title>{{ fluent(key="flags-queue", lang=lang) }}</title>{% endblock title %}
+
+{% block breadcrumb %}
+<div class="container pt-2">
+    <gcds-breadcrumbs hide-canada-link="true">
+        <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
+        <gcds-breadcrumbs-item href="/{{ lang }}/flags">{{ fluent(key="flags-queue", lang=lang) }}</gcds-breadcrumbs-item>
+    </gcds-breadcrumbs>
+</div>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="h3 mb-0"><i class="bi bi-flag-fill" aria-hidden="true"></i> {{ fluent(key="flags-queue", lang=lang) }}</h1>
+        <span class="badge bg-warning text-dark fs-6">{{ flag_count }} {{ fluent(key="open-flags", lang=lang) }}</span>
+    </div>
+    <p class="text-muted">{{ fluent(key="flags-queue-help", lang=lang) }}</p>
+
+    <div class="card shadow-lg mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>{{ fluent(key="work-description", lang=lang) }}</th>
+                            <th>{{ fluent(key="task", lang=lang) }}</th>
+                            <th>{{ fluent(key="flag", lang=lang) }}</th>
+                            <th>{{ fluent(key="my-work-role", lang=lang) }}</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in flags %}
+                        <tr>
+                            <td><a href="/{{ lang }}/work/{{ f.workId }}">{{ f.workDescription }}</a></td>
+                            <td class="small"><a href="/{{ lang }}/task/{{ f.taskId }}" class="text-muted">{{ f.taskTitle }}</a></td>
+                            <td class="small">{{ f.body }}</td>
+                            <td class="small text-muted">
+                                {% if f.authorName %}{{ f.authorName }}{% else %}&mdash;{% endif %}
+                                <div>{{ f.createdAt | truncate(length=16, end="") | replace(from="T", to=" ") }}</div>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex gap-1 justify-content-end flex-wrap">
+                                    <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/work/{{ f.workId }}">
+                                        <i class="bi bi-eye" aria-hidden="true"></i> {{ fluent(key="view", lang=lang) }}
+                                    </a>
+                                    <form method="post" action="/{{ lang }}/work/{{ f.workId }}/flag/{{ f.updateId }}/resolve">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <input type="hidden" name="return_to" value="/{{ lang }}/flags">
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-check2" aria-hidden="true"></i> {{ fluent(key="resolve-flag", lang=lang) }}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-muted text-center p-4">{{ fluent(key="flags-queue-empty", lang=lang) }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

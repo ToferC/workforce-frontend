@@ -1,0 +1,12 @@
+query OpenWorkFlags($limit: Int) {
+  openWorkFlags(limit: $limit) {
+    updateId
+    workId
+    workDescription
+    taskId
+    taskTitle
+    body
+    authorName
+    createdAt
+  }
+}
