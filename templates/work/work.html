@@ -308,6 +308,9 @@
                             <li class="list-group-item d-flex align-items-center gap-2">
                                 <span class="text-muted">Priority:</span>
                                 {{ viz::priority_chip(priority=work.priority) }}
+                                {% if work.priorityBelowParent %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="priority-below-task", lang=lang) }}</span>
+                                {% endif %}
                             </li>
                             <li class="list-group-item">
                                 <span class="text-muted">{{ fluent(key="due-date", lang=lang) }}:</span>

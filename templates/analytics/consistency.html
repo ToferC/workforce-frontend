@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
+
+{% block title %}<title>{{ fluent(key="priority-consistency", lang=lang) }}</title>{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/{{ lang }}/analytics">Analytics</a></li>
+            <li class="breadcrumb-item active">{{ fluent(key="priority-consistency", lang=lang) }}</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="h3 mb-0"><i class="bi bi-sliders" aria-hidden="true"></i> {{ fluent(key="priority-consistency", lang=lang) }}</h1>
+        <span class="text-muted small">{{ fluent(key="priority-consistency-tagline", lang=lang) }}</span>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-danger">{{ summary.total }}</div>
+                    <div class="small text-muted">{{ fluent(key="flagged-tasks", lang=lang) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-warning">{{ summary.below_product_count }}</div>
+                    <div class="small text-muted">{{ fluent(key="below-product-label", lang=lang) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-secondary">{{ summary.below_work_total }}</div>
+                    <div class="small text-muted">{{ fluent(key="below-work-label", lang=lang) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="priority-mismatches", lang=lang) }}</h2>
+        </div>
+        <div class="card-body">
+            {% if rows and rows | length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ fluent(key="task", lang=lang) }}</th>
+                            <th scope="col">{{ fluent(key="task-priority", lang=lang) }}</th>
+                            <th scope="col">{{ fluent(key="product", lang=lang) }}</th>
+                            <th scope="col">{{ fluent(key="product-priority", lang=lang) }}</th>
+                            <th scope="col">{{ fluent(key="issue", lang=lang) }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in rows %}
+                        <tr>
+                            <td><a href="/{{ lang }}/task/{{ r.task_id }}">{{ r.task_title }}</a></td>
+                            <td>{{ viz::priority_chip(priority=r.task_priority) }}</td>
+                            <td>
+                                {% if r.product_id %}
+                                <a href="/{{ lang }}/product/{{ r.product_id }}">{{ r.product_name }}</a>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if r.product_priority %}{{ viz::priority_chip(priority=r.product_priority) }}{% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if r.task_below_product %}
+                                <span class="badge bg-warning text-dark">{{ fluent(key="below-product-label", lang=lang) }}</span>
+                                {% endif %}
+                                {% if r.below_work_count > 0 %}
+                                <span class="badge bg-secondary">{{ r.below_work_count }} {{ fluent(key="below-work-short", lang=lang) }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="d-flex align-items-center gap-2 text-success">
+                <i class="bi bi-check-circle" aria-hidden="true"></i>
+                <span>{{ fluent(key="no-priority-mismatches", lang=lang) }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock content %}

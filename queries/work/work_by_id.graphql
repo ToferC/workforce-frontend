@@ -8,6 +8,7 @@ query WorkById($id:UUID!) {
     effort
     workStatus
     priority
+    priorityBelowParent
     dueDate
     startedAt
     completedAt

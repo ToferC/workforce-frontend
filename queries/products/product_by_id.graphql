@@ -9,6 +9,7 @@ query ProductById($id: UUID!) {
     url
     productStatus
     priority
+    priorityMismatchCount
     retiredAt
     effort
     skillDemand {
@@ -42,6 +43,9 @@ query ProductById($id: UUID!) {
       taskStatus
       domain
       effort
+      priority
+      priorityBelowParent
+      workPriorityMismatchCount
     }
     vacantWork {
       id

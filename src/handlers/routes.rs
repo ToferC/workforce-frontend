@@ -204,6 +204,7 @@ use crate::handlers::{
     analytics_section_gaps,
     analytics_coverage,
     analytics_delivery,
+    analytics_consistency,
     analytics_mobility_view,
     analytics_growth,
     analytics_supply_demand,
@@ -404,6 +405,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     // analytics — specific sub-paths before the dashboard catch-all
     config.service(analytics_coverage);
     config.service(analytics_delivery);
+    config.service(analytics_consistency);
     config.service(analytics_mobility_view);
     config.service(analytics_growth);
     config.service(analytics_supply_demand);

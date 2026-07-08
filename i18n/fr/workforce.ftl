@@ -570,3 +570,19 @@ add-dependency = Ajouter
 dependencies-help = Une dépendance signifie que ce travail ne peut pas commencer avant que l'autre élément soit terminé. Seul le travail de la même tâche est proposé.
 blocks-label = Bloque
 remove = Retirer
+
+# Cohérence des priorités (Proposition 7c)
+priority-consistency = Cohérence des priorités
+priority-consistency-tagline = Où la priorité chute entre un produit, ses tâches et leur travail
+priority-mismatches = Incohérences de priorité
+flagged-tasks = Tâches signalées
+below-product-label = Sous son produit
+below-work-label = Travail sous leur tâche
+below-work-short = sous la tâche
+task-priority = Priorité de la tâche
+product-priority = Priorité du produit
+issue = Problème
+no-priority-mismatches = Toutes les priorités sont cohérentes entre les produits, les tâches et le travail.
+priority-below-product = Priorité sous le produit
+priority-below-task = Priorité sous la tâche
+lower-priority-work = éléments de priorité inférieure
