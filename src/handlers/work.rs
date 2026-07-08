@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles, all_roles, get_me, get_task_by_id, get_team_by_id};
+use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles, all_roles, get_me, get_task_by_id, get_team_by_id, my_work};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::task::{work_status_options, priority_options, parse_date};
@@ -776,5 +776,78 @@ pub async fn vacancies(
     ctx.insert("vacant_work", &vacant_work);
 
     let rendered = data.tmpl.render("work/vacancies.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+/// Proposal 5 — "My Work": a personal worklist aggregating every work item
+/// across the signed-in person's active roles, sorted so the most pressing
+/// items (overdue, then soonest due, then highest priority) surface first.
+#[get("/{lang}/my/work")]
+pub async fn my_work_view(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let person = my_work(auth.bearer, &data.api_url, Arc::clone(&data.client)).await
+        .ok()
+        .and_then(|r| r.me.person);
+
+    match person {
+        Some(p) => {
+            // Flatten work across every active role, tagging each item with the
+            // role/team it sits under and an overdue flag, then rank it.
+            let mut ranked: Vec<(bool, chrono::NaiveDate, i32, serde_json::Value)> = Vec::new();
+            for role in &p.active_roles {
+                for w in &role.work {
+                    let status = domain_key(&w.work_status);
+                    let overdue = is_overdue(w.due_date, &status);
+                    let due_key = w.due_date.map(|d| d.date()).unwrap_or(chrono::NaiveDate::MAX);
+                    let prio_rank = match domain_key(&w.priority).as_str() {
+                        "CRITICAL" => 0, "HIGH" => 1, "MEDIUM" => 2, "LOW" => 3, _ => 4,
+                    };
+                    let mut v = serde_json::to_value(w).unwrap_or_else(|_| json!({}));
+                    v["overdue"] = json!(overdue);
+                    v["roleId"] = json!(role.id);
+                    v["roleTitle"] = json!(role.title_english);
+                    v["teamName"] = json!(role.team.name_english);
+                    // Overdue first (false > true so negate), then soonest due, then priority.
+                    ranked.push((!overdue, due_key, prio_rank, v));
+                }
+            }
+            ranked.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)).then(a.2.cmp(&b.2)));
+
+            let overdue_count = ranked.iter().filter(|(not_overdue, _, _, _)| !*not_overdue).count() as i64;
+            let blocked_count = ranked.iter()
+                .filter(|(_, _, _, v)| v["workStatus"] == "BLOCKED").count() as i64;
+            let total = ranked.len() as i64;
+            let work_items: Vec<serde_json::Value> = ranked.into_iter().map(|(_, _, _, v)| v).collect();
+
+            ctx.insert("person_name", &format!("{} {}", p.given_name, p.family_name));
+            ctx.insert("has_person", &true);
+            ctx.insert("work_items", &work_items);
+            ctx.insert("summary", &json!({
+                "total": total,
+                "overdue": overdue_count,
+                "blocked": blocked_count,
+            }));
+        },
+        None => {
+            // Authenticated account with no linked person (e.g. an admin).
+            ctx.insert("has_person", &false);
+        },
+    }
+
+    let rendered = data.tmpl.render("work/my_work.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }
