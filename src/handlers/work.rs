@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles, all_roles, get_me, get_task_by_id, get_team_by_id, my_work, add_work_update, resolve_work_update_flag, open_work_flags};
+use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles, all_roles, get_me, get_task_by_id, get_team_by_id, my_work, add_work_update, resolve_work_update_flag, open_work_flags, add_work_dependency, remove_work_dependency};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::task::{work_status_options, priority_options, parse_date};
@@ -981,4 +981,65 @@ pub async fn flags_queue(
 
     let rendered = data.tmpl.render("work/flags_queue.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
+}
+
+/// Proposal 7a — form for adding a dependency (this work is blocked by another).
+#[derive(Deserialize, Debug)]
+pub struct WorkDependencyForm {
+    pub csrf_token: String,
+    pub depends_on_work_id: String,
+}
+
+#[post("/{lang}/work/{work_id}/dependency/add")]
+pub async fn add_work_dependency_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<WorkDependencyForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, work_id) = path_params.into_inner();
+    let session = req.get_session();
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/work/{}", &lang, &work_id));
+    }
+    if form.depends_on_work_id.trim().is_empty() {
+        security::add_flash(&session, "danger", by_lang(&lang, "Choose a work item to depend on.", "Choisissez un élément de travail dont dépendre."));
+        return redirect_to(format!("/{}/work/{}", &lang, &work_id));
+    }
+    match add_work_dependency(work_id.clone(), form.depends_on_work_id.trim().to_string(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Dependency added.", "Dépendance ajoutée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    }
+    redirect_to(format!("/{}/work/{}", &lang, &work_id))
+}
+
+#[post("/{lang}/work/{work_id}/dependency/{depends_on_id}/remove")]
+pub async fn remove_work_dependency_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+    form: web::Form<CsrfOnlyForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, work_id, depends_on_id) = path_params.into_inner();
+    let session = req.get_session();
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/work/{}", &lang, &work_id));
+    }
+    match remove_work_dependency(work_id.clone(), depends_on_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Dependency removed.", "Dépendance retirée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    }
+    redirect_to(format!("/{}/work/{}", &lang, &work_id))
 }

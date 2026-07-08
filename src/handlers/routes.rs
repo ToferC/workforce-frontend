@@ -161,6 +161,8 @@ use crate::handlers::{
     flags_queue,
     add_work_update_post,
     resolve_work_flag_post,
+    add_work_dependency_post,
+    remove_work_dependency_post,
     vacancies,
     create_work_form,
     create_work_post,
@@ -363,6 +365,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(work_skill_options);
     config.service(add_work_update_post);
     config.service(resolve_work_flag_post);
+    config.service(add_work_dependency_post);
+    config.service(remove_work_dependency_post);
     config.service(vacancies);
     config.service(create_work_form);
     config.service(create_work_post);

@@ -13,6 +13,17 @@ query WorkById($id:UUID!) {
     completedAt
     blockedReason
     blockedSince
+    isBlocked
+    dependsOn {
+      id
+      workDescription
+      workStatus
+    }
+    blocks {
+      id
+      workDescription
+      workStatus
+    }
     blockedOnRole {
       id
       titleEnglish
@@ -35,6 +46,10 @@ query WorkById($id:UUID!) {
       title
       domain
       targetCompletionDate
+      work {
+        id
+        workDescription
+      }
       product {
         id
         nameEn

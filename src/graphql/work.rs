@@ -94,3 +94,19 @@ pub struct OpenWorkFlags;
 pub async fn open_work_flags(limit: Option<i64>, bearer: String, api_url: &str, client: Arc<Client>) -> Result<open_work_flags::ResponseData, ApiError> {
     post_graphql::<OpenWorkFlags>(&client, api_url, &bearer, open_work_flags::Variables { limit }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/work/add_work_dependency.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct AddWorkDependency;
+
+pub async fn add_work_dependency(work_id: String, depends_on_work_id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<add_work_dependency::ResponseData, ApiError> {
+    post_graphql::<AddWorkDependency>(&client, api_url, &bearer, add_work_dependency::Variables { work_id, depends_on_work_id }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/work/remove_work_dependency.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct RemoveWorkDependency;
+
+pub async fn remove_work_dependency(work_id: String, depends_on_work_id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<remove_work_dependency::ResponseData, ApiError> {
+    post_graphql::<RemoveWorkDependency>(&client, api_url, &bearer, remove_work_dependency::Variables { work_id, depends_on_work_id }).await
+}

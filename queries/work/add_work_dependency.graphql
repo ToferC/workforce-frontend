@@ -1,0 +1,3 @@
+mutation AddWorkDependency($workId: UUID!, $dependsOnWorkId: UUID!) {
+  addWorkDependency(workId: $workId, dependsOnWorkId: $dependsOnWorkId) { id }
+}
