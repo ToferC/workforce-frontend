@@ -72,6 +72,69 @@
             </div>
             {% endif %}
 
+            <!-- Dependencies (Proposal 7a) -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h2 class="h4 mb-0"><i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="dependencies", lang=lang) }}</h2>
+                    {% if work.isBlocked %}
+                    <span class="badge bg-danger"><i class="bi bi-lock" aria-hidden="true"></i> {{ fluent(key="cant-start", lang=lang) }}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h3 class="h6 text-muted">{{ fluent(key="blocked-by", lang=lang) }}</h3>
+                    {% if work.dependsOn and work.dependsOn | length > 0 %}
+                    <ul class="list-group list-group-flush mb-3">
+                        {% for d in work.dependsOn %}
+                        <li class="list-group-item px-0 d-flex align-items-center justify-content-between gap-2">
+                            <span class="d-flex align-items-center gap-2 flex-wrap">
+                                <a href="/{{ lang }}/work/{{ d.id }}">{{ d.workDescription }}</a>
+                                {{ viz::status_chip(status=d.workStatus) }}
+                            </span>
+                            {% if role == "operator" or role == "admin" %}
+                            <form method="post" action="/{{ lang }}/work/{{ work.id }}/dependency/{{ d.id }}/remove">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" aria-label="{{ fluent(key='remove', lang=lang) }}"><i class="bi bi-x" aria-hidden="true"></i></button>
+                            </form>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted small">{{ fluent(key="no-dependencies", lang=lang) }}</p>
+                    {% endif %}
+
+                    {% if role == "operator" or role == "admin" %}
+                    <form method="post" action="/{{ lang }}/work/{{ work.id }}/dependency/add" class="d-flex gap-2 flex-wrap mb-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <select class="form-select form-select-sm" name="depends_on_work_id" style="max-width:22rem" required>
+                            <option value="">{{ fluent(key="select-dependency", lang=lang) }}</option>
+                            {% for sw in work.task.work %}
+                            {% if sw.id != work.id %}
+                            {% set_global is_dep = false %}
+                            {% for d in work.dependsOn %}{% if d.id == sw.id %}{% set_global is_dep = true %}{% endif %}{% endfor %}
+                            {% if not is_dep %}<option value="{{ sw.id }}">{{ sw.workDescription }}</option>{% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-dependency", lang=lang) }}</button>
+                    </form>
+                    <p class="text-muted small mb-0">{{ fluent(key="dependencies-help", lang=lang) }}</p>
+                    {% endif %}
+
+                    {% if work.blocks and work.blocks | length > 0 %}
+                    <h3 class="h6 text-muted mt-3">{{ fluent(key="blocks-label", lang=lang) }}</h3>
+                    <ul class="list-group list-group-flush">
+                        {% for b in work.blocks %}
+                        <li class="list-group-item px-0 d-flex align-items-center gap-2 flex-wrap">
+                            <a href="/{{ lang }}/work/{{ b.id }}">{{ b.workDescription }}</a>
+                            {{ viz::status_chip(status=b.workStatus) }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- Assigned To -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex align-items-center justify-content-between">
