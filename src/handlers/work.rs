@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles, all_roles, get_me, get_task_by_id, get_team_by_id, my_work};
+use crate::graphql::{get_work_by_id, all_work, all_tasks, all_skills, create_work, update_work, vacant_roles, all_roles, get_me, get_task_by_id, get_team_by_id, my_work, add_work_update, resolve_work_update_flag};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::task::{work_status_options, priority_options, parse_date};
@@ -61,6 +61,22 @@ pub struct AssignWorkForm {
     pub role_id: String,
     #[serde(default)]
     pub skill_id: String,
+}
+
+/// Proposal 3 — posting a comment or flag on a work item.
+#[derive(Deserialize, Debug)]
+pub struct WorkUpdateForm {
+    pub csrf_token: String,
+    pub body: String,
+    // "COMMENT" (default) or "FLAG".
+    #[serde(default)]
+    pub kind: String,
+}
+
+/// Minimal CSRF-only form for the resolve-flag button.
+#[derive(Deserialize, Debug)]
+pub struct CsrfOnlyForm {
+    pub csrf_token: String,
 }
 
 /// SkillDomain key (e.g. "SOFTWARE_ENGINEERING") for a generated enum value.
@@ -850,4 +866,80 @@ pub async fn my_work_view(
 
     let rendered = data.tmpl.render("work/my_work.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
+}
+
+/// Proposal 3 — post a comment or raise a flag on a work item. Open to any
+/// authenticated user; the API enforces option (a) (must manage the task or
+/// occupy the work's assigned role).
+#[post("/{lang}/work/{work_id}/update")]
+pub async fn add_work_update_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<WorkUpdateForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, work_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/work/{}", &lang, &work_id));
+    }
+
+    if form.body.trim().is_empty() {
+        security::add_flash(&session, "danger", by_lang(&lang, "Please enter a message.", "Veuillez saisir un message."));
+        return redirect_to(format!("/{}/work/{}", &lang, &work_id));
+    }
+
+    let kind = if form.kind == "FLAG" {
+        add_work_update::WorkUpdateKind::FLAG
+    } else {
+        add_work_update::WorkUpdateKind::COMMENT
+    };
+
+    match add_work_update(work_id.clone(), form.body.trim().to_string(), Some(kind), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => {
+            security::add_flash(&session, "success", by_lang(&lang, "Update posted.", "Mise à jour publiée."));
+        },
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+        },
+    }
+    redirect_to(format!("/{}/work/{}", &lang, &work_id))
+}
+
+/// Proposal 3 — resolve an open flag. Management action (operator+); the API
+/// additionally scopes it to the owning task.
+#[post("/{lang}/work/{work_id}/flag/{update_id}/resolve")]
+pub async fn resolve_work_flag_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+    form: web::Form<CsrfOnlyForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, work_id, update_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/work/{}", &lang, &work_id));
+    }
+
+    match resolve_work_update_flag(update_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Flag resolved.", "Signalement résolu.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    }
+    redirect_to(format!("/{}/work/{}", &lang, &work_id))
 }

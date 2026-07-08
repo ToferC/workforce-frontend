@@ -1,0 +1,3 @@
+mutation ResolveWorkUpdateFlag($updateId: UUID!) {
+  resolveWorkUpdateFlag(updateId: $updateId) { id }
+}
