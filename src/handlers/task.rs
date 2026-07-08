@@ -7,7 +7,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_task_by_id, all_tasks, create_task, update_task, get_product_by_id, get_team_by_id};
+use crate::graphql::{get_task_by_id, all_tasks, create_task, update_task, get_product_by_id, get_team_by_id, submit_task_for_approval, approve_task, reject_task, pending_approvals};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::product::product_options;
@@ -485,4 +485,135 @@ pub async fn create_team_task_post(
             HttpResponse::Ok().body(rendered)
         },
     }
+}
+
+// ── Approval workflow (Proposal 7b) ──────────────────────────────────────────
+
+/// CSRF-only form for the submit / approve actions.
+#[derive(Deserialize, Debug)]
+pub struct ApprovalActionForm {
+    pub csrf_token: String,
+    #[serde(default)]
+    pub return_to: String,
+}
+
+/// Reject form: CSRF + a required reason.
+#[derive(Deserialize, Debug)]
+pub struct RejectForm {
+    pub csrf_token: String,
+    #[serde(default)]
+    pub reason: String,
+    #[serde(default)]
+    pub return_to: String,
+}
+
+fn approval_redirect(return_to: &str, lang: &str, task_id: &str) -> HttpResponse {
+    if return_to.starts_with('/') {
+        redirect_to(return_to.to_string())
+    } else {
+        redirect_to(format!("/{}/task/{}", lang, task_id))
+    }
+}
+
+#[post("/{lang}/task/{task_id}/submit_approval")]
+pub async fn submit_task_approval_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<ApprovalActionForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, task_id) = path_params.into_inner();
+    let session = req.get_session();
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/task/{}", &lang, &task_id));
+    }
+    match submit_task_for_approval(task_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Task submitted for approval.", "Tâche soumise pour approbation.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    }
+    approval_redirect(&form.return_to, &lang, &task_id)
+}
+
+#[post("/{lang}/task/{task_id}/approve")]
+pub async fn approve_task_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<ApprovalActionForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, task_id) = path_params.into_inner();
+    let session = req.get_session();
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/task/{}", &lang, &task_id));
+    }
+    match approve_task(task_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Task approved.", "Tâche approuvée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    }
+    approval_redirect(&form.return_to, &lang, &task_id)
+}
+
+#[post("/{lang}/task/{task_id}/reject")]
+pub async fn reject_task_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<RejectForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, task_id) = path_params.into_inner();
+    let session = req.get_session();
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/task/{}", &lang, &task_id));
+    }
+    if form.reason.trim().is_empty() {
+        security::add_flash(&session, "danger", by_lang(&lang, "A rejection reason is required.", "Un motif de rejet est requis."));
+        return redirect_to(format!("/{}/task/{}", &lang, &task_id));
+    }
+    match reject_task(task_id.clone(), form.reason.trim().to_string(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Task rejected.", "Tâche rejetée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    }
+    approval_redirect(&form.return_to, &lang, &task_id)
+}
+
+/// Approver queue (Proposal 7b): tasks awaiting the operator/admin's approval.
+#[get("/{lang}/approvals")]
+pub async fn approvals_queue(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    let tasks = pending_approvals(Some(200), auth.bearer, &data.api_url, Arc::clone(&data.client)).await
+        .map(|r| r.pending_approvals)
+        .unwrap_or_default();
+    ctx.insert("approval_count", &(tasks.len() as i64));
+    ctx.insert("tasks", &tasks);
+    let rendered = data.tmpl.render("task/approvals_queue.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
 }

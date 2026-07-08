@@ -1,0 +1,17 @@
+query PendingApprovals($limit: Int) {
+  pendingApprovals(limit: $limit) {
+    id
+    title
+    domain
+    approvalTier
+    priority
+    targetCompletionDate
+    createdBy {
+      id
+      titleEnglish
+      team { id nameEnglish }
+      person { id givenName familyName }
+    }
+    product { id nameEn nameFr }
+  }
+}

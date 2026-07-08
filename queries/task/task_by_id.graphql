@@ -13,6 +13,10 @@ query TaskById($id:UUID!) {
     priority
     completedDate
     effort
+    approvalStatus
+    approvedAt
+    rejectionReason
+    approvedByName
     product {
       id
       nameEn

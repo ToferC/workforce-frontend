@@ -79,6 +79,19 @@
 {%- endif -%}
 {% endmacro status_chip %}
 
+{# Approval workflow state (Proposal 7b): DRAFT | PENDING_APPROVAL | APPROVED | REJECTED #}
+{% macro approval_chip(status) %}
+{%- if status == "APPROVED" -%}
+<span class="badge bg-success"><i class="bi bi-check-circle" aria-hidden="true"></i> {{ status }}</span>
+{%- elif status == "PENDING_APPROVAL" -%}
+<span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split" aria-hidden="true"></i> {{ status | replace(from="_", to=" ") }}</span>
+{%- elif status == "REJECTED" -%}
+<span class="badge bg-danger"><i class="bi bi-x-circle" aria-hidden="true"></i> {{ status }}</span>
+{%- else -%}
+<span class="badge bg-light text-dark border"><i class="bi bi-pencil" aria-hidden="true"></i> {{ status }}</span>
+{%- endif -%}
+{% endmacro approval_chip %}
+
 
 {# ── domain_chip ─────────────────────────────────────────────────────────────
    domain : SkillDomain string (16 values)

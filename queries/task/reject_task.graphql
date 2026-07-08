@@ -1,0 +1,3 @@
+mutation RejectTask($taskId: UUID!, $reason: String!) {
+  rejectTask(taskId: $taskId, reason: $reason) { id }
+}

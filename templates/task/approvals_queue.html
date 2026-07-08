@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
+
+{% block title %}<title>{{ fluent(key="approvals", lang=lang) }}</title>{% endblock title %}
+
+{% block breadcrumb %}
+<div class="container pt-2">
+    <gcds-breadcrumbs hide-canada-link="true">
+        <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
+        <gcds-breadcrumbs-item href="/{{ lang }}/approvals">{{ fluent(key="approvals", lang=lang) }}</gcds-breadcrumbs-item>
+    </gcds-breadcrumbs>
+</div>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="h3 mb-0"><i class="bi bi-clipboard-check" aria-hidden="true"></i> {{ fluent(key="approvals", lang=lang) }}</h1>
+        <span class="badge bg-warning text-dark fs-6">{{ approval_count }} {{ fluent(key="pending", lang=lang) }}</span>
+    </div>
+    <p class="text-muted">{{ fluent(key="approvals-help", lang=lang) }}</p>
+
+    <div class="card shadow-lg mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>{{ fluent(key="title", lang=lang) }}</th>
+                            <th>{{ fluent(key="primary-domain", lang=lang) }}</th>
+                            <th class="text-center">{{ fluent(key="approval-tier", lang=lang) }}</th>
+                            <th>{{ fluent(key="target-completion-date", lang=lang) }}</th>
+                            <th>{{ fluent(key="created-by-role", lang=lang) }}</th>
+                            <th class="text-end"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in tasks %}
+                        <tr>
+                            <td>
+                                <a href="/{{ lang }}/task/{{ t.id }}">{{ t.title }}</a>
+                                <div class="mt-1">{{ viz::priority_chip(priority=t.priority) }}</div>
+                            </td>
+                            <td>{{ viz::domain_chip(domain=t.domain) }}</td>
+                            <td class="text-center">{{ t.approvalTier }}</td>
+                            <td class="small">{{ t.targetCompletionDate | truncate(length=10, end="") }}</td>
+                            <td class="small">
+                                {% if t.createdBy.person %}
+                                <a href="/{{ lang }}/person/{{ t.createdBy.person.id }}">{{ t.createdBy.person.givenName }} {{ t.createdBy.person.familyName }}</a>
+                                {% else %}<span class="text-muted">{{ t.createdBy.titleEnglish }}</span>{% endif %}
+                                <div class="text-muted">{{ t.createdBy.team.nameEnglish }}</div>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex gap-1 justify-content-end flex-wrap">
+                                    <form method="post" action="/{{ lang }}/task/{{ t.id }}/approve">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <input type="hidden" name="return_to" value="/{{ lang }}/approvals">
+                                        <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check2" aria-hidden="true"></i> {{ fluent(key="approve", lang=lang) }}</button>
+                                    </form>
+                                    <form method="post" action="/{{ lang }}/task/{{ t.id }}/reject" class="d-flex gap-1">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <input type="hidden" name="return_to" value="/{{ lang }}/approvals">
+                                        <input type="text" class="form-control form-control-sm" name="reason" style="max-width:11rem" placeholder="{{ fluent(key='rejection-reason', lang=lang) }}" required>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x" aria-hidden="true"></i> {{ fluent(key="reject", lang=lang) }}</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-muted text-center p-4">{{ fluent(key="approvals-empty", lang=lang) }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
