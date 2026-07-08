@@ -85,6 +85,9 @@
                 <gcds-nav-link href="/{{ lang }}/products">{{ fluent(key="products", lang=lang) }}</gcds-nav-link>
                 <gcds-nav-link href="/{{ lang }}/skills">{{ fluent(key="skills", lang=lang) }}</gcds-nav-link>
                 <gcds-nav-link href="/{{ lang }}/vacancies">{{ fluent(key="vacancies", lang=lang) }}</gcds-nav-link>
+                {% if role == "operator" or role == "admin" %}
+                <gcds-nav-link href="/{{ lang }}/flags">{{ fluent(key="flags-queue", lang=lang) }}</gcds-nav-link>
+                {% endif %}
             </gcds-nav-group>
 
             <gcds-nav-group menu-label="{{ fluent(key='analytics', lang=lang) }}" open-trigger="{{ fluent(key='analytics', lang=lang) }}">

@@ -86,3 +86,11 @@ pub struct ResolveWorkUpdateFlag;
 pub async fn resolve_work_update_flag(update_id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<resolve_work_update_flag::ResponseData, ApiError> {
     post_graphql::<ResolveWorkUpdateFlag>(&client, api_url, &bearer, resolve_work_update_flag::Variables { update_id }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/work/open_work_flags.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct OpenWorkFlags;
+
+pub async fn open_work_flags(limit: Option<i64>, bearer: String, api_url: &str, client: Arc<Client>) -> Result<open_work_flags::ResponseData, ApiError> {
+    post_graphql::<OpenWorkFlags>(&client, api_url, &bearer, open_work_flags::Variables { limit }).await
+}
