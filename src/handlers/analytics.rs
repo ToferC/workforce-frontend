@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, status_color, chart_json, domain_short_label};
 use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap,
     team_capability_matrix, talent_movements, capability_growth, capability_supply_demand, all_teams,
-    all_org_tiers};
+    all_org_tiers, priority_mismatches};
 
 use crate::security::{self, MinimumRole};
 
@@ -622,6 +622,72 @@ pub async fn analytics_delivery(
     }));
 
     let rendered = data.tmpl.render("analytics/delivery.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
+}
+
+/// Priority-consistency review (Proposal 7c): lists tasks whose priority is out
+/// of step with the tiers around them — ranked below their product, or holding
+/// work ranked below the task — so planners can realign them.
+#[get("/{lang}/analytics/consistency")]
+pub async fn analytics_consistency(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let mismatches = priority_mismatches(auth.bearer, &data.api_url, Arc::clone(&data.client))
+        .await
+        .map(|r| r.priority_mismatches)
+        .unwrap_or_default();
+
+    let mut rows: Vec<serde_json::Value> = Vec::new();
+    let mut below_product_count: i64 = 0;
+    let mut below_work_total: i64 = 0;
+
+    for m in &mismatches {
+        if m.task_below_product {
+            below_product_count += 1;
+        }
+        below_work_total += m.below_work_count as i64;
+
+        let task_priority = serde_json::to_value(&m.task_priority)
+            .ok()
+            .and_then(|v| v.as_str().map(String::from))
+            .unwrap_or_default();
+        let product_priority = m.product_priority.as_ref()
+            .and_then(|p| serde_json::to_value(p).ok())
+            .and_then(|v| v.as_str().map(String::from));
+
+        rows.push(json!({
+            "task_id": m.task_id,
+            "task_title": m.task_title,
+            "task_priority": task_priority,
+            "product_id": m.product_id,
+            "product_name": m.product_name,
+            "product_priority": product_priority,
+            "task_below_product": m.task_below_product,
+            "below_work_count": m.below_work_count,
+        }));
+    }
+
+    ctx.insert("rows", &rows);
+    ctx.insert("summary", &json!({
+        "total": mismatches.len() as i64,
+        "below_product_count": below_product_count,
+        "below_work_total": below_work_total,
+    }));
+
+    let rendered = data.tmpl.render("analytics/consistency.html", &ctx).unwrap();
     HttpResponse::Ok().body(rendered)
 }
 

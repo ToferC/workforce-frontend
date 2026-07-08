@@ -14,6 +14,9 @@
                     {% if lang == "fr" %}{{ product.nameFr }}{% else %}{{ product.nameEn }}{% endif %}
                     {{ viz::status_chip(status=product.productStatus) }}
                     {% if product.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+                    {% if product.priorityMismatchCount > 0 %}
+                    <a href="/{{ lang }}/analytics/consistency" class="badge bg-warning text-dark text-decoration-none" title="{{ fluent(key='priority-consistency', lang=lang) }}"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ product.priorityMismatchCount }} {{ fluent(key="priority-mismatches", lang=lang) }}</a>
+                    {% endif %}
                 </h1>
                 <p class="entity-header__subtitle">
                     <a href="/{{ lang }}/organization/{{ product.organization.id }}">{{ product.organization.nameEn }}</a>
@@ -52,6 +55,9 @@
                             <div class="d-flex align-items-center gap-1 flex-wrap">
                                 {{ viz::domain_chip(domain=task.domain) }}
                                 {{ viz::status_chip(status=task.taskStatus) }}
+                                {% if task.priority %}{{ viz::priority_chip(priority=task.priority) }}{% endif %}
+                                {% if task.priorityBelowParent %}<span class="badge bg-warning text-dark" title="{{ fluent(key='priority-below-product', lang=lang) }}"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>{% endif %}
+                                {% if task.workPriorityMismatchCount > 0 %}<span class="badge bg-secondary" title="{{ fluent(key='lower-priority-work', lang=lang) }}">{{ task.workPriorityMismatchCount }}</span>{% endif %}
                                 {{ viz::effort_meter(value=task.effort) }}
                             </div>
                         </li>

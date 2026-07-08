@@ -55,3 +55,11 @@ pub async fn capability_supply_demand(bucket: capability_supply_demand::TimeBuck
         org_tier_id,
     }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/analytics/priority_mismatches.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct PriorityMismatches;
+
+pub async fn priority_mismatches(bearer: String, api_url: &str, client: Arc<Client>) -> Result<priority_mismatches::ResponseData, ApiError> {
+    post_graphql::<PriorityMismatches>(&client, api_url, &bearer, priority_mismatches::Variables {}).await
+}

@@ -1,0 +1,12 @@
+query PriorityMismatches {
+  priorityMismatches {
+    taskId
+    taskTitle
+    taskPriority
+    productId
+    productName
+    productPriority
+    taskBelowProduct
+    belowWorkCount
+  }
+}

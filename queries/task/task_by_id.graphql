@@ -11,6 +11,8 @@ query TaskById($id:UUID!) {
     targetCompletionDate
     taskStatus
     priority
+    priorityBelowParent
+    workPriorityMismatchCount
     completedDate
     effort
     approvalStatus
@@ -30,6 +32,7 @@ query TaskById($id:UUID!) {
       capabilityLevel
       effort
       priority
+      priorityBelowParent
       workStatus
       dueDate
       blockedSince

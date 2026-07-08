@@ -570,3 +570,19 @@ add-dependency = Add
 dependencies-help = A dependency means this work can't start until the other item is completed. Only sibling work under this task is offered.
 blocks-label = Blocks
 remove = Remove
+
+# Priority consistency (Proposal 7c)
+priority-consistency = Priority Consistency
+priority-consistency-tagline = Where priority drops between a product, its tasks, and their work
+priority-mismatches = Priority Mismatches
+flagged-tasks = Flagged Tasks
+below-product-label = Below its product
+below-work-label = Work below their task
+below-work-short = below task
+task-priority = Task Priority
+product-priority = Product Priority
+issue = Issue
+no-priority-mismatches = All priorities are consistent across products, tasks, and work.
+priority-below-product = Priority below product
+priority-below-task = Priority below task
+lower-priority-work = lower-priority items
