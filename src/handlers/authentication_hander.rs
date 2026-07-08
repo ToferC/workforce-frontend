@@ -161,7 +161,11 @@ pub async fn logout(
     let session = req.get_session();
 
     session.clear();
-    id.unwrap().logout();
+    // Logging out without a live identity (expired cookie, direct GET) is a
+    // no-op, not a panic.
+    if let Some(identity) = id {
+        identity.logout();
+    }
 
     HttpResponse::Found().append_header(("Location", format!("/{}", &lang))).finish()
 }
