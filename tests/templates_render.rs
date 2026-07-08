@@ -1139,6 +1139,21 @@ fn person_list_partial_renders_pagination() {
 }
 
 #[test]
+fn nav_offers_analytics_to_analysts_and_above_only() {
+    let tera = tera();
+    // Analytics handlers require MinimumRole::Analyst; the menu should match.
+    for (role, expected) in [("user", false), ("analyst", true), ("operator", true), ("admin", true)] {
+        let mut ctx = base_context("en", role);
+        ctx.insert("organizations", &json!([]));
+        let html = tera.render("index.html", &ctx).unwrap();
+        assert_eq!(
+            html.contains("/en/analytics"), expected,
+            "role {} should{} see the analytics menu", role, if expected { "" } else { " not" }
+        );
+    }
+}
+
+#[test]
 fn index_shows_new_organization_button_for_operator_only() {
     let tera = tera();
     let mut ctx = base_context("en", "operator");
