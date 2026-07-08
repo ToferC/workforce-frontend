@@ -96,5 +96,11 @@ query WorkById($id:UUID!) {
         }
       }
     }
+    statusHistory {
+      fromStatus
+      toStatus
+      changedAt
+      changedByName
+    }
   }
 }

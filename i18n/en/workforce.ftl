@@ -527,3 +527,5 @@ blocked-on-none = — Not waiting on a specific role —
 blocked-help = This work is blocked. Note why, and optionally the role you are waiting on, so it can be followed up.
 waiting-on = Waiting on
 vacant-position = vacant position
+status-history = Status history
+no-status-history = No status changes recorded yet.

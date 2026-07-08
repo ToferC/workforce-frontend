@@ -220,6 +220,33 @@
                         </ul>
                     </div>
                 </div>
+
+                <!-- Status history (Proposal 4) -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-clock-history" aria-hidden="true"></i> {{ fluent(key="status-history", lang=lang) }}</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if work.statusHistory and work.statusHistory | length > 0 %}
+                        <ul class="list-group list-group-flush">
+                            {% for h in work.statusHistory %}
+                            <li class="list-group-item small">
+                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                    {% if h.fromStatus %}{{ viz::status_chip(status=h.fromStatus) }} <i class="bi bi-arrow-right" aria-hidden="true"></i> {% endif %}
+                                    {{ viz::status_chip(status=h.toStatus) }}
+                                </div>
+                                <div class="text-muted">
+                                    {{ h.changedAt | truncate(length=16, end="") | replace(from="T", to=" ") }}
+                                    {% if h.changedByName %} &middot; {{ h.changedByName }}{% endif %}
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="p-3 text-muted small">{{ fluent(key="no-status-history", lang=lang) }}</div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
