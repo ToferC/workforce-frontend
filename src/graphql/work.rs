@@ -70,3 +70,19 @@ pub struct MyWork;
 pub async fn my_work(bearer: String, api_url: &str, client: Arc<Client>) -> Result<my_work::ResponseData, ApiError> {
     post_graphql::<MyWork>(&client, api_url, &bearer, my_work::Variables {}).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/work/add_work_update.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct AddWorkUpdate;
+
+pub async fn add_work_update(work_id: String, body: String, kind: Option<add_work_update::WorkUpdateKind>, bearer: String, api_url: &str, client: Arc<Client>) -> Result<add_work_update::ResponseData, ApiError> {
+    post_graphql::<AddWorkUpdate>(&client, api_url, &bearer, add_work_update::Variables { work_id, body, kind }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/work/resolve_work_update_flag.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct ResolveWorkUpdateFlag;
+
+pub async fn resolve_work_update_flag(update_id: String, bearer: String, api_url: &str, client: Arc<Client>) -> Result<resolve_work_update_flag::ResponseData, ApiError> {
+    post_graphql::<ResolveWorkUpdateFlag>(&client, api_url, &bearer, resolve_work_update_flag::Variables { update_id }).await
+}

@@ -158,6 +158,8 @@ use crate::handlers::{
     work_index,
     work_skill_options,
     my_work_view,
+    add_work_update_post,
+    resolve_work_flag_post,
     vacancies,
     create_work_form,
     create_work_post,
@@ -353,6 +355,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(my_work_view);
     config.service(work_index);
     config.service(work_skill_options);
+    config.service(add_work_update_post);
+    config.service(resolve_work_flag_post);
     config.service(vacancies);
     config.service(create_work_form);
     config.service(create_work_post);

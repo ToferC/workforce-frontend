@@ -1,0 +1,3 @@
+mutation AddWorkUpdate($workId: UUID!, $body: String!, $kind: WorkUpdateKind) {
+  addWorkUpdate(workId: $workId, body: $body, kind: $kind) { id }
+}

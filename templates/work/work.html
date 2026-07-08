@@ -160,6 +160,66 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Updates & flags (Proposal 3) -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h2 class="h4 mb-0"><i class="bi bi-chat-left-text" aria-hidden="true"></i> {{ fluent(key="updates-and-flags", lang=lang) }}</h2>
+                    {% if work.openFlagCount and work.openFlagCount > 0 %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-flag-fill" aria-hidden="true"></i> {{ work.openFlagCount }} {{ fluent(key="open-flags", lang=lang) }}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if session_user %}
+                    <form method="post" action="/{{ lang }}/work/{{ work.id }}/update" class="mb-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <label class="form-label small" for="update-body">{{ fluent(key="add-update", lang=lang) }}</label>
+                        <textarea class="form-control mb-2" id="update-body" name="body" rows="2" required placeholder="{{ fluent(key="update-placeholder", lang=lang) }}"></textarea>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <select class="form-select form-select-sm w-auto" name="kind">
+                                <option value="COMMENT">{{ fluent(key="kind-comment", lang=lang) }}</option>
+                                <option value="FLAG">{{ fluent(key="kind-flag", lang=lang) }}</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-send" aria-hidden="true"></i> {{ fluent(key="post-update", lang=lang) }}</button>
+                        </div>
+                    </form>
+                    {% endif %}
+
+                    {% if work.updates and work.updates | length > 0 %}
+                    <ul class="list-group list-group-flush">
+                        {% for u in work.updates %}
+                        <li class="list-group-item px-0">
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                {% if u.kind == "FLAG" %}
+                                    {% if u.flagResolvedAt %}
+                                    <span class="badge bg-success"><i class="bi bi-flag" aria-hidden="true"></i> {{ fluent(key="flag-resolved", lang=lang) }}</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-flag-fill" aria-hidden="true"></i> {{ fluent(key="kind-flag", lang=lang) }}</span>
+                                    {% endif %}
+                                {% endif %}
+                                <strong class="small">{% if u.authorName %}{{ u.authorName }}{% else %}&mdash;{% endif %}</strong>
+                                <span class="text-muted small">{{ u.createdAt | truncate(length=16, end="") | replace(from="T", to=" ") }}</span>
+                            </div>
+                            <div class="small">{{ u.body }}</div>
+                            {% if u.kind == "FLAG" and u.flagResolvedAt %}
+                            <div class="text-muted small mt-1">
+                                <i class="bi bi-check-circle" aria-hidden="true"></i>
+                                {{ fluent(key="resolved-by", lang=lang) }} {% if u.resolvedByName %}{{ u.resolvedByName }}{% endif %} &middot; {{ u.flagResolvedAt | truncate(length=16, end="") | replace(from="T", to=" ") }}
+                            </div>
+                            {% elif u.kind == "FLAG" and (role == "operator" or role == "admin") %}
+                            <form method="post" action="/{{ lang }}/work/{{ work.id }}/flag/{{ u.id }}/resolve" class="mt-1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check2" aria-hidden="true"></i> {{ fluent(key="resolve-flag", lang=lang) }}</button>
+                            </form>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-muted small">{{ fluent(key="no-updates", lang=lang) }}</div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <!-- Sidebar pane: details -->
