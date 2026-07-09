@@ -7,8 +7,8 @@ use std::sync::Arc;
 
 use crate::{AppData, generate_basic_context, status_color, chart_json, domain_short_label};
 use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap,
-    team_capability_matrix, talent_movements, capability_growth, capability_supply_demand, all_teams,
-    all_org_tiers, priority_mismatches};
+    team_capability_matrix, org_tier_capability_matrix, talent_movements, capability_growth,
+    capability_supply_demand, all_teams, all_org_tiers, priority_mismatches};
 
 use crate::security::{self, MinimumRole};
 use super::utility::{render_page};
@@ -347,11 +347,25 @@ pub async fn analytics_section_gaps(
     render_page(&data, "analytics/_section_gaps.html", &ctx)
 }
 
+/// The org-tier level the coverage heatmap aggregates at by default. Tier 2
+/// is coarse enough to read at a glance while still showing where capability
+/// actually sits; ?by=team keeps the full-resolution view.
+const COVERAGE_ROLLUP_TIER_LEVEL: i64 = 2;
+
+#[derive(serde::Deserialize, Debug)]
+pub struct CoverageParams {
+    /// "team" switches to the detailed per-team heatmap; anything else (or
+    /// absent) aggregates at COVERAGE_ROLLUP_TIER_LEVEL.
+    #[serde(default)]
+    pub by: String,
+}
+
 #[get("/{lang}/analytics/coverage")]
 pub async fn analytics_coverage(
     data: web::Data<AppData>,
     id: Option<Identity>,
     path: web::Path<String>,
+    params: web::Query<CoverageParams>,
     req: HttpRequest,
 ) -> impl Responder {
     let lang = path.into_inner();
@@ -364,24 +378,45 @@ pub async fn analytics_coverage(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let matrix = team_capability_matrix(None, auth.bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .map(|r| r.team_capability_matrix)
-        .unwrap_or_default();
+    // Default view aggregates at org-tier level 2 — per-team rows are too
+    // granular to read on a large organization. ?by=team keeps the detailed
+    // per-team heatmap available.
+    let by_team = params.by == "team";
 
-    // Build depth_map from API response
+    // Normalize either API shape into (name, entity-id) rows plus the
+    // domain depth map; everything below is agnostic to the grouping.
     let mut depth_map: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
-    let mut team_ids: BTreeMap<String, String> = BTreeMap::new();
+    let mut row_ids: BTreeMap<String, String> = BTreeMap::new();
 
-    for row in &matrix {
-        let team_name = row.team_name.clone();
-        team_ids.insert(team_name.clone(), row.team_id.clone());
-        for cell in &row.cells {
-            *depth_map
-                .entry(team_name.clone())
-                .or_default()
-                .entry(cell.domain.clone())
-                .or_insert(0.0) += cell.depth;
+    if by_team {
+        let matrix = team_capability_matrix(None, auth.bearer, &data.api_url, Arc::clone(&data.client))
+            .await
+            .map(|r| r.team_capability_matrix)
+            .unwrap_or_default();
+        for row in &matrix {
+            row_ids.insert(row.team_name.clone(), row.team_id.clone());
+            for cell in &row.cells {
+                *depth_map
+                    .entry(row.team_name.clone())
+                    .or_default()
+                    .entry(cell.domain.clone())
+                    .or_insert(0.0) += cell.depth;
+            }
+        }
+    } else {
+        let matrix = org_tier_capability_matrix(COVERAGE_ROLLUP_TIER_LEVEL, None, auth.bearer, &data.api_url, Arc::clone(&data.client))
+            .await
+            .map(|r| r.org_tier_capability_matrix)
+            .unwrap_or_default();
+        for row in &matrix {
+            row_ids.insert(row.org_tier_name.clone(), row.org_tier_id.clone());
+            for cell in &row.cells {
+                *depth_map
+                    .entry(row.org_tier_name.clone())
+                    .or_default()
+                    .entry(cell.domain.clone())
+                    .or_insert(0.0) += cell.depth;
+            }
         }
     }
 
@@ -435,14 +470,14 @@ pub async fn analytics_coverage(
         }]
     });
 
-    let table_rows: Vec<serde_json::Value> = depth_map.iter().map(|(team, domains)| {
-        let team_id = team_ids.get(team).cloned().unwrap_or_default();
+    let table_rows: Vec<serde_json::Value> = depth_map.iter().map(|(name, domains)| {
+        let id = row_ids.get(name).cloned().unwrap_or_default();
         let cells: Vec<serde_json::Value> = active_domains.iter().map(|(key, _)| {
             let depth = domains.get(*key).copied().unwrap_or(0.0);
             let opacity = if max_depth > 0.0 { depth / max_depth } else { 0.0 };
             json!({ "depth": (depth * 10.0).round() / 10.0, "opacity": opacity })
         }).collect();
-        json!({ "team": team, "team_id": team_id, "cells": cells })
+        json!({ "name": name, "id": id, "cells": cells })
     }).collect();
 
     let mut domain_totals: Vec<serde_json::Value> = active_domains.iter().map(|(key, label)| {
@@ -463,10 +498,11 @@ pub async fn analytics_coverage(
     ctx.insert("domain_labels", &domain_labels);
     ctx.insert("domain_totals", &domain_totals);
     ctx.insert("summary", &json!({
-        "total_teams": team_names.len() as i64,
+        "total_rows": team_names.len() as i64,
         "active_domains": active_domains.len() as i64,
         "max_depth": (max_depth * 10.0).round() / 10.0,
     }));
+    ctx.insert("by_team", &by_team);
 
     render_page(&data, "analytics/coverage.html", &ctx)
 }

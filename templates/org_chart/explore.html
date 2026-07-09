@@ -24,6 +24,13 @@
             {% if lang == "fr" %}{{ organization.nameFr }}{% else %}{{ organization.nameEn }}{% endif %}
         </h1>
         <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button type="button" id="oc-fullscreen-btn" class="btn btn-sm btn-outline-secondary"
+                    aria-pressed="false"
+                    data-l-enter="{{ fluent(key='fullscreen', lang=lang) }}"
+                    data-l-exit="{{ fluent(key='exit-fullscreen', lang=lang) }}">
+                <i class="bi bi-arrows-fullscreen" aria-hidden="true"></i>
+                <span id="oc-fullscreen-label">{{ fluent(key="fullscreen", lang=lang) }}</span>
+            </button>
             <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/organization/{{ organization_id }}/org_chart">
                 <i class="bi bi-list-nested" aria-hidden="true"></i> {{ fluent(key="list-view", lang=lang) }}
             </a>
@@ -33,7 +40,7 @@
         </div>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="card shadow-sm oc-card" id="oc-card">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span class="small text-muted">{{ fluent(key="org-chart-explore-help", lang=lang) }}</span>
             <span class="d-flex align-items-center gap-3 small flex-wrap">
@@ -71,4 +78,52 @@
 
 {% block scripts %}
 <script src="/static/js/org_chart_explore.js"></script>
+<script>
+    // Fullscreen toggle for the chart card. Prefers the Fullscreen API; falls
+    // back to a fixed-position overlay class where the API is unavailable.
+    (function () {
+        var card = document.getElementById("oc-card");
+        var btn = document.getElementById("oc-fullscreen-btn");
+        var label = document.getElementById("oc-fullscreen-label");
+        if (!card || !btn || !label) { return; }
+
+        function isActive() {
+            return document.fullscreenElement === card
+                || card.classList.contains("oc-fullscreen-fallback");
+        }
+
+        function render() {
+            var active = isActive();
+            btn.setAttribute("aria-pressed", active ? "true" : "false");
+            label.textContent = active ? btn.dataset.lExit : btn.dataset.lEnter;
+        }
+
+        function fallbackToggle() {
+            card.classList.toggle("oc-fullscreen-fallback");
+            render();
+        }
+
+        btn.addEventListener("click", function () {
+            if (document.fullscreenElement === card) {
+                document.exitFullscreen();
+            } else if (card.classList.contains("oc-fullscreen-fallback")) {
+                fallbackToggle();
+            } else if (card.requestFullscreen) {
+                card.requestFullscreen().catch(fallbackToggle);
+            } else {
+                fallbackToggle();
+            }
+        });
+
+        // Native fullscreen exits (Escape, browser UI) come through this event.
+        document.addEventListener("fullscreenchange", render);
+
+        // Escape also leaves the CSS fallback overlay.
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && card.classList.contains("oc-fullscreen-fallback")) {
+                fallbackToggle();
+            }
+        });
+    })();
+</script>
 {% endblock scripts %}

@@ -15,9 +15,15 @@
         </ol>
     </nav>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h1 class="h3 mb-0"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i> {{ fluent(key="team-capability-coverage", lang=lang) }}</h1>
-        <span class="text-muted small">{{ fluent(key="coverage-tagline", lang=lang) }}</span>
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <span class="text-muted small">{% if by_team %}{{ fluent(key="coverage-tagline", lang=lang) }}{% else %}{{ fluent(key="coverage-rollup-hint", lang=lang) }}{% endif %}</span>
+            <span class="btn-group" role="group" aria-label="{{ fluent(key='capability-coverage', lang=lang) }}">
+                <a class="btn btn-sm {% if not by_team %}btn-primary{% else %}btn-outline-primary{% endif %}" href="/{{ lang }}/analytics/coverage">{{ fluent(key="view-by-tier2", lang=lang) }}</a>
+                <a class="btn btn-sm {% if by_team %}btn-primary{% else %}btn-outline-primary{% endif %}" href="/{{ lang }}/analytics/coverage?by=team">{{ fluent(key="view-by-team", lang=lang) }}</a>
+            </span>
+        </div>
     </div>
 
     <!-- KPI Cards -->
@@ -25,8 +31,8 @@
         <div class="col-6 col-md-4">
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-primary">{{ summary.total_teams }}</div>
-                    <div class="small text-muted">{{ fluent(key="active-teams", lang=lang) }}</div>
+                    <div class="fs-2 fw-bold text-primary">{{ summary.total_rows }}</div>
+                    <div class="small text-muted">{% if by_team %}{{ fluent(key="active-teams", lang=lang) }}{% else %}{{ fluent(key="active-org-tiers", lang=lang) }}{% endif %}</div>
                 </div>
             </div>
         </div>
@@ -108,7 +114,7 @@
                     <table class="table table-sm mb-0" style="font-size:0.72rem;white-space:nowrap">
                         <thead>
                             <tr>
-                                <th style="min-width:130px">{{ fluent(key="team", lang=lang) }}</th>
+                                <th style="min-width:130px">{% if by_team %}{{ fluent(key="team", lang=lang) }}{% else %}{{ fluent(key="org-tier", lang=lang) }}{% endif %}</th>
                                 {% for label in domain_labels %}
                                 <th class="text-center p-0" style="min-width:34px">
                                     <div style="writing-mode:vertical-rl;transform:rotate(180deg);padding:6px 3px;font-size:0.68rem">{{ label }}</div>
@@ -120,10 +126,10 @@
                             {% for row in table_rows %}
                             <tr>
                                 <td class="small">
-                                    {% if row.team_id %}
-                                    <a href="/{{ lang }}/team/{{ row.team_id }}">{{ row.team }}</a>
+                                    {% if row.id %}
+                                    <a href="/{{ lang }}/{% if by_team %}team{% else %}org_tier{% endif %}/{{ row.id }}">{{ row.name }}</a>
                                     {% else %}
-                                    {{ row.team }}
+                                    {{ row.name }}
                                     {% endif %}
                                 </td>
                                 {% for cell in row.cells %}

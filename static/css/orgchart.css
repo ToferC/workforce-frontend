@@ -259,3 +259,24 @@
 .oc-toggle:hover {
     background: var(--bg-tertiary);
 }
+
+/* Fullscreen: both the native :fullscreen element and the CSS fallback fill
+   the viewport so the chart canvas gets the whole screen. The wrap's fixed
+   height (sized for the normal page chrome) is re-based on the viewport. */
+.oc-card:fullscreen {
+    background: var(--bg-primary, #fff);
+    overflow: auto;
+    border-radius: 0;
+}
+.oc-card:fullscreen .orgchart-wrap,
+.oc-card.oc-fullscreen-fallback .orgchart-wrap {
+    height: calc(100vh - 64px);
+}
+.oc-card.oc-fullscreen-fallback {
+    position: fixed;
+    inset: 0;
+    z-index: 1055;
+    border-radius: 0;
+    background: var(--bg-primary, #fff);
+    overflow: auto;
+}

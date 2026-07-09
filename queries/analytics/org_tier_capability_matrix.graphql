@@ -1,0 +1,12 @@
+query OrgTierCapabilityMatrix($tierLevel: Int!, $orgTierId: UUID) {
+  orgTierCapabilityMatrix(tierLevel: $tierLevel, orgTierId: $orgTierId) {
+    orgTierId
+    orgTierName
+    tierLevel
+    cells {
+      domain
+      depth
+      peopleCount
+    }
+  }
+}

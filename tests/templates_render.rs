@@ -1176,18 +1176,33 @@ fn analytics_templates_render_in_both_languages() {
         }]));
         tera.render("analytics/_section_gaps.html", &ctx).unwrap();
 
-        // Coverage
-        let mut ctx = base_context(lang, "analyst");
-        ctx.insert("summary", &json!({"total_teams": 3, "active_domains": 2, "max_depth": 9}));
-        ctx.insert("chart_height", "300px");
-        ctx.insert("chart_option", chart);
-        ctx.insert("domain_totals", &json!([{"key": "CYBER_SECURITY", "total": 9}]));
-        ctx.insert("domain_labels", &json!(["Cyber"]));
-        ctx.insert("table_rows", &json!([{
-            "team_id": "66666666-6666-6666-6666-666666666666", "team": "Test Team",
-            "cells": [{"opacity": 0.5, "depth": 9}],
-        }]));
-        tera.render("analytics/coverage.html", &ctx).unwrap();
+        // Coverage — tier-2 rollup (default) and per-team views
+        for by_team in [false, true] {
+            let row_name = if by_team { "Test Team" } else { "Test Tier" };
+            let row_link = if by_team {
+                format!("/{}/team/66666666-6666-6666-6666-666666666666", lang)
+            } else {
+                format!("/{}/org_tier/22222222-2222-2222-2222-222222222222", lang)
+            };
+            let row_id = if by_team { "66666666-6666-6666-6666-666666666666" } else { "22222222-2222-2222-2222-222222222222" };
+            let mut ctx = base_context(lang, "analyst");
+            ctx.insert("by_team", &by_team);
+            ctx.insert("summary", &json!({"total_rows": 3, "active_domains": 2, "max_depth": 9}));
+            ctx.insert("chart_height", "300px");
+            ctx.insert("chart_option", chart);
+            ctx.insert("domain_totals", &json!([{"key": "CYBER_SECURITY", "total": 9}]));
+            ctx.insert("domain_labels", &json!(["Cyber"]));
+            ctx.insert("table_rows", &json!([{
+                "name": row_name,
+                "id": row_id,
+                "cells": [{"opacity": 0.5, "depth": 9}],
+            }]));
+            let html = tera.render("analytics/coverage.html", &ctx).unwrap();
+            // Both views offer the toggle, and the row links to its entity page
+            assert!(html.contains("/analytics/coverage?by=team"));
+            assert!(html.contains(&row_link), "row link missing in by_team={}", by_team);
+            assert!(html.contains(row_name));
+        }
 
         // Delivery
         let mut ctx = base_context(lang, "analyst");
@@ -1229,6 +1244,21 @@ fn analytics_templates_render_in_both_languages() {
     let html = tera.render("analytics/analytics.html", &ctx).unwrap();
     assert!(html.contains("Analytique de l") && html.contains("effectif"));
     assert!(html.contains("Mobilité des talents"));
+}
+
+#[test]
+fn org_chart_explore_offers_fullscreen_toggle() {
+    let tera = tera();
+    for lang in ["en", "fr"] {
+        let mut ctx = base_context(lang, "user");
+        ctx.insert("organization", &sample_organization());
+        ctx.insert("organization_id", "11111111-1111-1111-1111-111111111111");
+        ctx.insert("orgchart_data", &json!({"name": "Test Organization", "tiers": []}));
+        let html = tera.render("org_chart/explore.html", &ctx).unwrap();
+        assert!(html.contains("id=\"oc-fullscreen-btn\""));
+        assert!(html.contains("id=\"oc-card\""));
+        assert!(html.contains("requestFullscreen"));
+    }
 }
 
 #[test]
