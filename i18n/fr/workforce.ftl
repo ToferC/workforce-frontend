@@ -740,3 +740,11 @@ this-is-you = Ceci est votre dossier.
 update-my-details = Mettre à jour mes coordonnées
 add-my-capability = Ajouter une capacité
 add-my-capability-help = Déclarez une compétence que vous possédez et votre propre évaluation de votre niveau. Un administrateur pourra la valider plus tard; les niveaux validés ont toujours préséance.
+
+# Ligne hiérarchique du rôle et postes vacants d'équipe
+reporting-line = Ligne hiérarchique
+reports-to = Relève de
+direct-reports = Subordonnés directs
+no-manager = Aucun — poste au sommet de son équipe
+find-candidates = Trouver des candidats
+due-short = Échéance

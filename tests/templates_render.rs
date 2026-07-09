@@ -456,6 +456,8 @@ fn sample_role_record() -> serde_json::Value {
         "active": "true",
         "militaryOccupation": "CYBER",
         "rank": "CAPTAIN",
+        "occupationalGroup": null,
+        "occupationalLevel": null,
         "effort": 1,
         "startDate": "2026-01-01",
         "endDate": "",
@@ -468,6 +470,16 @@ fn sample_role_record() -> serde_json::Value {
         "work": [],
         "requirements": [],
         "assignments": [],
+        "manager": {
+            "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+            "titleEnglish": "Section Head", "titleFrench": "Chef de section",
+            "person": {"id": "44444444-4444-4444-4444-444444444444", "givenName": "Jane", "familyName": "Doe"},
+        },
+        "directReports": [{
+            "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+            "titleEnglish": "Junior Analyst", "titleFrench": "Analyste subalterne",
+            "person": null,
+        }],
     })
 }
 
@@ -486,7 +498,7 @@ fn sample_match_score(given: &str, family: &str, score: f64, met: i64, total: i6
         "person": {
             "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "givenName": given, "familyName": family,
             "phone": "555", "email": "c@e.com",
-            "activeRoles": [{"id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "titleEnglish": "Analyst", "militaryOccupation": "CYBER", "rank": "CAPTAIN"}],
+            "activeRoles": [{"id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "titleEnglish": "Analyst", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "occupationalGroup": null, "occupationalLevel": null}],
             "capabilities": [],
         },
     })
@@ -646,9 +658,9 @@ fn person_page_shows_past_roles_from_assignments() {
     // One current (excluded) and one closed (shown as a past role)
     person["roleAssignments"] = json!([
         {"id": "a0000000-0000-0000-0000-000000000003", "startDate": "2026-01-01", "endDate": "Current", "isCurrent": true,
-         "role": {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team"}}},
+         "role": {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "occupationalGroup": null, "occupationalLevel": null, "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team"}}},
         {"id": "a0000000-0000-0000-0000-000000000004", "startDate": "2023-01-01", "endDate": "2025-12-31", "isCurrent": false,
-         "role": {"id": "55555555-5555-5555-5555-555555555555", "titleEnglish": "Junior Analyst", "militaryOccupation": "CYBER", "rank": "LIEUTENANT", "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Old Team"}}},
+         "role": {"id": "55555555-5555-5555-5555-555555555555", "titleEnglish": "Junior Analyst", "militaryOccupation": "CYBER", "rank": "LIEUTENANT", "occupationalGroup": null, "occupationalLevel": null, "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Old Team"}}},
     ]);
     let mut ctx = base_context("en", "operator");
     ctx.insert("person", &person);
@@ -1383,6 +1395,70 @@ fn my_capability_form_renders() {
         assert!(html.contains("name=\"skill_id\""));
         assert!(html.contains("name=\"self_identified_level\""));
     }
+}
+
+#[test]
+fn role_page_shows_reporting_line_and_classification() {
+    let tera = tera();
+    let mut ctx = base_context("en", "user");
+    ctx.insert("role_record", &sample_role_record());
+    ctx.insert("overdue_work_ids", &json!([]));
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    // Reporting line: manager with incumbent, vacant direct report flagged
+    assert!(html.contains("Section Head"));
+    assert!(html.contains("Jane Doe"));
+    assert!(html.contains("Junior Analyst"));
+    // Military classification renders with a separator, not "CYBER-CAPTAIN"
+    assert!(html.contains("CYBER &middot; CAPTAIN") || html.contains("CYBER · CAPTAIN"));
+    // Page title carries the role's name
+    assert!(html.contains("<title>Analyst"));
+
+    // Civilian role: group · level, no military dash artifacts
+    let mut role = sample_role_record();
+    role["militaryOccupation"] = json!(null);
+    role["rank"] = json!(null);
+    role["occupationalGroup"] = json!("COMPUTER_SYSTEMS");
+    role["occupationalLevel"] = json!(4);
+    let mut ctx = base_context("en", "user");
+    ctx.insert("role_record", &role);
+    ctx.insert("overdue_work_ids", &json!([]));
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(html.contains("COMPUTER_SYSTEMS &middot; 4") || html.contains("COMPUTER_SYSTEMS · 4"));
+    assert!(!html.contains("None-None"));
+}
+
+#[test]
+fn role_work_rows_show_due_dates_and_overdue() {
+    let tera = tera();
+    let mut role = sample_role_record();
+    role["work"] = json!([
+        {"id": "b0000000-0000-0000-0000-000000000001", "workDescription": "Late deliverable", "domain": "CYBER_SECURITY",
+         "capabilityLevel": "EXPERT", "workStatus": "IN_PROGRESS", "effort": 2, "dueDate": "2026-07-01T00:00:00"},
+        {"id": "b0000000-0000-0000-0000-000000000002", "workDescription": "Done thing", "domain": "CYBER_SECURITY",
+         "capabilityLevel": "EXPERT", "workStatus": "COMPLETED", "effort": 1, "dueDate": "2026-07-01T00:00:00"},
+    ]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_record", &role);
+    ctx.insert("overdue_work_ids", &json!(["b0000000-0000-0000-0000-000000000001"]));
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(html.contains("2026-07-01"));
+    // Exactly one overdue badge: the completed item is past due but done
+    assert_eq!(html.matches("Overdue").count(), 1);
+}
+
+#[test]
+fn team_page_lists_vacant_roles_with_find_candidates() {
+    let tera = tera();
+    let mut team = sample_team();
+    team["vacantRoles"] = json!([{"id": "99999999-9999-9999-9999-999999999999", "titleEnglish": "Advisor", "titleFrench": "Conseiller"}]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("team", &team);
+    team_page_extras(&mut ctx);
+    let html = tera.render("team/team.html", &ctx).unwrap();
+    assert!(html.contains("Find candidates"));
+    assert!(html.contains("/role/99999999-9999-9999-9999-999999999999"));
+    // Team page title carries the team name
+    assert!(html.contains("<title>Test Team"));
 }
 
 #[test]

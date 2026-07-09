@@ -144,3 +144,14 @@
 <span class="badge bg-info text-dark" title="Self-identified level">{{ level }}</span>
 {%- endif -%}
 {% endmacro level_chip %}
+
+{% macro classification(mo="", rank="", group="", level="") %}
+{#- One classification string for a role: military occupation · rank for
+    military holders, occupational group · level for civilian ones, nothing
+    for unclassified — no more dangling "None-None" or "-" separators. -#}
+{%- if mo or rank -%}
+{{ mo }}{% if mo and rank %} &middot; {% endif %}{{ rank }}
+{%- elif group or level -%}
+{{ group }}{% if group and level %} &middot; {% endif %}{{ level }}
+{%- endif -%}
+{% endmacro classification %}

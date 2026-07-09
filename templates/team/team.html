@@ -2,7 +2,7 @@
 {% import "macros/viz.html" as viz %}
 
 {% block title %}
-    <title>{{ fluent(key="team", lang=lang )}}</title>
+    <title>{% if lang == "fr" %}{{ team.nameFrench }}{% else %}{{ team.nameEnglish }}{% endif %} — {{ fluent(key="team", lang=lang )}}</title>
 {% endblock title %}
 
 {% block content %}
@@ -101,7 +101,7 @@
                                 </td>
                                 <td>
                                     <a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish }}</a>
-                                    <span class="text-muted small ms-1">({{ role.militaryOccupation }}-{{ role.rank }})</span>
+                                    <span class="text-muted small ms-1">{{ viz::classification(mo=role.militaryOccupation, rank=role.rank, group=role.occupationalGroup, level=role.occupationalLevel) }}</span>
                                 </td>
                                 <td class="text-end" style="min-width:120px">{{ viz::effort_meter(value=role.effort) }}</td>
                             </tr>
@@ -112,11 +112,24 @@
                     </table>
                 </div>
                 {% if team.vacantRoles | length > 0 %}
-                <div class="card-footer">
-                    <span class="text-muted small me-2"><i class="bi bi-person-dash" aria-hidden="true"></i> Vacant:</span>
-                    {% for role in team.vacantRoles %}
-                    <a href="/{{lang}}/role/{{ role.id }}" class="badge bg-light text-dark border me-1 text-decoration-none">{{ role.titleEnglish }}</a>
-                    {% endfor %}
+                <div class="card-footer p-0">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <tbody>
+                            {% for vacant in team.vacantRoles %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-warning text-dark me-1">{{ fluent(key="vacant-label", lang=lang) }}</span>
+                                    <a href="/{{lang}}/role/{{ vacant.id }}">{{ vacant.titleEnglish }}</a>
+                                </td>
+                                <td class="text-end">
+                                    <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/role/{{ vacant.id }}">
+                                        <i class="bi bi-bullseye" aria-hidden="true"></i> {{ fluent(key="find-candidates", lang=lang) }}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
                 {% endif %}
             </div>

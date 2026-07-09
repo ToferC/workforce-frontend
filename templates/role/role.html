@@ -5,7 +5,7 @@
 {% import "macros/forms.html" as forms %}
 
 {% block title %}
-    <title>{{ fluent(key="role", lang=lang )}}</title>
+    <title>{% if lang == "fr" %}{{ role_record.titleFrench }}{% else %}{{ role_record.titleEnglish }}{% endif %} — {{ fluent(key="role", lang=lang )}}</title>
 {% endblock title %}
 
 {% block content %}
@@ -17,7 +17,7 @@
                     {% if lang == "fr" %}{{ role_record.titleFrench }}{% else %}{{ role_record.titleEnglish }}{% endif %}
                     {% if role_record.active == "false" %}<span class="badge bg-warning text-dark">{{ fluent(key="role-ended", lang=lang) }}</span>{% endif %}
                 </h1>
-                <p class="entity-header__subtitle">{{ role_record.militaryOccupation }}-{{ role_record.rank }}</p>
+                <p class="entity-header__subtitle">{{ viz::classification(mo=role_record.militaryOccupation, rank=role_record.rank, group=role_record.occupationalGroup, level=role_record.occupationalLevel) }}</p>
             </div>
 
             {% if role == "operator" or role == "admin" %}
@@ -120,6 +120,12 @@
                                 {{ viz::level_chip(level=work.capabilityLevel) }}
                                 {{ viz::status_chip(status=work.workStatus) }}
                                 {{ viz::effort_meter(value=work.effort) }}
+                                {% if work.dueDate %}
+                                <span class="text-muted small">{{ fluent(key="due-short", lang=lang) }} {{ work.dueDate | truncate(length=10, end="") }}</span>
+                                {% if work.id in overdue_work_ids %}
+                                <span class="badge bg-danger">{{ fluent(key="overdue", lang=lang) }}</span>
+                                {% endif %}
+                                {% endif %}
                             </div>
                         </li>
                         {% endfor %}
@@ -312,6 +318,51 @@
                 </div>
                 {% endif %}
                 {% endif %}
+
+                <!-- Reporting line: who this position answers to, and who
+                     answers to it. Position-to-position, so a vacant manager
+                     still shows as the reporting line. -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="reporting-line", lang=lang) }}</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <span class="text-muted">{{ fluent(key="reports-to", lang=lang) }}:</span>
+                                {% if role_record.manager %}
+                                <a href="/{{ lang }}/role/{{ role_record.manager.id }}">{% if lang == "fr" %}{{ role_record.manager.titleFrench }}{% else %}{{ role_record.manager.titleEnglish }}{% endif %}</a>
+                                {% if role_record.manager.person %}
+                                &mdash; <a href="/{{ lang }}/person/{{ role_record.manager.person.id }}">{{ role_record.manager.person.givenName }} {{ role_record.manager.person.familyName }}</a>
+                                {% else %}
+                                &mdash; <span class="badge bg-warning text-dark">{{ fluent(key="vacant-label", lang=lang) }}</span>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">{{ fluent(key="no-manager", lang=lang) }}</span>
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item">
+                                <span class="text-muted">{{ fluent(key="direct-reports", lang=lang) }}:</span>
+                                {% if role_record.directReports and role_record.directReports | length > 0 %}
+                                <ul class="list-unstyled mb-0 mt-1">
+                                    {% for dr in role_record.directReports %}
+                                    <li>
+                                        <a href="/{{ lang }}/role/{{ dr.id }}">{% if lang == "fr" %}{{ dr.titleFrench }}{% else %}{{ dr.titleEnglish }}{% endif %}</a>
+                                        {% if dr.person %}
+                                        <span class="text-muted small">&mdash; {{ dr.person.givenName }} {{ dr.person.familyName }}</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">{{ fluent(key="vacant-label", lang=lang) }}</span>
+                                        {% endif %}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                {% else %}
+                                <span class="text-muted">{{ fluent(key="none-label", lang=lang) }}</span>
+                                {% endif %}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

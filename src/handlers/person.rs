@@ -216,6 +216,22 @@ pub async fn person_by_id(
 
     ctx.insert("person", &r.person_by_id);
 
+    // Overdue work ids for the badge: due before today and not finished.
+    // (Tera can't compare date strings, so membership is computed here.)
+    let today = chrono::Utc::now().date_naive();
+    let overdue_work_ids: Vec<&String> = r.person_by_id.active_roles.iter()
+        .flat_map(|role| role.work.iter())
+        .filter(|w| {
+            let status = serde_json::to_value(&w.work_status).ok()
+                .and_then(|v| v.as_str().map(String::from))
+                .unwrap_or_default();
+            status != "COMPLETED" && status != "CANCELLED"
+        })
+        .filter(|w| w.due_date.map(|d| d.date() < today).unwrap_or(false))
+        .map(|w| &w.id)
+        .collect();
+    ctx.insert("overdue_work_ids", &overdue_work_ids);
+
     // Self-service band: is this record the signed-in user's own person?
     // Resolved through `me` (ownership-based) so it works for plain users,
     // not just admins.

@@ -30,6 +30,8 @@ query WorkById($id:UUID!) {
       titleEnglish
       militaryOccupation
       rank
+      occupationalGroup
+      occupationalLevel
       team {
         id
         nameEnglish
@@ -61,6 +63,8 @@ query WorkById($id:UUID!) {
         titleEnglish
         militaryOccupation
         rank
+        occupationalGroup
+        occupationalLevel
         person {
           id
           givenName
@@ -81,6 +85,8 @@ query WorkById($id:UUID!) {
       titleEnglish
       militaryOccupation
       rank
+      occupationalGroup
+      occupationalLevel
       person {
         id
         familyName
@@ -109,6 +115,8 @@ query WorkById($id:UUID!) {
           titleEnglish
           militaryOccupation
           rank
+          occupationalGroup
+          occupationalLevel
         }
       }
     }
