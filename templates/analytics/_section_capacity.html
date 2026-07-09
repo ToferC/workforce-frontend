@@ -5,15 +5,15 @@
 #}
 <div class="card shadow-sm mb-4">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h2 class="h5 mb-0"><i class="bi bi-people" aria-hidden="true"></i> Team Capacity
-            <small class="text-muted ms-1">(total active effort)</small>
+        <h2 class="h5 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="team-capacity", lang=lang) }}
+            <small class="text-muted ms-1">{{ fluent(key="total-active-effort-hint", lang=lang) }}</small>
         </h2>
-        <span class="badge bg-secondary">{{ total_people }} active</span>
+        <span class="badge bg-secondary">{{ total_people }} {{ fluent(key="active-suffix", lang=lang) }}</span>
     </div>
     <div class="card-body p-0">
         <table class="table table-sm mb-0 align-middle">
             <thead>
-                <tr><th>Team</th><th class="text-end">Effort</th><th>Load</th></tr>
+                <tr><th>{{ fluent(key="team", lang=lang) }}</th><th class="text-end">{{ fluent(key="effort", lang=lang) }}</th><th>{{ fluent(key="load-label", lang=lang) }}</th></tr>
             </thead>
             <tbody>
                 {% if team_capacity %}
@@ -23,17 +23,17 @@
                     <td class="text-end fw-bold">{{ t.effort }}</td>
                     <td>
                         {% if t.effort > 50 %}
-                            <span class="badge bg-danger">High</span>
+                            <span class="badge bg-danger">{{ fluent(key="load-high", lang=lang) }}</span>
                         {% elif t.effort > 20 %}
-                            <span class="badge bg-warning text-dark">Medium</span>
+                            <span class="badge bg-warning text-dark">{{ fluent(key="load-medium", lang=lang) }}</span>
                         {% else %}
-                            <span class="badge bg-success">Low</span>
+                            <span class="badge bg-success">{{ fluent(key="load-low", lang=lang) }}</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
                 {% else %}
-                <tr><td colspan="3" class="text-muted text-center p-3">No team data available.</td></tr>
+                <tr><td colspan="3" class="text-muted text-center p-3">{{ fluent(key="no-team-data", lang=lang) }}</td></tr>
                 {% endif %}
             </tbody>
         </table>
@@ -42,15 +42,15 @@
 
 <div class="card shadow-sm mb-4">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h2 class="h5 mb-0"><i class="bi bi-exclamation-triangle text-danger" aria-hidden="true"></i> Over-Allocated People
-            <small class="text-muted">(effort &ge; 8)</small>
+        <h2 class="h5 mb-0"><i class="bi bi-exclamation-triangle text-danger" aria-hidden="true"></i> {{ fluent(key="over-allocated-people", lang=lang) }}
+            <small class="text-muted">{{ fluent(key="over-allocated-hint", lang=lang) }}</small>
         </h2>
-        <span class="badge bg-secondary">{{ available_count }} available</span>
+        <span class="badge bg-secondary">{{ available_count }} {{ fluent(key="available-suffix", lang=lang) }}</span>
     </div>
     <div class="card-body p-0">
         <table class="table table-sm mb-0 align-middle">
             <thead>
-                <tr><th>Person</th><th>Team</th><th class="text-center">Effort</th></tr>
+                <tr><th>{{ fluent(key="person", lang=lang) }}</th><th>{{ fluent(key="team", lang=lang) }}</th><th class="text-center">{{ fluent(key="effort", lang=lang) }}</th></tr>
             </thead>
             <tbody>
                 {% if over_allocated %}
@@ -67,7 +67,7 @@
                 {% endfor %}
                 {% else %}
                 <tr><td colspan="3" class="text-success text-center p-3">
-                    <i class="bi bi-check-circle" aria-hidden="true"></i> No one is over-allocated.
+                    <i class="bi bi-check-circle" aria-hidden="true"></i> {{ fluent(key="no-one-over-allocated", lang=lang) }}
                 </td></tr>
                 {% endif %}
             </tbody>

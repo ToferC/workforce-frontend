@@ -1,31 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}<title>Analytics</title>{% endblock title %}
+{% block title %}<title>{{ fluent(key="analytics", lang=lang) }}</title>{% endblock title %}
 
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
 
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h1 class="h3 mb-0"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Workforce Analytics</h1>
+        <h1 class="h3 mb-0"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> {{ fluent(key="workforce-analytics", lang=lang) }}</h1>
         <div class="d-flex gap-2 align-items-center flex-wrap">
             <a href="/{{ lang }}/analytics/coverage" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i> Capability Coverage
+                <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i> {{ fluent(key="capability-coverage", lang=lang) }}
             </a>
             <a href="/{{ lang }}/analytics/delivery" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-diagram-2" aria-hidden="true"></i> Delivery Map
+                <i class="bi bi-diagram-2" aria-hidden="true"></i> {{ fluent(key="delivery-map", lang=lang) }}
             </a>
             <a href="/{{ lang }}/analytics/consistency" class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-sliders" aria-hidden="true"></i> {{ fluent(key="priority-consistency", lang=lang) }}
             </a>
             <a href="/{{ lang }}/analytics/mobility" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-arrow-left-right" aria-hidden="true"></i> Talent Mobility
+                <i class="bi bi-arrow-left-right" aria-hidden="true"></i> {{ fluent(key="talent-mobility", lang=lang) }}
             </a>
             <a href="/{{ lang }}/analytics/growth" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-graph-up" aria-hidden="true"></i> Capability Growth
+                <i class="bi bi-graph-up" aria-hidden="true"></i> {{ fluent(key="capability-growth", lang=lang) }}
             </a>
             <a href="/{{ lang }}/analytics/supply-demand" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-bar-chart-line" aria-hidden="true"></i> Supply vs Demand
+                <i class="bi bi-bar-chart-line" aria-hidden="true"></i> {{ fluent(key="supply-vs-demand", lang=lang) }}
             </a>
         </div>
     </div>
@@ -40,28 +40,28 @@
         <div class="col-12 col-lg-6">
             <div id="sec-work" hx-get="/{{ lang }}/analytics/section/work" hx-trigger="load" hx-swap="innerHTML">
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header"><h2 class="h5 mb-0"><i class="bi bi-list-check" aria-hidden="true"></i> Work</h2></div>
-                    <div class="card-body text-center text-muted py-4" aria-live="polite"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Loading…</div>
+                    <div class="card-header"><h2 class="h5 mb-0"><i class="bi bi-list-check" aria-hidden="true"></i> {{ fluent(key="work", lang=lang) }}</h2></div>
+                    <div class="card-body text-center text-muted py-4" aria-live="polite"><i class="bi bi-hourglass-split" aria-hidden="true"></i> {{ fluent(key="loading", lang=lang) }}</div>
                 </div>
             </div>
             <div id="sec-vacancies" hx-get="/{{ lang }}/analytics/section/vacancies" hx-trigger="load" hx-swap="innerHTML">
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header"><h2 class="h5 mb-0"><i class="bi bi-person-dash" aria-hidden="true"></i> Vacancies</h2></div>
-                    <div class="card-body text-center text-muted py-4" aria-live="polite"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Loading…</div>
+                    <div class="card-header"><h2 class="h5 mb-0"><i class="bi bi-person-dash" aria-hidden="true"></i> {{ fluent(key="vacancies", lang=lang) }}</h2></div>
+                    <div class="card-body text-center text-muted py-4" aria-live="polite"><i class="bi bi-hourglass-split" aria-hidden="true"></i> {{ fluent(key="loading", lang=lang) }}</div>
                 </div>
             </div>
         </div>
         <div class="col-12 col-lg-6">
             <div id="sec-capacity" hx-get="/{{ lang }}/analytics/section/capacity" hx-trigger="load" hx-swap="innerHTML">
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header"><h2 class="h5 mb-0"><i class="bi bi-people" aria-hidden="true"></i> Team Capacity</h2></div>
-                    <div class="card-body text-center text-muted py-4" aria-live="polite"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Loading…</div>
+                    <div class="card-header"><h2 class="h5 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="team-capacity", lang=lang) }}</h2></div>
+                    <div class="card-body text-center text-muted py-4" aria-live="polite"><i class="bi bi-hourglass-split" aria-hidden="true"></i> {{ fluent(key="loading", lang=lang) }}</div>
                 </div>
             </div>
             <div id="sec-gaps" hx-get="/{{ lang }}/analytics/section/gaps" hx-trigger="load" hx-swap="innerHTML">
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header"><h2 class="h5 mb-0"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Capability Gaps</h2></div>
-                    <div class="card-body text-center text-muted py-4" aria-live="polite"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Loading…</div>
+                    <div class="card-header"><h2 class="h5 mb-0"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> {{ fluent(key="capability-gaps", lang=lang) }}</h2></div>
+                    <div class="card-body text-center text-muted py-4" aria-live="polite"><i class="bi bi-hourglass-split" aria-hidden="true"></i> {{ fluent(key="loading", lang=lang) }}</div>
                 </div>
             </div>
         </div>

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% import "macros/charts.html" as charts %}
 
-{% block title %}<title>Talent Mobility</title>{% endblock title %}
+{% block title %}<title>{{ fluent(key="talent-mobility", lang=lang) }}</title>{% endblock title %}
 
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
@@ -9,14 +9,14 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/{{ lang }}/analytics">Analytics</a></li>
-            <li class="breadcrumb-item active">Talent Mobility</li>
+            <li class="breadcrumb-item"><a href="/{{ lang }}/analytics">{{ fluent(key="analytics", lang=lang) }}</a></li>
+            <li class="breadcrumb-item active">{{ fluent(key="talent-mobility", lang=lang) }}</li>
         </ol>
     </nav>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0"><i class="bi bi-arrow-left-right" aria-hidden="true"></i> Talent Mobility</h1>
-        <span class="text-muted small">Previous org tier → current org tier movement</span>
+        <h1 class="h3 mb-0"><i class="bi bi-arrow-left-right" aria-hidden="true"></i> {{ fluent(key="talent-mobility", lang=lang) }}</h1>
+        <span class="text-muted small">{{ fluent(key="mobility-tagline", lang=lang) }}</span>
     </div>
 
     <!-- KPI Cards -->
@@ -25,7 +25,7 @@
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-primary">{{ summary.total_moves }}</div>
-                    <div class="small text-muted">Total Moves</div>
+                    <div class="small text-muted">{{ fluent(key="total-moves", lang=lang) }}</div>
                 </div>
             </div>
         </div>
@@ -33,7 +33,7 @@
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-success">{{ summary.promotions }}</div>
-                    <div class="small text-muted">Promotions</div>
+                    <div class="small text-muted">{{ fluent(key="promotions", lang=lang) }}</div>
                 </div>
             </div>
         </div>
@@ -41,7 +41,7 @@
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-info">{{ summary.laterals }}</div>
-                    <div class="small text-muted">Lateral Moves</div>
+                    <div class="small text-muted">{{ fluent(key="lateral-moves", lang=lang) }}</div>
                 </div>
             </div>
         </div>
@@ -49,7 +49,7 @@
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-warning">{{ summary.inflows }}</div>
-                    <div class="small text-muted">Inflows</div>
+                    <div class="small text-muted">{{ fluent(key="inflows", lang=lang) }}</div>
                 </div>
             </div>
         </div>
@@ -57,7 +57,7 @@
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-danger">{{ summary.outflows }}</div>
-                    <div class="small text-muted">Outflows</div>
+                    <div class="small text-muted">{{ fluent(key="outflows", lang=lang) }}</div>
                 </div>
             </div>
         </div>
@@ -65,7 +65,7 @@
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-secondary">{{ summary.org_tiers_involved }}</div>
-                    <div class="small text-muted">Org Tiers Involved</div>
+                    <div class="small text-muted">{{ fluent(key="org-tiers-involved", lang=lang) }}</div>
                 </div>
             </div>
         </div>
@@ -74,7 +74,7 @@
     <!-- Sankey -->
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-diagram-3" aria-hidden="true"></i> Movement Flow</h5>
+            <h5 class="mb-0"><i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="movement-flow", lang=lang) }}</h5>
         </div>
         <div class="card-body">
             {% if has_moves %}
@@ -83,15 +83,12 @@
             {% else %}
             <div class="text-muted text-center p-4">
                 <i class="bi bi-info-circle" aria-hidden="true"></i>
-                No cross-org-tier moves found. Movement is detected when a person's most recent
-                prior role was in a different team than their current role.
+                {{ fluent(key="no-moves-found", lang=lang) }}
             </div>
             {% endif %}
         </div>
         <div class="card-footer small text-muted">
-            Each flow links a person's previous org tier <em>(was)</em> to their current org tier <em>(now)</em>,
-            sized by the number of people who made that move (moves within the same org tier are not shown).
-            Hover a flow to highlight it.
+            {{ fluent(key="mobility-footnote", lang=lang) }}
         </div>
     </div>
 
@@ -99,15 +96,15 @@
     {% if has_moves %}
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-table" aria-hidden="true"></i> Transitions</h5>
+            <h5 class="mb-0"><i class="bi bi-table" aria-hidden="true"></i> {{ fluent(key="transitions", lang=lang) }}</h5>
         </div>
         <div class="card-body p-0">
             <table class="table table-sm table-hover mb-0 align-middle">
                 <thead>
                     <tr>
-                        <th>From (previous org tier)</th>
-                        <th>To (current org tier)</th>
-                        <th class="text-end">People</th>
+                        <th>{{ fluent(key="from-previous-org-tier", lang=lang) }}</th>
+                        <th>{{ fluent(key="to-current-org-tier", lang=lang) }}</th>
+                        <th class="text-end">{{ fluent(key="people", lang=lang) }}</th>
                     </tr>
                 </thead>
                 <tbody>

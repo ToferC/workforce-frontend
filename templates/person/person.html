@@ -86,25 +86,25 @@
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Current Effort:</span> {{ viz::effort_meter(value=role.effort) }}</li>
+                        <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">{{ fluent(key="current-effort", lang=lang) }}:</span> {{ viz::effort_meter(value=role.effort) }}</li>
                         <li class="list-group-item">
-                            <span class="text-muted">Team:</span>
+                            <span class="text-muted">{{ fluent(key="team", lang=lang) }}:</span>
                             <a href="/{{lang}}/team/{{role.team.id}}">{{ role.team.nameEnglish }}</a>
                         </li>
                         <li class="list-group-item">
-                            <span class="text-muted">Team Owner:</span>
+                            <span class="text-muted">{{ fluent(key="team-owner", lang=lang) }}:</span>
                             {% if role.team.owner.person %}
                             <a href="/{{lang}}/person/{{role.team.owner.person.id}}">{{ role.team.owner.person.givenName }} {{ role.team.owner.person.familyName }}</a>
                             &mdash; {{ role.team.owner.person.email }}
                             {% else %}
-                            <span class="text-muted">Vacant</span>
+                            <span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>
                             {% endif %}
                         </li>
                     </ul>
 
                     {% if role.work %}
                     <div class="p-3">
-                        <h3 class="h6 text-muted mb-2">Work</h3>
+                        <h3 class="h6 text-muted mb-2">{{ fluent(key="work", lang=lang) }}</h3>
                         <ul class="list-group list-group-flush">
                             {% for work in role.work %}
                             <li class="list-group-item px-0">
@@ -120,7 +120,7 @@
                         </ul>
                     </div>
                     {% else %}
-                    <div class="p-3 text-muted small">No work assigned.</div>
+                    <div class="p-3 text-muted small">{{ fluent(key="no-work-assigned", lang=lang) }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -129,7 +129,7 @@
             <!-- Capabilities -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h4 mb-0"><i class="bi bi-award" aria-hidden="true"></i> Capabilities</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-award" aria-hidden="true"></i> {{ fluent(key="capabilities-heading", lang=lang) }}</h2>
                     {% if role == "operator" or role == "admin" %}
                     <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/person/{{ person.id }}/capability/new">
                         <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-capability", lang=lang) }}
@@ -183,7 +183,7 @@
             <!-- Potential Job Matches -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bullseye" aria-hidden="true"></i> Potential Job Matches</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-bullseye" aria-hidden="true"></i> {{ fluent(key="potential-job-matches", lang=lang) }}</h2>
                 </div>
                 <div class="card-body p-0">
                     {% for match in person.findMatches %}
@@ -199,14 +199,14 @@
                                href="/{{ lang }}/role/{{ match.id }}/transfer-preview?person_id={{ person.id }}"
                                hx-get="/{{ lang }}/role/{{ match.id }}/transfer-preview?person_id={{ person.id }}"
                                hx-target="#transfer-modal-container" hx-swap="innerHTML">
-                                <i class="bi bi-person-plus" aria-hidden="true"></i> Assign to this role
+                                <i class="bi bi-person-plus" aria-hidden="true"></i> {{ fluent(key="assign-to-this-role", lang=lang) }}
                             </a>
                             {% else %}
                             <form method="post" action="/{{ lang }}/role/{{ match.id }}/assign" class="m-0">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <input type="hidden" name="person_id" value="{{ person.id }}">
                                 <button type="submit" class="btn btn-sm btn-success">
-                                    <i class="bi bi-person-plus" aria-hidden="true"></i> Assign to this role
+                                    <i class="bi bi-person-plus" aria-hidden="true"></i> {{ fluent(key="assign-to-this-role", lang=lang) }}
                                 </button>
                             </form>
                             {% endif %}
@@ -228,7 +228,7 @@
             <!-- Past Roles -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-clock-history" aria-hidden="true"></i> Past Roles</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-clock-history" aria-hidden="true"></i> {{ fluent(key="past-roles", lang=lang) }}</h2>
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
@@ -257,13 +257,13 @@
                 <!-- Contact Info -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-telephone" aria-hidden="true"></i> Contact Info</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-telephone" aria-hidden="true"></i> {{ fluent(key="contact-info", lang=lang) }}</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><span class="text-muted">Address:</span> {{ person.workAddress }}, {{ person.postalCode }}</li>
-                            <li class="list-group-item"><span class="text-muted">Email:</span> {{ person.email }}</li>
-                            <li class="list-group-item"><span class="text-muted">Phone:</span> {{ person.phone }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="address-label", lang=lang) }}:</span> {{ person.workAddress }}, {{ person.postalCode }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="email", lang=lang) }}:</span> {{ person.email }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="phone", lang=lang) }}:</span> {{ person.phone }}</li>
                         </ul>
                     </div>
                 </div>
@@ -332,7 +332,7 @@
                 <!-- Publications -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-journal-richtext" aria-hidden="true"></i> Publications</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-journal-richtext" aria-hidden="true"></i> {{ fluent(key="publications", lang=lang) }}</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
@@ -344,7 +344,7 @@
                                 </li>
                                 {% endfor %}
                             {% else %}
-                                <li class="list-group-item text-muted">None</li>
+                                <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
                             {% endif %}
                         </ul>
                     </div>

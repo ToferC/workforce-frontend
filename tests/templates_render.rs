@@ -1139,6 +1139,99 @@ fn person_list_partial_renders_pagination() {
 }
 
 #[test]
+fn analytics_templates_render_in_both_languages() {
+    let tera = tera();
+    let chart = "{\"series\":[]}";
+    for lang in ["en", "fr"] {
+        // Dashboard shell (no data context — sections lazy-load)
+        let ctx = base_context(lang, "analyst");
+        let html = tera.render("analytics/analytics.html", &ctx).unwrap();
+        assert!(html.contains("/analytics/coverage"));
+        assert!(html.contains("/analytics/consistency"));
+
+        // Section partials
+        let mut ctx = base_context(lang, "analyst");
+        ctx.insert("total_work", &12);
+        ctx.insert("vacant_work", &2);
+        ctx.insert("work_status_counts", &json!([{"status": "IN_PROGRESS", "count": 8}]));
+        ctx.insert("work_by_domain", &json!([{"domain": "CYBER_SECURITY", "effort": 20}]));
+        tera.render("analytics/_section_work.html", &ctx).unwrap();
+
+        let mut ctx = base_context(lang, "analyst");
+        ctx.insert("total_people", &40);
+        ctx.insert("available_count", &5);
+        ctx.insert("team_capacity", &json!([{"team": "Test Team", "effort": 30}]));
+        ctx.insert("over_allocated", &json!([{"id": "88888888-8888-8888-8888-888888888888", "name": "Sam Lee", "team": "Test Team", "effort": 9}]));
+        tera.render("analytics/_section_capacity.html", &ctx).unwrap();
+
+        let mut ctx = base_context(lang, "analyst");
+        ctx.insert("vacant_roles_count", &1);
+        ctx.insert("vacant_roles", &json!([{"id": "77777777-7777-7777-7777-777777777777", "title": "Analyst", "team": "Test Team"}]));
+        tera.render("analytics/_section_vacancies.html", &ctx).unwrap();
+
+        let mut ctx = base_context(lang, "analyst");
+        ctx.insert("domain_gaps", &json!([{
+            "domain": "CYBER_SECURITY", "total_required": 4, "total_available": 2, "net_gap": 2,
+            "levels": [{"level": "EXPERT", "required": 2, "available": 1, "gap": 1}],
+        }]));
+        tera.render("analytics/_section_gaps.html", &ctx).unwrap();
+
+        // Coverage
+        let mut ctx = base_context(lang, "analyst");
+        ctx.insert("summary", &json!({"total_teams": 3, "active_domains": 2, "max_depth": 9}));
+        ctx.insert("chart_height", "300px");
+        ctx.insert("chart_option", chart);
+        ctx.insert("domain_totals", &json!([{"key": "CYBER_SECURITY", "total": 9}]));
+        ctx.insert("domain_labels", &json!(["Cyber"]));
+        ctx.insert("table_rows", &json!([{
+            "team_id": "66666666-6666-6666-6666-666666666666", "team": "Test Team",
+            "cells": [{"opacity": 0.5, "depth": 9}],
+        }]));
+        tera.render("analytics/coverage.html", &ctx).unwrap();
+
+        // Delivery
+        let mut ctx = base_context(lang, "analyst");
+        ctx.insert("summary", &json!({"total_products": 1, "total_tasks": 2, "total_work": 3, "total_effort": 9, "rendered_products": 1}));
+        ctx.insert("status_legend", &json!([{"color": "#0d6efd", "status": "IN_PROGRESS"}]));
+        ctx.insert("chart_option", chart);
+        ctx.insert("product_rows", &json!([{
+            "id": "d0000000-0000-0000-0000-000000000001", "name": "A product",
+            "domain": "CYBER_SECURITY", "task_count": 2, "work_count": 3, "effort": 9,
+        }]));
+        tera.render("analytics/delivery.html", &ctx).unwrap();
+
+        // Growth
+        let mut ctx = base_context(lang, "analyst");
+        ctx.insert("summary", &json!({"total_domains": 2, "latest_total": 40}));
+        ctx.insert("chart_option", chart);
+        tera.render("analytics/growth.html", &ctx).unwrap();
+
+        // Mobility
+        let mut ctx = base_context(lang, "analyst");
+        ctx.insert("summary", &json!({"total_moves": 4, "promotions": 1, "laterals": 2, "inflows": 1, "outflows": 0, "org_tiers_involved": 3}));
+        ctx.insert("has_moves", &true);
+        ctx.insert("chart_option", chart);
+        ctx.insert("table_rows", &json!([{"from": "Tier A", "to": "Tier B", "count": 2}]));
+        tera.render("analytics/mobility.html", &ctx).unwrap();
+
+        // Supply vs demand
+        let mut ctx = base_context(lang, "analyst");
+        ctx.insert("summary", &json!({"total_domains": 1, "surplus_count": 1, "deficit_count": 0}));
+        ctx.insert("domain_charts", &json!([{
+            "domain_key": "CYBER_SECURITY", "domain": "Cyber Security", "has_surplus": true,
+            "gap": 3, "chart_option": chart, "latest_supply": 10, "latest_demand": 7,
+        }]));
+        tera.render("analytics/supply_demand.html", &ctx).unwrap();
+    }
+
+    // Spot-check the French actually comes through, not just that it renders
+    let ctx = base_context("fr", "analyst");
+    let html = tera.render("analytics/analytics.html", &ctx).unwrap();
+    assert!(html.contains("Analytique de l") && html.contains("effectif"));
+    assert!(html.contains("Mobilité des talents"));
+}
+
+#[test]
 fn nav_offers_analytics_to_analysts_and_above_only() {
     let tera = tera();
     // Analytics handlers require MinimumRole::Analyst; the menu should match.
