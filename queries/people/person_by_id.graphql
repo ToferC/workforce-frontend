@@ -45,6 +45,8 @@ query PersonById($id:UUID!) {
       endDate
       militaryOccupation
       rank
+      occupationalGroup
+      occupationalLevel
       effort
       team {
         id
@@ -70,6 +72,7 @@ query PersonById($id:UUID!) {
         capabilityLevel
         workStatus
         effort
+        dueDate
       }
     }
     inactiveRoles {
@@ -79,6 +82,8 @@ query PersonById($id:UUID!) {
       endDate
       militaryOccupation
       rank
+      occupationalGroup
+      occupationalLevel
     }
     roleAssignments {
       id
@@ -90,6 +95,8 @@ query PersonById($id:UUID!) {
         titleEnglish
         militaryOccupation
         rank
+        occupationalGroup
+        occupationalLevel
         team {
           id
           nameEnglish
@@ -101,6 +108,8 @@ query PersonById($id:UUID!) {
       titleEnglish
       militaryOccupation
       rank
+      occupationalGroup
+      occupationalLevel
       requirements {
         nameEn
         domain

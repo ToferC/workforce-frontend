@@ -740,3 +740,11 @@ this-is-you = This is your record.
 update-my-details = Update my details
 add-my-capability = Add a capability
 add-my-capability-help = Declare a skill you hold and your own assessment of your level. An administrator can validate it later; validated levels always take precedence.
+
+# Role reporting line & team vacancies
+reporting-line = Reporting line
+reports-to = Reports to
+direct-reports = Direct reports
+no-manager = None — top position for its team
+find-candidates = Find candidates
+due-short = Due

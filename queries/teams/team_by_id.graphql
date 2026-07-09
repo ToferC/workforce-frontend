@@ -28,6 +28,8 @@ query TeamById($id:UUID!) {
       reportsToId
       rank
       militaryOccupation
+      occupationalGroup
+      occupationalLevel
       effort
       person {
         givenName
@@ -64,6 +66,8 @@ query TeamById($id:UUID!) {
       reportsToId
       rank
       militaryOccupation
+      occupationalGroup
+      occupationalLevel
       effort
       work {
         id

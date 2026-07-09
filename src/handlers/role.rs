@@ -269,6 +269,21 @@ pub async fn role_by_id(
 
     ctx.insert("role_record", &r.role_by_id);
 
+    // Overdue work ids for the badge: due before today and not finished.
+    // (Tera can't compare date strings, so membership is computed here.)
+    let today = chrono::Utc::now().date_naive();
+    let overdue_work_ids: Vec<&String> = r.role_by_id.work.iter()
+        .filter(|w| {
+            let status = serde_json::to_value(&w.work_status).ok()
+                .and_then(|v| v.as_str().map(String::from))
+                .unwrap_or_default();
+            status != "COMPLETED" && status != "CANCELLED"
+        })
+        .filter(|w| w.due_date.map(|d| d.date() < today).unwrap_or(false))
+        .map(|w| &w.id)
+        .collect();
+    ctx.insert("overdue_work_ids", &overdue_work_ids);
+
     render_page(&data, "role/role.html", &ctx)
 }
 

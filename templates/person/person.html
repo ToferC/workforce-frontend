@@ -3,7 +3,7 @@
 {% import "macros/charts.html" as charts %}
 
 {% block title %}
-    <title>{{ fluent(key="person", lang=lang )}}</title>
+    <title>{{ person.givenName }} {{ person.familyName }} — {{ fluent(key="person", lang=lang )}}</title>
 {% endblock title %}
 
 {% block content %}
@@ -95,7 +95,7 @@
                     <h2 class="h4 mb-0">
                         <i class="bi bi-briefcase" aria-hidden="true"></i>
                         <a href="/{{lang}}/role/{{ role.id }}">{{ role.titleEnglish }}</a>
-                        <span class="text-muted fw-normal small ms-2">{{ role.militaryOccupation }}-{{ role.rank }}</span>
+                        <span class="text-muted fw-normal small ms-2">{{ viz::classification(mo=role.militaryOccupation, rank=role.rank, group=role.occupationalGroup, level=role.occupationalLevel) }}</span>
                     </h2>
                 </div>
                 <div class="card-body p-0">
@@ -128,6 +128,12 @@
                                     {{ viz::level_chip(level=work.capabilityLevel) }}
                                     {{ viz::status_chip(status=work.workStatus) }}
                                     {{ viz::effort_meter(value=work.effort) }}
+                                    {% if work.dueDate %}
+                                    <span class="text-muted small">{{ fluent(key="due-short", lang=lang) }} {{ work.dueDate | truncate(length=10, end="") }}</span>
+                                    {% if work.id in overdue_work_ids %}
+                                    <span class="badge bg-danger">{{ fluent(key="overdue", lang=lang) }}</span>
+                                    {% endif %}
+                                    {% endif %}
                                 </div>
                             </li>
                             {% endfor %}
@@ -205,7 +211,7 @@
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div>
                                 <a href="/{{lang}}/role/{{match.id}}" class="fw-semibold">{{ match.titleEnglish }}</a>
-                                <span class="text-muted small ms-2">{{ match.militaryOccupation }}-{{ match.rank }}</span>
+                                <span class="text-muted small ms-2">{{ viz::classification(mo=match.militaryOccupation, rank=match.rank, group=match.occupationalGroup, level=match.occupationalLevel) }}</span>
                             </div>
                             {% if role == "operator" or role == "admin" %}
                             {% if person.activeRoles | length > 0 %}
@@ -251,7 +257,7 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span>
                                 <a href="/{{lang}}/role/{{ a.role.id }}">{{ a.role.titleEnglish }}</a>
-                                <span class="text-muted small ms-2">{{ a.role.militaryOccupation }}-{{ a.role.rank }}</span>
+                                <span class="text-muted small ms-2">{{ viz::classification(mo=a.role.militaryOccupation, rank=a.role.rank, group=a.role.occupationalGroup, level=a.role.occupationalLevel) }}</span>
                                 <span class="text-muted small ms-1">&middot; {{ a.role.team.nameEnglish }}</span>
                             </span>
                             <span class="text-muted small">{{ a.startDate }} &rarr; {{ a.endDate }}</span>

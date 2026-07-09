@@ -6,6 +6,8 @@ query RoleById($id:UUID!) {
     active
     militaryOccupation
     rank
+    occupationalGroup
+    occupationalLevel
     startDate
     endDate
     person {
@@ -46,6 +48,7 @@ query RoleById($id:UUID!) {
       capabilityLevel
       workStatus
       effort
+      dueDate
     }
     requirements {
       id
@@ -58,6 +61,26 @@ query RoleById($id:UUID!) {
       startDate
       endDate
       isCurrent
+      person {
+        id
+        givenName
+        familyName
+      }
+    }
+    manager {
+      id
+      titleEnglish
+      titleFrench
+      person {
+        id
+        givenName
+        familyName
+      }
+    }
+    directReports {
+      id
+      titleEnglish
+      titleFrench
       person {
         id
         givenName

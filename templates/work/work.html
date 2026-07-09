@@ -155,7 +155,8 @@
                         </li>
                         <li class="list-group-item">
                             <span class="text-muted">{{ fluent(key="role", lang=lang) }}:</span>
-                            <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }} &mdash; {{ work.role.militaryOccupation }}-{{ work.role.rank }}</a>
+                            <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }}</a>
+                            <span class="text-muted small">{{ viz::classification(mo=work.role.militaryOccupation, rank=work.role.rank, group=work.role.occupationalGroup, level=work.role.occupationalLevel) }}</span>
                         </li>
                         <li class="list-group-item"><span class="text-muted">{{ fluent(key="address-label", lang=lang) }}:</span> {{ work.role.person.workAddress }}</li>
                         <li class="list-group-item">
@@ -337,7 +338,8 @@
                                 <span class="text-muted">{{ fluent(key="assigned-by", lang=lang) }}:</span>
                                 <a href="/{{lang}}/person/{{work.task.createdBy.person.id}}">{{ work.task.createdBy.person.givenName }} {{ work.task.createdBy.person.familyName }}</a>
                                 &mdash;
-                                <a href="/{{ lang }}/role/{{ work.task.createdBy.id }}">{{ work.task.createdBy.titleEnglish }} &mdash; {{ work.task.createdBy.militaryOccupation }}-{{ work.task.createdBy.rank }}</a>
+                                <a href="/{{ lang }}/role/{{ work.task.createdBy.id }}">{{ work.task.createdBy.titleEnglish }}</a>
+                                <span class="text-muted small">{{ viz::classification(mo=work.task.createdBy.militaryOccupation, rank=work.task.createdBy.rank, group=work.task.createdBy.occupationalGroup, level=work.task.createdBy.occupationalLevel) }}</span>
                             </li>
                             <li class="list-group-item">
                                 <span class="text-muted">{{ fluent(key="team", lang=lang) }}:</span>
