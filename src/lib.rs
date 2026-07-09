@@ -5,7 +5,6 @@ pub mod errors;
 pub mod security;
 pub mod notifications;
 
-use actix_web::Error;
 use tera::{Tera, Context};
 use actix_identity::Identity;
 use actix_session::Session;

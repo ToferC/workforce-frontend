@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::{Identity};
 use serde::Deserialize;
 use serde_json::json;
@@ -8,10 +8,8 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_organization_by_id, all_organizations, create_organization, update_organization, restore_organization};
 use crate::security::{self, MinimumRole};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
 
-fn is_htmx(req: &HttpRequest) -> bool {
-    req.headers().get("HX-Request").is_some()
-}
 
 #[derive(Deserialize, Debug)]
 pub struct OrgIndexParams {
@@ -36,10 +34,7 @@ pub async fn organization_index(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
     let show_retired = params.retired == "1";
     let query = params.q.trim().to_lowercase();
@@ -65,8 +60,7 @@ pub async fn organization_index(
     ctx.insert("show_retired", &show_retired);
 
     let template = if is_htmx(&req) { "organization/organization_list.html" } else { "organization/organization_index.html" };
-    let rendered = data.tmpl.render(template, &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, template, &ctx)
 }
 
 #[derive(Deserialize, Debug)]
@@ -96,19 +90,19 @@ pub async fn organization_by_id(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
-    let r = get_organization_by_id(organization_id, bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get organization");
+    let r = match get_organization_by_id(organization_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/organizations", &lang));
+        },
+    };
 
     ctx.insert("organization", &r.organization_by_id);
 
-    let rendered = data.tmpl.render("organization/organization.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "organization/organization.html", &ctx)
 }
 
 /// An empty organization object so the form template can always
@@ -138,19 +132,7 @@ fn organization_from_form(form: &OrganizationForm, id: Option<&str>) -> serde_js
     })
 }
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found()
-        .append_header(("Location", location))
-        .finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(
-        session,
-        "danger",
-        by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."),
-    );
-}
 
 #[get("/{lang}/organization/new")]
 pub async fn create_organization_form(
@@ -170,8 +152,7 @@ pub async fn create_organization_form(
     ctx.insert("edit", &false);
     ctx.insert("organization", &blank_organization());
 
-    let rendered = data.tmpl.render("organization/organization_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "organization/organization_form.html", &ctx)
 }
 
 #[post("/{lang}/organization/new")]
@@ -228,8 +209,7 @@ pub async fn create_organization_post(
             ctx.insert("edit", &false);
             ctx.insert("organization", &organization_from_form(&form, None));
 
-            let rendered = data.tmpl.render("organization/organization_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "organization/organization_form.html", &ctx)
         },
     }
 }
@@ -261,8 +241,7 @@ pub async fn edit_organization_form(
     ctx.insert("edit", &true);
     ctx.insert("organization", &r.organization_by_id);
 
-    let rendered = data.tmpl.render("organization/organization_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "organization/organization_form.html", &ctx)
 }
 
 #[post("/{lang}/organization/{organization_id}/edit")]
@@ -313,8 +292,7 @@ pub async fn edit_organization_post(
             ctx.insert("edit", &true);
             ctx.insert("organization", &organization_from_form(&form, Some(&organization_id)));
 
-            let rendered = data.tmpl.render("organization/organization_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "organization/organization_form.html", &ctx)
         },
     }
 }
@@ -345,8 +323,7 @@ pub async fn retire_organization_form(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("organization", &r.organization_by_id);
 
-    let rendered = data.tmpl.render("organization/organization_retire.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "organization/organization_retire.html", &ctx)
 }
 
 #[post("/{lang}/organization/{organization_id}/retire")]

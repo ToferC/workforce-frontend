@@ -11,6 +11,7 @@ use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, 
     all_org_tiers, priority_mismatches};
 
 use crate::security::{self, MinimumRole};
+use super::utility::{render_page};
 
 const SKILL_DOMAINS: &[(&str, &str)] = &[
     ("COMBAT",                                "Combat"),
@@ -51,8 +52,7 @@ pub async fn analytics_dashboard(
     }
 
     let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
-    let rendered = data.tmpl.render("analytics/analytics.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/analytics.html", &ctx)
 }
 
 // ── Dashboard section fragments ─────────────────────────────────────────────
@@ -119,8 +119,7 @@ pub async fn analytics_section_work(
     ctx.insert("work_status_counts", &work_status_counts);
     ctx.insert("work_by_domain", &work_by_domain);
 
-    let rendered = data.tmpl.render("analytics/_section_work.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/_section_work.html", &ctx)
 }
 
 #[get("/{lang}/analytics/section/capacity")]
@@ -195,8 +194,7 @@ pub async fn analytics_section_capacity(
     ctx.insert("team_capacity", &team_capacity);
     ctx.insert("over_allocated", &over_allocated);
 
-    let rendered = data.tmpl.render("analytics/_section_capacity.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/_section_capacity.html", &ctx)
 }
 
 #[get("/{lang}/analytics/section/vacancies")]
@@ -232,8 +230,7 @@ pub async fn analytics_section_vacancies(
     ctx.insert("vacant_roles_count", &(rows.len() as i64));
     ctx.insert("vacant_roles", &rows);
 
-    let rendered = data.tmpl.render("analytics/_section_vacancies.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/_section_vacancies.html", &ctx)
 }
 
 #[get("/{lang}/analytics/section/gaps")]
@@ -347,8 +344,7 @@ pub async fn analytics_section_gaps(
 
     ctx.insert("domain_gaps", &domain_gaps);
 
-    let rendered = data.tmpl.render("analytics/_section_gaps.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/_section_gaps.html", &ctx)
 }
 
 #[get("/{lang}/analytics/coverage")]
@@ -472,8 +468,7 @@ pub async fn analytics_coverage(
         "max_depth": (max_depth * 10.0).round() / 10.0,
     }));
 
-    let rendered = data.tmpl.render("analytics/coverage.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/coverage.html", &ctx)
 }
 
 #[get("/{lang}/analytics/delivery")]
@@ -621,8 +616,7 @@ pub async fn analytics_delivery(
         "total_effort": total_effort,
     }));
 
-    let rendered = data.tmpl.render("analytics/delivery.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/delivery.html", &ctx)
 }
 
 /// Priority-consistency review (Proposal 7c): lists tasks whose priority is out
@@ -687,8 +681,7 @@ pub async fn analytics_consistency(
         "below_work_total": below_work_total,
     }));
 
-    let rendered = data.tmpl.render("analytics/consistency.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/consistency.html", &ctx)
 }
 
 #[get("/{lang}/analytics/mobility")]
@@ -842,8 +835,7 @@ pub async fn analytics_mobility_view(
         "org_tiers_involved": tiers_seen.len() as i64,
     }));
 
-    let rendered = data.tmpl.render("analytics/mobility.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/mobility.html", &ctx)
 }
 
 #[get("/{lang}/analytics/growth")]
@@ -919,8 +911,7 @@ pub async fn analytics_growth(
         "latest_total": (latest_total * 10.0).round() / 10.0,
     }));
 
-    let rendered = data.tmpl.render("analytics/growth.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/growth.html", &ctx)
 }
 
 #[get("/{lang}/analytics/supply-demand")]
@@ -1014,6 +1005,5 @@ pub async fn analytics_supply_demand(
         "deficit_count": deficit_count,
     }));
 
-    let rendered = data.tmpl.render("analytics/supply_demand.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "analytics/supply_demand.html", &ctx)
 }

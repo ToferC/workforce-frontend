@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::{Identity};
 use serde::Deserialize;
 use serde_json::json;
@@ -10,6 +10,7 @@ use crate::{AppData, generate_basic_context, by_lang, level_weight, domain_short
 use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data, restore_person};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
 
 /// PersonnelType enum values, kept in sync with the API schema.
 pub const PERSONNEL_TYPES: [&str; 5] = ["MILITARY", "CIVILIAN", "CONTRACTOR", "STUDENT", "OTHER"];
@@ -46,19 +47,7 @@ pub struct RetireForm {
     pub csrf_token: String,
 }
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found()
-        .append_header(("Location", location))
-        .finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(
-        session,
-        "danger",
-        by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."),
-    );
-}
 
 pub async fn organization_options(bearer: &str, data: &AppData) -> serde_json::Value {
     match all_organizations(bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await {
@@ -139,19 +128,19 @@ pub async fn person_by_name(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
-    let people = get_people_by_name(name, bearer.clone(), &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get people");
+    let people = match get_people_by_name(name, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/people", &lang));
+        },
+    };
 
     ctx.insert("people", &people.person_by_name);
 
-    let rendered = data.tmpl.render("person/person_by_name.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "person/person_by_name.html", &ctx)
 }
 
 
@@ -166,14 +155,15 @@ pub async fn person_by_id(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
-    let r = get_person_by_id(person_id, bearer.clone(), &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get person");
+    let r = match get_person_by_id(person_id, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/people", &lang));
+        },
+    };
 
     // Capability radar: best level per domain (validated as the filled series,
     // self-identified as a lighter dashed series). Rendered only when the
@@ -234,8 +224,7 @@ pub async fn person_by_id(
         ctx.insert("account_user_id", &u.user_by_email.id);
     }
 
-    let rendered = data.tmpl.render("person/person.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "person/person.html", &ctx)
 }
 
 #[derive(Deserialize, Debug)]
@@ -312,8 +301,7 @@ pub async fn create_person_form(
     ctx.insert("organization_options", &organization_options(&auth.bearer, &data).await);
     ctx.insert("personnel_types", &personnel_type_options());
 
-    let rendered = data.tmpl.render("person/person_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "person/person_form.html", &ctx)
 }
 
 #[post("/{lang}/person/new")]
@@ -345,8 +333,7 @@ pub async fn create_person_post(
         ctx.insert("person", &person_from_form(&form, None));
         ctx.insert("organization_options", &organization_options);
         ctx.insert("personnel_types", &personnel_type_options());
-        let rendered = data.tmpl.render("person/person_form.html", &ctx).unwrap();
-        HttpResponse::Ok().body(rendered)
+        render_page(&data, "person/person_form.html", &ctx)
     };
 
     // Email is required: creating a Person now auto-provisions a (login-disabled)
@@ -423,8 +410,7 @@ pub async fn edit_person_form(
     ctx.insert("organization_options", &organization_options(&auth.bearer, &data).await);
     ctx.insert("personnel_types", &personnel_type_options());
 
-    let rendered = data.tmpl.render("person/person_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "person/person_form.html", &ctx)
 }
 
 #[post("/{lang}/person/{person_id}/edit")]
@@ -487,8 +473,7 @@ pub async fn edit_person_post(
             ctx.insert("organization_options", &organization_options(&auth.bearer, &data).await);
             ctx.insert("personnel_types", &personnel_type_options());
 
-            let rendered = data.tmpl.render("person/person_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "person/person_form.html", &ctx)
         },
     }
 }
@@ -519,8 +504,7 @@ pub async fn retire_person_form(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("person", &r.person_by_id);
 
-    let rendered = data.tmpl.render("person/person_retire.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "person/person_retire.html", &ctx)
 }
 
 #[post("/{lang}/person/{person_id}/retire")]
@@ -628,8 +612,7 @@ pub async fn create_affiliation_form(
     ctx.insert("affiliation", &json!({"organization": {"id": ""}, "affiliationRole": "", "endDate": ""}));
     ctx.insert("organization_options", &organization_options(&auth.bearer, &data).await);
 
-    let rendered = data.tmpl.render("person/affiliation_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "person/affiliation_form.html", &ctx)
 }
 
 #[post("/{lang}/person/{person_id}/affiliation/new")]
@@ -791,8 +774,7 @@ pub async fn create_language_form(
     ctx.insert("language_names", &language_name_options());
     ctx.insert("language_levels", &language_level_options());
 
-    let rendered = data.tmpl.render("person/language_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "person/language_form.html", &ctx)
 }
 
 #[post("/{lang}/person/{person_id}/language/new")]
@@ -857,9 +839,6 @@ const PEOPLE_PAGE_SIZE: i64 = 100;
 /// hint. Used across the People/Teams/Roles indexes.
 pub const INDEX_PAGE_CAP: usize = 100;
 
-fn is_htmx(req: &HttpRequest) -> bool {
-    req.headers().get("HX-Request").is_some()
-}
 
 #[get("/{lang}/people")]
 pub async fn person_index(
@@ -873,10 +852,7 @@ pub async fn person_index(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
     let show_retired = params.retired == "1";
     let selected_org = params.org.trim().to_string();
@@ -919,8 +895,7 @@ pub async fn person_index(
 
     // HTMX search requests get just the list partial to swap in place
     let template = if is_htmx(&req) { "person/person_list.html" } else { "person/person_index.html" };
-    let rendered = data.tmpl.render(template, &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, template, &ctx)
 }
 
 #[post("/{lang}/person/{person_id}/restore")]

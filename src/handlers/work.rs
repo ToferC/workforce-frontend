@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::Identity;
 use serde::Deserialize;
 use serde_json::json;
@@ -12,18 +12,13 @@ use super::org_tier::{skill_domain_options, humanize};
 use super::task::{work_status_options, priority_options, parse_date};
 use super::team::team_role_options;
 use super::capability::CAPABILITY_LEVELS;
+use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer};
 
 fn capability_level_options() -> serde_json::Value {
     json!(CAPABILITY_LEVELS.iter().map(|l| json!({"value": l, "label": humanize(l)})).collect::<Vec<serde_json::Value>>())
 }
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found().append_header(("Location", location)).finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(session, "danger", by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."));
-}
 
 #[derive(Deserialize, Debug)]
 pub struct WorkForm {
@@ -176,10 +171,7 @@ pub async fn work_skill_options(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match session.get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&session);
 
     let domain = params.domain.trim().to_string();
     let skills = skill_options_for_domain(&domain, &bearer, &data).await;
@@ -188,8 +180,7 @@ pub async fn work_skill_options(
     ctx.insert("skill_id", &"");
     ctx.insert("skill_options", &skills);
 
-    let rendered = data.tmpl.render("work/_skill_select.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "work/_skill_select.html", &ctx)
 }
 
 #[get("/{lang}/work/{work_id}")]
@@ -203,21 +194,21 @@ pub async fn work_by_id(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
-    let r = get_work_by_id(work_id, bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get work");
+    let r = match get_work_by_id(work_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/work", &lang));
+        },
+    };
 
     let status = domain_key(&r.work_by_id.work_status);
     ctx.insert("work_overdue", &is_overdue(r.work_by_id.due_date, &status));
     ctx.insert("work", &r.work_by_id);
 
-    let rendered = data.tmpl.render("work/work.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "work/work.html", &ctx)
 }
 
 /// Create a unit of work assigning a role (fixed) to a task (chosen).
@@ -258,8 +249,7 @@ pub async fn create_work_form(
     ctx.insert("work_statuses", &work_status_options());
     ctx.insert("priorities", &priority_options());
 
-    let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "work/work_form.html", &ctx)
 }
 
 #[post("/{lang}/role/{role_id}/work/new")]
@@ -329,8 +319,7 @@ pub async fn create_work_post(
             ctx.insert("capability_levels", &capability_level_options());
             ctx.insert("work_statuses", &work_status_options());
             ctx.insert("priorities", &priority_options());
-            let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "work/work_form.html", &ctx)
         },
     }
 }
@@ -371,8 +360,7 @@ pub async fn create_vacant_work_form(
     ctx.insert("work_statuses", &work_status_options());
     ctx.insert("priorities", &priority_options());
 
-    let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "work/work_form.html", &ctx)
 }
 
 #[post("/{lang}/task/{task_id}/work/new")]
@@ -441,8 +429,7 @@ pub async fn create_vacant_work_post(
             ctx.insert("capability_levels", &capability_level_options());
             ctx.insert("work_statuses", &work_status_options());
             ctx.insert("priorities", &priority_options());
-            let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "work/work_form.html", &ctx)
         },
     }
 }
@@ -491,8 +478,7 @@ pub async fn edit_work_form(
     ctx.insert("work_statuses", &work_status_options());
     ctx.insert("priorities", &priority_options());
 
-    let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "work/work_form.html", &ctx)
 }
 
 #[post("/{lang}/work/{work_id}/edit")]
@@ -557,8 +543,7 @@ pub async fn edit_work_post(
             ctx.insert("capability_levels", &capability_level_options());
             ctx.insert("work_statuses", &work_status_options());
             ctx.insert("priorities", &priority_options());
-            let rendered = data.tmpl.render("work/work_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "work/work_form.html", &ctx)
         },
     }
 }
@@ -640,8 +625,7 @@ pub async fn assign_work_form(
     ctx.insert("role_options", &role_opts);
     ctx.insert("skill_options", &skill_opts);
 
-    let rendered = data.tmpl.render("work/assign_work.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "work/assign_work.html", &ctx)
 }
 
 #[post("/{lang}/work/{work_id}/assign")]
@@ -722,10 +706,7 @@ pub async fn work_index(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
     let status = if query.status.trim().is_empty() { None } else { Some(query.status.trim().to_string()) };
     let unassigned = query.unassigned == "1";
@@ -760,8 +741,7 @@ pub async fn work_index(
     ctx.insert("has_prev", &(page > 1));
     ctx.insert("has_next", &(page < total_pages));
 
-    let rendered = data.tmpl.render("work/work_index.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "work/work_index.html", &ctx)
 }
 
 /// Vacancy dashboard: vacant roles (needing a person) and vacant work
@@ -777,10 +757,7 @@ pub async fn vacancies(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
     let (roles_res, work_res) = futures::join!(
         vacant_roles(100, bearer.clone(), &data.api_url, Arc::clone(&data.client)),
@@ -794,8 +771,7 @@ pub async fn vacancies(
     ctx.insert("vacant_roles", &roles);
     ctx.insert("vacant_work", &vacant_work);
 
-    let rendered = data.tmpl.render("work/vacancies.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "work/vacancies.html", &ctx)
 }
 
 /// Proposal 5 — "My Work": a personal worklist aggregating every work item
@@ -867,8 +843,7 @@ pub async fn my_work_view(
         },
     }
 
-    let rendered = data.tmpl.render("work/my_work.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "work/my_work.html", &ctx)
 }
 
 /// Proposal 3 — post a comment or raise a flag on a work item. Open to any
@@ -979,8 +954,7 @@ pub async fn flags_queue(
     ctx.insert("flag_count", &(flags.len() as i64));
     ctx.insert("flags", &flags);
 
-    let rendered = data.tmpl.render("work/flags_queue.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "work/flags_queue.html", &ctx)
 }
 
 /// Proposal 7a — form for adding a dependency (this work is blocked by another).

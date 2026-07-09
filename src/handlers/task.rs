@@ -12,6 +12,7 @@ use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::product::product_options;
 use super::team::team_role_options;
+use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer};
 
 /// WorkStatus enum values (used by both tasks and work).
 pub const WORK_STATUSES: [&str; 5] = ["PLANNING", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"];
@@ -30,13 +31,7 @@ pub fn parse_date(value: &str) -> Option<NaiveDateTime> {
     NaiveDate::parse_from_str(value.trim(), "%Y-%m-%d").ok().and_then(|d| d.and_hms_opt(0, 0, 0))
 }
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found().append_header(("Location", location)).finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(session, "danger", by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."));
-}
 
 #[derive(Deserialize, Debug)]
 pub struct TaskForm {
@@ -92,16 +87,19 @@ pub async fn task_index(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
+    let bearer = session_bearer(&req.get_session());
+
+    // Degrade to an empty list (with the error flashed) if the API is down
+    let tasks = match all_tasks(bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.all_tasks,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            Vec::new()
+        },
     };
+    ctx.insert("tasks", &tasks);
 
-    let r = all_tasks(bearer, &data.api_url, Arc::clone(&data.client)).await.expect("Unable to get tasks");
-    ctx.insert("tasks", &r.all_tasks);
-
-    let rendered = data.tmpl.render("task/task_index.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "task/task_index.html", &ctx)
 }
 
 #[get("/{lang}/task/{task_id}")]
@@ -115,19 +113,19 @@ pub async fn task_by_id(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
-    let r = get_task_by_id(task_id, bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get task");
+    let r = match get_task_by_id(task_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/tasks", &lang));
+        },
+    };
 
     ctx.insert("task", &r.task_by_id);
 
-    let rendered = data.tmpl.render("task/task.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "task/task.html", &ctx)
 }
 
 /// Create a task created by a given role (the role is the creator).
@@ -160,8 +158,7 @@ pub async fn create_task_form(
     ctx.insert("priorities", &priority_options());
     ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
 
-    let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "task/task_form.html", &ctx)
 }
 
 #[post("/{lang}/role/{role_id}/task/new")]
@@ -213,8 +210,7 @@ pub async fn create_task_post(
             ctx.insert("skill_domains", &skill_domain_options());
             ctx.insert("work_statuses", &work_status_options());
             ctx.insert("product_options", &product_options("", &data).await);
-            let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "task/task_form.html", &ctx)
         },
     }
 }
@@ -254,8 +250,7 @@ pub async fn edit_task_form(
     ctx.insert("priorities", &priority_options());
     ctx.insert("product_options", &product_opts);
 
-    let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "task/task_form.html", &ctx)
 }
 
 #[post("/{lang}/task/{task_id}/edit")]
@@ -308,8 +303,7 @@ pub async fn edit_task_post(
             ctx.insert("skill_domains", &skill_domain_options());
             ctx.insert("work_statuses", &work_status_options());
             ctx.insert("product_options", &product_options(&auth.bearer, &data).await);
-            let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "task/task_form.html", &ctx)
         },
     }
 }
@@ -362,8 +356,7 @@ pub async fn create_product_task_form(
     ctx.insert("priorities", &priority_options());
     ctx.insert("product_options", &product_opts);
 
-    let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "task/task_form.html", &ctx)
 }
 
 /// Show the task creation form scoped to a team. The creating role is chosen
@@ -413,8 +406,7 @@ pub async fn create_team_task_form(
     ctx.insert("priorities", &priority_options());
     ctx.insert("product_options", &product_opts);
 
-    let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "task/task_form.html", &ctx)
 }
 
 #[post("/{lang}/team/{team_id}/task/new")]
@@ -481,8 +473,7 @@ pub async fn create_team_task_post(
             ctx.insert("work_statuses", &work_status_options());
             ctx.insert("priorities", &priority_options());
             ctx.insert("product_options", &product_opts);
-            let rendered = data.tmpl.render("task/task_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "task/task_form.html", &ctx)
         },
     }
 }
@@ -614,6 +605,5 @@ pub async fn approvals_queue(
         .unwrap_or_default();
     ctx.insert("approval_count", &(tasks.len() as i64));
     ctx.insert("tasks", &tasks);
-    let rendered = data.tmpl.render("task/approvals_queue.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "task/approvals_queue.html", &ctx)
 }

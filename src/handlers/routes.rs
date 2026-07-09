@@ -7,18 +7,17 @@ use crate::handlers::{
 
     about,
     toggle_language,
-    toggle_language_index,
-    toggle_language_two,
-    toggle_language_three,
 
     // admin
     // errors
     internal_server_error,
+    not_authorized,
     not_found,
 
     // login
     login_form_input,
     login_handler,
+    logout,
 
     // account lifecycle / self-service
     activate_form,
@@ -218,6 +217,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     // login
     config.service(login_handler);
     config.service(login_form_input);
+    config.service(logout);
 
     // account lifecycle / self-service
     config.service(activate_form);
@@ -417,12 +417,10 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
 
     config.service(about);
     config.service(toggle_language);
-    config.service(toggle_language_index);
-    config.service(toggle_language_two);
-    config.service(toggle_language_three);
 
     // errors
     config.service(internal_server_error);
+    config.service(not_authorized);
     config.service(not_found);
 
 }

@@ -91,6 +91,9 @@
                 {% endif %}
             </gcds-nav-group>
 
+            {# Analytics pages require the analyst role (see handlers/analytics.rs);
+               don't offer the menu to users who would be turned away. #}
+            {% if role == "analyst" or role == "operator" or role == "admin" %}
             <gcds-nav-group menu-label="{{ fluent(key='analytics', lang=lang) }}" open-trigger="{{ fluent(key='analytics', lang=lang) }}">
                 <gcds-nav-link href="/{{ lang }}/analytics">{{ fluent(key="analytics", lang=lang) }}</gcds-nav-link>
                 <gcds-nav-link href="/{{ lang }}/analytics/coverage">Capability Coverage</gcds-nav-link>
@@ -99,21 +102,23 @@
                 <gcds-nav-link href="/{{ lang }}/analytics/growth">Capability Growth</gcds-nav-link>
                 <gcds-nav-link href="/{{ lang }}/analytics/supply-demand">Supply vs Demand</gcds-nav-link>
             </gcds-nav-group>
+            {% endif %}
 
             <gcds-nav-group menu-label="{{ session_user }}" open-trigger="{{ session_user }}">
-                <gcds-nav-link href="/{{ lang }}/user/{{ session_user }}">{{ fluent(key="profile", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/me">{{ fluent(key="profile", lang=lang) }}</gcds-nav-link>
                 {% if role == "operator" or role == "admin" %}
                 <gcds-nav-link href="/{{ lang }}/manage">{{ fluent(key="manage-title", lang=lang) }}</gcds-nav-link>
                 {% endif %}
                 <gcds-nav-link href="/{{ lang }}/log_out">{{ fluent(key="logout", lang=lang) }}</gcds-nav-link>
                 {% if role == "admin" %}
-                <gcds-nav-link href="/{{ lang }}/user_index">{{ fluent(key="user-index", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/admin/users">{{ fluent(key="user-index", lang=lang) }}</gcds-nav-link>
                 <gcds-nav-link href="/{{ lang }}/activity">{{ fluent(key="activity-title", lang=lang) }}</gcds-nav-link>
                 {% endif %}
             </gcds-nav-group>
             {% else %}
             <gcds-nav-link href="/{{ lang }}/log_in">{{ fluent(key="login", lang=lang) }}</gcds-nav-link>
-            <gcds-nav-link href="/{{ lang }}/register">{{ fluent(key="register", lang=lang) }}</gcds-nav-link>
+            {# Accounts are created by admin invitation (see /admin/users) —
+               there is no self-serve registration route. #}
             {% endif %}
         </gcds-top-nav>
     </gcds-header>

@@ -3,8 +3,8 @@
 // and outgoing (offers I've made) — with accept / decline / withdraw actions.
 // The API scopes both lists to the signed-in manager.
 
-use actix_session::{Session, SessionExt};
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_session::SessionExt;
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::Identity;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -16,20 +16,9 @@ use crate::graphql::{
     recent_audit_events,
 };
 use crate::security::{self, MinimumRole};
+use super::utility::{redirect_to, csrf_failure_flash, render_page};
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found()
-        .append_header(("Location", location))
-        .finish()
-}
 
-fn csrf_failure_flash(session: &Session, lang: &str) {
-    security::add_flash(
-        session,
-        "danger",
-        by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."),
-    );
-}
 
 /// A decision on an offer: just a CSRF token and an optional note.
 #[derive(Deserialize)]
@@ -74,8 +63,7 @@ pub async fn manage_panel(
     ctx.insert("incoming", &incoming);
     ctx.insert("outgoing", &outgoing);
 
-    let rendered = data.tmpl.render("manage/panel.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "manage/panel.html", &ctx)
 }
 
 /// Admin activity log: the most recent audited changes across the system.
@@ -105,8 +93,7 @@ pub async fn activity_view(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("events", &events);
 
-    let rendered = data.tmpl.render("manage/activity.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "manage/activity.html", &ctx)
 }
 
 fn note_opt(form: &OfferDecisionForm) -> Option<String> {

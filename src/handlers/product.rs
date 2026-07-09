@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::Identity;
 use serde::Deserialize;
 use serde_json::json;
@@ -13,14 +13,9 @@ use crate::graphql::{
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::task::{work_status_options, priority_options};
+use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer};
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found().append_header(("Location", location)).finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(session, "danger", by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."));
-}
 
 /// Build a JSON array of {value, label} from all active roles for use in a
 /// product-owner select. Label format: "Given Family — Title (Team)" for
@@ -96,18 +91,14 @@ pub async fn product_index(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
     let products = all_products(bearer, &data.api_url, Arc::clone(&data.client)).await
         .map(|r| r.all_products)
         .unwrap_or_default();
     ctx.insert("products", &products);
 
-    let rendered = data.tmpl.render("product/product_index.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "product/product_index.html", &ctx)
 }
 
 #[get("/{lang}/product/{product_id}")]
@@ -121,19 +112,19 @@ pub async fn product_by_id(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
-    let r = get_product_by_id(product_id, bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get product");
+    let r = match get_product_by_id(product_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/products", &lang));
+        },
+    };
 
     ctx.insert("product", &r.product_by_id);
 
-    let rendered = data.tmpl.render("product/product.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "product/product.html", &ctx)
 }
 
 #[get("/{lang}/product/new")]
@@ -164,8 +155,7 @@ pub async fn create_product_form(
     ctx.insert("work_statuses", &work_status_options());
     ctx.insert("priorities", &priority_options());
 
-    let rendered = data.tmpl.render("product/product_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "product/product_form.html", &ctx)
 }
 
 #[post("/{lang}/product/new")]
@@ -198,8 +188,7 @@ pub async fn create_product_post(
         ctx.insert("role_options", &role_opts);
         ctx.insert("skill_domains", &skill_domain_options());
         ctx.insert("work_statuses", &work_status_options());
-        let rendered = data.tmpl.render("product/product_form.html", &ctx).unwrap();
-        HttpResponse::Ok().body(rendered)
+        render_page(&data, "product/product_form.html", &ctx)
     };
 
     let new_product = create_product::NewProduct {
@@ -262,8 +251,7 @@ pub async fn edit_product_form(
     ctx.insert("work_statuses", &work_status_options());
     ctx.insert("priorities", &priority_options());
 
-    let rendered = data.tmpl.render("product/product_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "product/product_form.html", &ctx)
 }
 
 #[post("/{lang}/product/{product_id}/edit")]
@@ -316,8 +304,7 @@ pub async fn edit_product_post(
             ctx.insert("role_options", &role_options(&auth.bearer, &data).await);
             ctx.insert("skill_domains", &skill_domain_options());
             ctx.insert("work_statuses", &work_status_options());
-            let rendered = data.tmpl.render("product/product_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "product/product_form.html", &ctx)
         },
     }
 }

@@ -3,6 +3,7 @@ use actix_session::SessionExt;
 use actix_web::{web, get, HttpResponse, HttpRequest, Responder};
 use actix_identity::Identity;
 use crate::{AppData, generate_basic_context};
+use super::utility::{render_page};
 
 
 pub async fn f404(
@@ -19,8 +20,7 @@ pub async fn f404(
     let uri_path = req.uri().path();
     ctx.insert("path", &uri_path);
 
-    let rendered = data.tmpl.render("errors/404.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "errors/404.html", &ctx)
 }
 
 /// Catch-all fallback for any request that matches no route. Wired as the
@@ -45,10 +45,17 @@ pub async fn default_404(
     let mut ctx = generate_basic_context(id, &lang, &uri_path, &session);
     ctx.insert("path", &uri_path);
 
-    let rendered = data.tmpl.render("errors/404.html", &ctx).unwrap();
-    HttpResponse::NotFound()
-        .content_type("text/html; charset=utf-8")
-        .body(rendered)
+    // 404 status (not render_page's 200), so keep the explicit builder — but
+    // still degrade rather than panic if the template fails.
+    match data.tmpl.render("errors/404.html", &ctx) {
+        Ok(html) => HttpResponse::NotFound()
+            .content_type("text/html; charset=utf-8")
+            .body(html),
+        Err(e) => {
+            log::error!("Template render failed for errors/404.html: {:#}", e);
+            HttpResponse::NotFound().body("Not found")
+        }
+    }
 }
 
 #[get("/{lang}/not_found")]
@@ -63,8 +70,7 @@ pub async fn not_found(
     let session = req.get_session();
     let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let rendered = data.tmpl.render("errors/not_found.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "errors/not_found.html", &ctx)
 }
 
 #[get("/{lang}/internal_server_error")]
@@ -79,8 +85,7 @@ pub async fn internal_server_error(
     let session = req.get_session();
     let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let rendered = data.tmpl.render("errors/internal_server_error.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "errors/internal_server_error.html", &ctx)
 }
 
 #[get("/{lang}/not_authorized")]
@@ -95,6 +100,5 @@ pub async fn not_authorized(
     let session = req.get_session();
     let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let rendered = data.tmpl.render("errors/not_authorized.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "errors/not_authorized.html", &ctx)
 }

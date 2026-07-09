@@ -13,6 +13,7 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, domain_group, domain_short_label, level_weight};
 use crate::graphql::{get_organization_by_id, get_org_tiers_by_org_id, get_org_tier_by_id, get_org_tier_node, get_team_by_id};
 use crate::security::{self, MinimumRole};
+use super::utility::{render_page, session_bearer};
 
 /// Full-page builder view for one organization. The tree starts with the
 /// organization's root tiers (no parent); each node lazy-loads its
@@ -77,8 +78,7 @@ pub async fn org_chart_builder(
     ctx.insert("root_tiers", &roots);
     ctx.insert("tier_count", &tiers.len());
 
-    let rendered = data.tmpl.render("org_chart/builder.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "org_chart/builder.html", &ctx)
 }
 
 /// HTMX partial: the expanded body of one tier node — child tiers
@@ -128,8 +128,7 @@ pub async fn org_tier_panel_partial(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("org_tier", &r.org_tier_by_id);
 
-    let rendered = data.tmpl.render("org_chart/panel.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "org_chart/panel.html", &ctx)
 }
 
 async fn render_node(
@@ -207,8 +206,7 @@ async fn render_node(
     ctx.insert("node", &node);
     ctx.insert("team_stats", &serde_json::Value::Object(team_stats_map));
 
-    let rendered = data.tmpl.render("org_chart/node.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "org_chart/node.html", &ctx)
 }
 
 /// Response for a successful HTMX create-tier post from the builder.
@@ -230,10 +228,7 @@ pub async fn render_node_response(
             .finish();
     }
 
-    let bearer = match session.get::<String>("bearer") {
-        Ok(Some(b)) => b,
-        _ => String::new(),
-    };
+    let bearer = session_bearer(&session);
 
     let mut response = render_node(data, session, id, lang, parent_tier_id, &bearer, req).await;
 
@@ -442,8 +437,7 @@ pub async fn org_chart_explore(
     ctx.insert("orgchart_data", &chart_data);
     ctx.insert("tier_count", &tiers.len());
 
-    let rendered = data.tmpl.render("org_chart/explore.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "org_chart/explore.html", &ctx)
 }
 
 /// JSON: the roles and people of one team, for the explorer's lazy drill-down.

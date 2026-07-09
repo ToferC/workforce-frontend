@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::{Identity};
 use serde::Deserialize;
 use serde_json::json;
@@ -11,6 +11,7 @@ use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::person::{organization_options, resolve_person_by_name};
 use super::task::parse_date;
+use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer};
 
 /// PublicationStatus enum values, kept in sync with the API schema.
 pub const PUBLICATION_STATUSES: [&str; 7] = ["PLANNING", "IN_PROGRESS", "DRAFT", "SUBMITTED", "PUBLISHED", "REJECTED", "CANCELLED"];
@@ -19,13 +20,7 @@ fn publication_status_options() -> serde_json::Value {
     json!(PUBLICATION_STATUSES.iter().map(|s| json!({"value": s, "label": humanize(s)})).collect::<Vec<serde_json::Value>>())
 }
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found().append_header(("Location", location)).finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(session, "danger", by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."));
-}
 
 #[derive(Deserialize, Debug)]
 pub struct PublicationForm {
@@ -70,16 +65,19 @@ pub async fn publication_index(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
+    let bearer = session_bearer(&req.get_session());
+
+    // Degrade to an empty list (with the error flashed) if the API is down
+    let publications = match all_publications(bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.all_publications,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            Vec::new()
+        },
     };
+    ctx.insert("publications", &publications);
 
-    let r = all_publications(bearer, &data.api_url, Arc::clone(&data.client)).await.expect("Unable to get publications");
-    ctx.insert("publications", &r.all_publications);
-
-    let rendered = data.tmpl.render("publication/publication_index.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "publication/publication_index.html", &ctx)
 }
 
 #[get("/{lang}/publication/{publication_id}")]
@@ -93,19 +91,19 @@ pub async fn publication_by_id(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
-    let r = get_publication_by_id(publication_id, bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get publication");
+    let r = match get_publication_by_id(publication_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/publications", &lang));
+        },
+    };
 
     ctx.insert("publication", &r.publication_by_id);
 
-    let rendered = data.tmpl.render("publication/publication.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "publication/publication.html", &ctx)
 }
 
 #[get("/{lang}/publication/new")]
@@ -132,8 +130,7 @@ pub async fn create_publication_form(
     ctx.insert("organization_options", &organization_options(&auth.bearer, &data).await);
     ctx.insert("publication_statuses", &publication_status_options());
 
-    let rendered = data.tmpl.render("publication/publication_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "publication/publication_form.html", &ctx)
 }
 
 #[post("/{lang}/publication/new")]
@@ -164,8 +161,7 @@ pub async fn create_publication_post(
         ctx.insert("publication", &publication_from_form(&form, None));
         ctx.insert("organization_options", &options);
         ctx.insert("publication_statuses", &publication_status_options());
-        let rendered = data.tmpl.render("publication/publication_form.html", &ctx).unwrap();
-        HttpResponse::Ok().body(rendered)
+        render_page(&data, "publication/publication_form.html", &ctx)
     };
 
     let lead_author_id = match resolve_person_by_name(&form.lead_author_name, &auth.bearer, &lang, &data).await {
@@ -232,8 +228,7 @@ pub async fn edit_publication_form(
     ctx.insert("publication", &r.publication_by_id);
     ctx.insert("publication_statuses", &publication_status_options());
 
-    let rendered = data.tmpl.render("publication/publication_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "publication/publication_form.html", &ctx)
 }
 
 #[post("/{lang}/publication/{publication_id}/edit")]
@@ -279,8 +274,7 @@ pub async fn edit_publication_post(
             ctx.insert("edit", &true);
             ctx.insert("publication", &publication_from_form(&form, Some(&publication_id)));
             ctx.insert("publication_statuses", &publication_status_options());
-            let rendered = data.tmpl.render("publication/publication_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "publication/publication_form.html", &ctx)
         },
     }
 }

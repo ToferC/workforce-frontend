@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::{Identity};
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::Deserialize;
@@ -12,6 +12,7 @@ use crate::graphql::{get_role_by_id, get_role_matches, all_roles, all_organizati
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
 
 /// Rank enum values, kept in sync with the API schema.
 pub const RANKS: [&str; 17] = [
@@ -118,23 +119,8 @@ pub struct NewRoleParams {
     pub organization: String,
 }
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found()
-        .append_header(("Location", location))
-        .finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(
-        session,
-        "danger",
-        by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."),
-    );
-}
 
-fn is_htmx(req: &HttpRequest) -> bool {
-    req.headers().get("HX-Request").is_some()
-}
 
 fn parse_date(value: &str) -> Option<NaiveDateTime> {
     NaiveDate::parse_from_str(value.trim(), "%Y-%m-%d")
@@ -172,14 +158,15 @@ pub async fn role_by_id(
 
     let mut ctx= generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
-    let r = get_role_by_id(role_id.clone(), bearer.clone(), &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get role");
+    let r = match get_role_by_id(role_id.clone(), bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/roles", &lang));
+        },
+    };
 
     // Requirement-match bars: compare each role requirement against the level
     // the incumbent actually holds in that domain (validated preferred, self
@@ -280,8 +267,7 @@ pub async fn role_by_id(
 
     ctx.insert("role_record", &r.role_by_id);
 
-    let rendered = data.tmpl.render("role/role.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "role/role.html", &ctx)
 }
 
 /// HTMX target for the vacant-role candidate matcher. The min-coverage and
@@ -302,10 +288,7 @@ pub async fn role_matches(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match session.get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&session);
 
     // Clamp slider inputs to the ranges the UI offers so a hand-edited query
     // string can't push nonsense into the API.
@@ -335,8 +318,7 @@ pub async fn role_matches(
         Err(e) => ctx.insert("match_error", &e.to_string()),
     }
 
-    let rendered = data.tmpl.render("role/_matches.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "role/_matches.html", &ctx)
 }
 
 /// Form to create a role in a team. Takes ?team=<uuid> plus
@@ -387,8 +369,7 @@ pub async fn create_role_form(
         "role/role_form.html"
     };
 
-    let rendered = data.tmpl.render(template, &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, template, &ctx)
 }
 
 #[post("/{lang}/role/new")]
@@ -561,8 +542,7 @@ pub async fn create_role_post(
         "role/role_form.html"
     };
 
-    let rendered = data.tmpl.render(template, &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, template, &ctx)
 }
 
 /// The API only allows changing a role's active flag and dates — the
@@ -594,8 +574,7 @@ pub async fn edit_role_form(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("role_record", &r.role_by_id);
 
-    let rendered = data.tmpl.render("role/role_status_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "role/role_status_form.html", &ctx)
 }
 
 #[post("/{lang}/role/{role_id}/edit")]
@@ -668,8 +647,7 @@ pub async fn end_role_form(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("role_record", &r.role_by_id);
 
-    let rendered = data.tmpl.render("role/role_end.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "role/role_end.html", &ctx)
 }
 
 #[post("/{lang}/role/{role_id}/end")]
@@ -789,8 +767,7 @@ pub async fn transfer_preview(
         "role/transfer_confirm.html"
     };
 
-    let rendered = data.tmpl.render(template, &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, template, &ctx)
 }
 
 /// Assign a person to a vacant role. Driven by the "Assign" buttons on the
@@ -1020,8 +997,7 @@ pub async fn create_requirement_form(
     ctx.insert("skill_groups", &skill_groups);
     ctx.insert("capability_levels", &level_options());
 
-    let rendered = data.tmpl.render("role/requirement_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "role/requirement_form.html", &ctx)
 }
 
 #[post("/{lang}/role/{role_id}/requirement/new")]
@@ -1146,8 +1122,7 @@ pub async fn edit_requirement_form(
     ctx.insert("requirement", requirement);
     ctx.insert("capability_levels", &level_options());
 
-    let rendered = data.tmpl.render("role/requirement_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "role/requirement_form.html", &ctx)
 }
 
 #[post("/{lang}/role/{role_id}/requirement/{requirement_id}/edit")]
@@ -1215,10 +1190,7 @@ pub async fn role_index(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
     let query = params.q.trim().to_lowercase();
     let selected_org = params.org.trim().to_string();
@@ -1259,6 +1231,5 @@ pub async fn role_index(
     ctx.insert("selected_status", &selected_status);
 
     let template = if is_htmx(&req) { "role/role_list.html" } else { "role/role_index.html" };
-    let rendered = data.tmpl.render(template, &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, template, &ctx)
 }
