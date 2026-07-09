@@ -712,3 +712,13 @@ priority-label = Priorité
 required-skill = Compétence requise
 target-completion = Achèvement visé
 assigned-by = Assigné par
+
+# Bascule de la vue de couverture (regroupement par palier ou par équipe)
+view-by-tier2 = Vue palier 2
+view-by-team = Vue par équipe
+active-org-tiers = Paliers organisationnels (niveau 2)
+coverage-rollup-hint = Agrégé au palier organisationnel de niveau 2; une personne présente dans plusieurs équipes d'un même palier compte une seule fois.
+
+# Bascule plein écran de l'organigramme
+fullscreen = Plein écran
+exit-fullscreen = Quitter le plein écran

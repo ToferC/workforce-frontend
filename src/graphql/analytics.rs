@@ -19,6 +19,17 @@ pub async fn team_capability_matrix(org_tier_id: Option<String>, bearer: String,
 }
 
 #[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/analytics/org_tier_capability_matrix.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct OrgTierCapabilityMatrix;
+
+pub async fn org_tier_capability_matrix(tier_level: i64, org_tier_id: Option<String>, bearer: String, api_url: &str, client: Arc<Client>) -> Result<org_tier_capability_matrix::ResponseData, ApiError> {
+    post_graphql::<OrgTierCapabilityMatrix>(&client, api_url, &bearer, org_tier_capability_matrix::Variables {
+        tier_level,
+        org_tier_id,
+    }).await
+}
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
 #[graphql(schema_path = "schema.graphql", query_path = "queries/analytics/talent_movements.graphql", response_derives = "Debug, Serialize, PartialEq")]
 pub struct TalentMovements;
 

@@ -712,3 +712,13 @@ priority-label = Priority
 required-skill = Required Skill
 target-completion = Target Completion
 assigned-by = Assigned by
+
+# Coverage view toggle (tier rollup vs per-team)
+view-by-tier2 = Tier 2 view
+view-by-team = Team view
+active-org-tiers = Tier-2 Org Tiers
+coverage-rollup-hint = Aggregated at org-tier level 2; a person on several teams under one tier counts once.
+
+# Org chart fullscreen toggle
+fullscreen = Full screen
+exit-fullscreen = Exit full screen
