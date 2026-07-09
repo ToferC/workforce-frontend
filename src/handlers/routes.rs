@@ -37,6 +37,8 @@ use crate::handlers::{
     admin_user_invite,
     admin_user_disable,
     admin_user_enable,
+    admin_deploy,
+    admin_deploy_sync,
     admin_flags,
     admin_flag_resolve,
 
@@ -236,6 +238,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(admin_user_invite);
     config.service(admin_user_disable);
     config.service(admin_user_enable);
+    config.service(admin_deploy);
+    config.service(admin_deploy_sync);
     config.service(admin_flags);
     config.service(admin_flag_resolve);
 

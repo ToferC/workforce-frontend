@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}
+    <title>{{ fluent(key="deployment-sync", lang=lang) }}</title>
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <div class="hero-section mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h1 class="mb-1"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> {{ fluent(key="deployment-sync", lang=lang) }}</h1>
+            <p class="text-muted mb-0">{{ fluent(key="deployment-sync-help", lang=lang) }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="/{{ lang }}/admin/users"><i class="bi bi-people-fill" aria-hidden="true"></i> {{ fluent(key="manage-users", lang=lang) }}</a>
+        </div>
+    </div>
+
+    {% if not deployment_base_configured %}
+    <div class="alert alert-warning" role="alert">
+        <strong>{{ fluent(key="deployment-config-missing", lang=lang) }}</strong>
+        <div>{{ fluent(key="deployment-config-help", lang=lang) }}</div>
+    </div>
+    {% endif %}
+
+    <div class="card shadow-lg mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="fw-semibold">{{ fluent(key="deployment-targets", lang=lang) }}</span>
+            <form method="post" action="/{{ lang }}/admin/deploy/all/sync" class="m-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-primary" {% if not deployment_all_configured %}disabled{% endif %}>
+                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i> {{ fluent(key="sync-all", lang=lang) }}
+                </button>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>{{ fluent(key="deployment-target", lang=lang) }}</th>
+                        <th>{{ fluent(key="pipeline-id", lang=lang) }}</th>
+                        <th>{{ fluent(key="configuration", lang=lang) }}</th>
+                        <th class="text-end">{{ fluent(key="actions", lang=lang) }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for target in deployment_targets %}
+                    <tr>
+                        <td>{{ target.label }}</td>
+                        <td>{% if target.pipeline_id %}{{ target.pipeline_id }}{% else %}<span class="text-muted">{{ fluent(key="not-configured", lang=lang) }}</span>{% endif %}</td>
+                        <td>
+                            {% if target.configured %}
+                            <span class="badge bg-success">{{ fluent(key="configured", lang=lang) }}</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">{{ fluent(key="not-configured", lang=lang) }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <form method="post" action="/{{ lang }}/admin/deploy/{{ target.key }}/sync" class="m-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-outline-primary" {% if not target.configured %}disabled{% endif %}>
+                                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i> {{ fluent(key="sync-now", lang=lang) }}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h5">{{ fluent(key="deployment-flow", lang=lang) }}</h2>
+            <p class="mb-0 text-muted">{{ fluent(key="deployment-flow-help", lang=lang) }}</p>
+        </div>
+    </div>
+</div>
+{% endblock content %}
