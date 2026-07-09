@@ -2,7 +2,7 @@
 {% import "macros/viz.html" as viz %}
 {% import "macros/charts.html" as charts %}
 
-{% block title %}<title>Delivery Map</title>{% endblock title %}
+{% block title %}<title>{{ fluent(key="delivery-map", lang=lang) }}</title>{% endblock title %}
 
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
@@ -10,14 +10,14 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/{{ lang }}/analytics">Analytics</a></li>
-            <li class="breadcrumb-item active">Delivery Map</li>
+            <li class="breadcrumb-item"><a href="/{{ lang }}/analytics">{{ fluent(key="analytics", lang=lang) }}</a></li>
+            <li class="breadcrumb-item active">{{ fluent(key="delivery-map", lang=lang) }}</li>
         </ol>
     </nav>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0"><i class="bi bi-diagram-2" aria-hidden="true"></i> Delivery Map</h1>
-        <span class="text-muted small">Product → Task → Work, sized by effort</span>
+        <h1 class="h3 mb-0"><i class="bi bi-diagram-2" aria-hidden="true"></i> {{ fluent(key="delivery-map", lang=lang) }}</h1>
+        <span class="text-muted small">{{ fluent(key="delivery-tagline", lang=lang) }}</span>
     </div>
 
     <!-- KPI Cards -->
@@ -26,7 +26,7 @@
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-primary">{{ summary.total_products }}</div>
-                    <div class="small text-muted">Products</div>
+                    <div class="small text-muted">{{ fluent(key="products", lang=lang) }}</div>
                 </div>
             </div>
         </div>
@@ -34,7 +34,7 @@
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-info">{{ summary.total_tasks }}</div>
-                    <div class="small text-muted">Tasks</div>
+                    <div class="small text-muted">{{ fluent(key="tasks", lang=lang) }}</div>
                 </div>
             </div>
         </div>
@@ -42,7 +42,7 @@
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-secondary">{{ summary.total_work }}</div>
-                    <div class="small text-muted">Work Items</div>
+                    <div class="small text-muted">{{ fluent(key="work-items", lang=lang) }}</div>
                 </div>
             </div>
         </div>
@@ -50,7 +50,7 @@
             <div class="card shadow-sm h-100 text-center">
                 <div class="card-body py-3">
                     <div class="fs-2 fw-bold text-success">{{ summary.total_effort }}</div>
-                    <div class="small text-muted">Total Effort</div>
+                    <div class="small text-muted">{{ fluent(key="total-effort", lang=lang) }}</div>
                 </div>
             </div>
         </div>
@@ -59,7 +59,7 @@
     <!-- Treemap -->
     <div class="card shadow-sm mb-4">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0"><i class="bi bi-grid-1x2" aria-hidden="true"></i> Delivery Treemap</h5>
+            <h5 class="mb-0"><i class="bi bi-grid-1x2" aria-hidden="true"></i> {{ fluent(key="delivery-treemap", lang=lang) }}</h5>
             <!-- Work status colour legend -->
             <div class="d-flex gap-3 flex-wrap small">
                 {% for s in status_legend %}
@@ -74,7 +74,7 @@
             {% if summary.rendered_products > 0 %}
             <div id="treemap-selection" class="small mb-2" style="display:none">
                 <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
-                Selected: <a id="treemap-selection-link" href="#"></a>
+                {{ fluent(key="selected-label", lang=lang) }} <a id="treemap-selection-link" href="#"></a>
             </div>
             {{ charts::chart(id="treemap", height="600px") }}
             <script type="application/json" id="treemap-data">{{ chart_option | safe }}</script>
@@ -98,29 +98,28 @@
               })();
             </script>
             {% else %}
-            <div class="text-muted text-center p-4">No products with tasks to display.</div>
+            <div class="text-muted text-center p-4">{{ fluent(key="no-products-with-tasks", lang=lang) }}</div>
             {% endif %}
         </div>
         <div class="card-footer small text-muted">
-            Rectangle area = work effort. Leaf colour = work status. Click a product or task to zoom in
-            (use the breadcrumb to zoom back out); a link to open that product, task or work item appears above the chart.
+            {{ fluent(key="treemap-footnote", lang=lang) }}
         </div>
     </div>
 
     <!-- Product effort table -->
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-box-seam" aria-hidden="true"></i> Products by Effort</h5>
+            <h5 class="mb-0"><i class="bi bi-box-seam" aria-hidden="true"></i> {{ fluent(key="products-by-effort", lang=lang) }}</h5>
         </div>
         <div class="card-body p-0">
             <table class="table table-sm table-hover mb-0 align-middle">
                 <thead>
                     <tr>
-                        <th>Product</th>
-                        <th>Domain</th>
-                        <th class="text-center">Tasks</th>
-                        <th class="text-center">Work</th>
-                        <th class="text-end">Effort</th>
+                        <th>{{ fluent(key="product", lang=lang) }}</th>
+                        <th>{{ fluent(key="domain-label", lang=lang) }}</th>
+                        <th class="text-center">{{ fluent(key="tasks", lang=lang) }}</th>
+                        <th class="text-center">{{ fluent(key="work", lang=lang) }}</th>
+                        <th class="text-end">{{ fluent(key="effort", lang=lang) }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -135,7 +134,7 @@
                     </tr>
                     {% endfor %}
                     {% else %}
-                    <tr><td colspan="5" class="text-muted text-center p-3">No products available.</td></tr>
+                    <tr><td colspan="5" class="text-muted text-center p-3">{{ fluent(key="no-products-available", lang=lang) }}</td></tr>
                     {% endif %}
                 </tbody>
             </table>

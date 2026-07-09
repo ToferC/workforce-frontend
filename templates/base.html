@@ -96,11 +96,12 @@
             {% if role == "analyst" or role == "operator" or role == "admin" %}
             <gcds-nav-group menu-label="{{ fluent(key='analytics', lang=lang) }}" open-trigger="{{ fluent(key='analytics', lang=lang) }}">
                 <gcds-nav-link href="/{{ lang }}/analytics">{{ fluent(key="analytics", lang=lang) }}</gcds-nav-link>
-                <gcds-nav-link href="/{{ lang }}/analytics/coverage">Capability Coverage</gcds-nav-link>
-                <gcds-nav-link href="/{{ lang }}/analytics/delivery">Delivery Map</gcds-nav-link>
-                <gcds-nav-link href="/{{ lang }}/analytics/mobility">Talent Mobility</gcds-nav-link>
-                <gcds-nav-link href="/{{ lang }}/analytics/growth">Capability Growth</gcds-nav-link>
-                <gcds-nav-link href="/{{ lang }}/analytics/supply-demand">Supply vs Demand</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/coverage">{{ fluent(key="capability-coverage", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/delivery">{{ fluent(key="delivery-map", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/consistency">{{ fluent(key="priority-consistency", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/mobility">{{ fluent(key="talent-mobility", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/growth">{{ fluent(key="capability-growth", lang=lang) }}</gcds-nav-link>
+                <gcds-nav-link href="/{{ lang }}/analytics/supply-demand">{{ fluent(key="supply-vs-demand", lang=lang) }}</gcds-nav-link>
             </gcds-nav-group>
             {% endif %}
 

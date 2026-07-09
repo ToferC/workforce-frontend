@@ -586,3 +586,129 @@ no-priority-mismatches = All priorities are consistent across products, tasks, a
 priority-below-product = Priority below product
 priority-below-task = Priority below task
 lower-priority-work = lower-priority items
+
+# Analytics — shared
+workforce-analytics = Workforce Analytics
+capability-coverage = Capability Coverage
+delivery-map = Delivery Map
+talent-mobility = Talent Mobility
+capability-growth = Capability Growth
+supply-vs-demand = Supply vs Demand
+team-capacity = Team Capacity
+capability-gaps = Capability Gaps
+no-data-available = No data available.
+count-label = Count
+domain-label = Domain
+gap-label = Gap
+
+# Analytics — dashboard sections
+work-by-status = Work by Status
+total-suffix = total
+unassigned-suffix = unassigned
+bar-label = Bar
+no-work-data = No work data available.
+work-effort-by-domain = Work Effort by Domain
+total-effort = Total Effort
+total-active-effort-hint = (total active effort)
+active-suffix = active
+load-label = Load
+load-high = High
+load-medium = Medium
+load-low = Low
+no-team-data = No team data available.
+over-allocated-people = Over-Allocated People
+over-allocated-hint = (effort ≥ 8)
+available-suffix = available
+no-one-over-allocated = No one is over-allocated.
+vacant-roles = Vacant Roles
+no-vacant-roles = No vacant roles.
+capability-gap-by-domain = Capability Gap by Domain
+required-label = Required
+available-label = Available
+gap-footnote = Required = role requirements. Available = validated capabilities (or self-identified where unvalidated). A negative gap (red) means fewer qualified people than required positions.
+
+# Analytics — capability coverage
+team-capability-coverage = Team Capability Coverage
+coverage-tagline = Depth score = sum of capability level weights per team × domain
+active-teams = Active Teams
+domains-with-coverage = Domains with Coverage
+peak-depth-score = Peak Depth Score
+capability-heatmap = Capability Heatmap (Teams × Domains)
+heatmap-footnote = Cell value = sum of level weights across all active people in each team (Desired=1, Novice=2, Experienced=3, Expert=4, Specialist=5). Validated level is preferred; self-identified is used where unvalidated.
+domain-strength-ranking = Domain Strength Ranking
+depth-label = Depth
+coverage-table = Coverage Table
+no-team-capability-data = No team capability data available.
+
+# Analytics — delivery map
+delivery-tagline = Product → Task → Work, sized by effort
+work-items = Work Items
+delivery-treemap = Delivery Treemap
+selected-label = Selected:
+no-products-with-tasks = No products with tasks to display.
+treemap-footnote = Rectangle area = work effort. Leaf colour = work status. Click a product or task to zoom in (use the breadcrumb to zoom back out); a link to open that product, task or work item appears above the chart.
+products-by-effort = Products by Effort
+no-products-available = No products available.
+
+# Analytics — capability growth
+growth-tagline = Cumulative validated capability depth over time by domain
+active-domains = Active Domains
+current-total-depth = Current Total Depth
+capability-depth-over-time = Capability Depth Over Time (Quarterly)
+growth-footnote = Each line represents a skill domain. Value = cumulative weighted depth of validated capabilities (Desired=1, Novice=2, Experienced=3, Expert=4, Specialist=5).
+
+# Analytics — talent mobility
+mobility-tagline = Previous org tier → current org tier movement
+total-moves = Total Moves
+promotions = Promotions
+lateral-moves = Lateral Moves
+inflows = Inflows
+outflows = Outflows
+org-tiers-involved = Org Tiers Involved
+movement-flow = Movement Flow
+no-moves-found = No cross-org-tier moves found. Movement is detected when a person's most recent prior role was in a different team than their current role.
+mobility-footnote = Each flow links a person's previous org tier (was) to their current org tier (now), sized by the number of people who made that move (moves within the same org tier are not shown). Hover a flow to highlight it.
+transitions = Transitions
+from-previous-org-tier = From (previous org tier)
+to-current-org-tier = To (current org tier)
+
+# Analytics — supply vs demand
+capability-supply-vs-demand = Capability Supply vs Demand
+supply-demand-tagline = Per-domain capability availability vs role/work requirements
+domains-tracked = Domains Tracked
+domains-with-surplus = Domains with Surplus
+domains-with-deficit = Domains with Deficit
+supply-label = Supply:
+demand-label = Demand:
+no-supply-demand-data = No supply/demand data available.
+
+# Entity detail pages — shared headings
+contact-info = Contact Info
+address-label = Address
+details-heading = Details
+past-roles = Past Roles
+potential-job-matches = Potential Job Matches
+assign-to-this-role = Assign to this role
+no-work-assigned = No work assigned.
+current-effort = Current Effort
+team-owner = Team Owner
+vacant-label = Vacant
+capabilities-heading = Capabilities
+assigned-to = Assigned To
+not-assigned = Not assigned.
+reassign-button = Reassign
+assign-button = Assign
+meets-required-level = Meets required level
+below-required-level = Below required level
+qualified-people = Qualified People
+qualified-people-hint = Validated at or above { $level } in { $skill }
+no-qualified-people = No qualified people found for this work's requirements.
+currently-assigned = Currently assigned
+assign-as = Assign as
+no-active-role-hint = No active role — assign a role first
+website-label = Website
+domain-level-label = Domain → Level
+priority-label = Priority
+required-skill = Required Skill
+target-completion = Target Completion
+assigned-by = Assigned by

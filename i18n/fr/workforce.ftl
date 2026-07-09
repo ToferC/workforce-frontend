@@ -586,3 +586,129 @@ no-priority-mismatches = Toutes les priorités sont cohérentes entre les produi
 priority-below-product = Priorité sous le produit
 priority-below-task = Priorité sous la tâche
 lower-priority-work = éléments de priorité inférieure
+
+# Analytique — commun
+workforce-analytics = Analytique de l'effectif
+capability-coverage = Couverture des capacités
+delivery-map = Carte de livraison
+talent-mobility = Mobilité des talents
+capability-growth = Croissance des capacités
+supply-vs-demand = Offre et demande
+team-capacity = Capacité des équipes
+capability-gaps = Écarts de capacités
+no-data-available = Aucune donnée disponible.
+count-label = Nombre
+domain-label = Domaine
+gap-label = Écart
+
+# Analytique — sections du tableau de bord
+work-by-status = Travail par état
+total-suffix = au total
+unassigned-suffix = non assignés
+bar-label = Barre
+no-work-data = Aucune donnée de travail disponible.
+work-effort-by-domain = Effort de travail par domaine
+total-effort = Effort total
+total-active-effort-hint = (effort actif total)
+active-suffix = actifs
+load-label = Charge
+load-high = Élevée
+load-medium = Moyenne
+load-low = Faible
+no-team-data = Aucune donnée d'équipe disponible.
+over-allocated-people = Personnes surchargées
+over-allocated-hint = (effort ≥ 8)
+available-suffix = disponibles
+no-one-over-allocated = Personne n'est surchargé.
+vacant-roles = Rôles vacants
+no-vacant-roles = Aucun rôle vacant.
+capability-gap-by-domain = Écart de capacités par domaine
+required-label = Requis
+available-label = Disponible
+gap-footnote = Requis = exigences des rôles. Disponible = capacités validées (ou auto-déclarées si non validées). Un écart négatif (rouge) signifie moins de personnes qualifiées que de postes requis.
+
+# Analytique — couverture des capacités
+team-capability-coverage = Couverture des capacités par équipe
+coverage-tagline = Score de profondeur = somme des pondérations de niveau par équipe × domaine
+active-teams = Équipes actives
+domains-with-coverage = Domaines couverts
+peak-depth-score = Score de profondeur maximal
+capability-heatmap = Carte thermique des capacités (équipes × domaines)
+heatmap-footnote = Valeur de cellule = somme des pondérations de niveau de toutes les personnes actives de l'équipe (Souhaité=1, Novice=2, Expérimenté=3, Expert=4, Spécialiste=5). Le niveau validé est privilégié; le niveau auto-déclaré est utilisé à défaut.
+domain-strength-ranking = Classement des forces par domaine
+depth-label = Profondeur
+coverage-table = Tableau de couverture
+no-team-capability-data = Aucune donnée de capacités d'équipe disponible.
+
+# Analytique — carte de livraison
+delivery-tagline = Produit → Tâche → Travail, dimensionné selon l'effort
+work-items = Éléments de travail
+delivery-treemap = Arborescence de livraison
+selected-label = Sélection :
+no-products-with-tasks = Aucun produit avec des tâches à afficher.
+treemap-footnote = Surface du rectangle = effort de travail. Couleur des feuilles = état du travail. Cliquez sur un produit ou une tâche pour zoomer (utilisez le fil d'Ariane pour revenir en arrière); un lien vers ce produit, cette tâche ou cet élément de travail apparaît au-dessus du graphique.
+products-by-effort = Produits par effort
+no-products-available = Aucun produit disponible.
+
+# Analytique — croissance des capacités
+growth-tagline = Profondeur cumulative des capacités validées au fil du temps, par domaine
+active-domains = Domaines actifs
+current-total-depth = Profondeur totale actuelle
+capability-depth-over-time = Profondeur des capacités au fil du temps (trimestriel)
+growth-footnote = Chaque ligne représente un domaine de compétences. Valeur = profondeur pondérée cumulative des capacités validées (Souhaité=1, Novice=2, Expérimenté=3, Expert=4, Spécialiste=5).
+
+# Analytique — mobilité des talents
+mobility-tagline = Mouvement du palier organisationnel précédent vers l'actuel
+total-moves = Mouvements totaux
+promotions = Promotions
+lateral-moves = Mouvements latéraux
+inflows = Arrivées
+outflows = Départs
+org-tiers-involved = Paliers organisationnels concernés
+movement-flow = Flux de mouvement
+no-moves-found = Aucun mouvement entre paliers organisationnels trouvé. Un mouvement est détecté lorsque le rôle précédent le plus récent d'une personne était dans une autre équipe que son rôle actuel.
+mobility-footnote = Chaque flux relie le palier organisationnel précédent d'une personne (avant) à son palier actuel (maintenant), dimensionné selon le nombre de personnes ayant fait ce mouvement (les mouvements au sein d'un même palier ne sont pas affichés). Survolez un flux pour le mettre en évidence.
+transitions = Transitions
+from-previous-org-tier = De (palier organisationnel précédent)
+to-current-org-tier = Vers (palier organisationnel actuel)
+
+# Analytique — offre et demande
+capability-supply-vs-demand = Offre et demande de capacités
+supply-demand-tagline = Disponibilité des capacités par domaine vs exigences des rôles et du travail
+domains-tracked = Domaines suivis
+domains-with-surplus = Domaines en surplus
+domains-with-deficit = Domaines en déficit
+supply-label = Offre :
+demand-label = Demande :
+no-supply-demand-data = Aucune donnée d'offre/demande disponible.
+
+# Pages de détail — en-têtes communs
+contact-info = Coordonnées
+address-label = Adresse
+details-heading = Détails
+past-roles = Rôles antérieurs
+potential-job-matches = Postes correspondants potentiels
+assign-to-this-role = Affecter à ce rôle
+no-work-assigned = Aucun travail assigné.
+current-effort = Effort actuel
+team-owner = Responsable d'équipe
+vacant-label = Vacant
+capabilities-heading = Capacités
+assigned-to = Assigné à
+not-assigned = Non assigné.
+reassign-button = Réaffecter
+assign-button = Affecter
+meets-required-level = Atteint le niveau requis
+below-required-level = Sous le niveau requis
+qualified-people = Personnes qualifiées
+qualified-people-hint = Validé au niveau { $level } ou plus en { $skill }
+no-qualified-people = Aucune personne qualifiée trouvée pour les exigences de ce travail.
+currently-assigned = Actuellement assigné
+assign-as = Affecter comme
+no-active-role-hint = Aucun rôle actif — affectez d'abord un rôle
+website-label = Site Web
+domain-level-label = Domaine → Niveau
+priority-label = Priorité
+required-skill = Compétence requise
+target-completion = Achèvement visé
+assigned-by = Assigné par
