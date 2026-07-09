@@ -71,6 +71,20 @@
         {% endif %}
     </div>
 
+    {# Self-service band: shown when the person record is the signed-in user's
+       own. Every employee can maintain their own details and skills; changes
+       to validated levels remain admin actions. #}
+    {% if is_self %}
+    <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <span><i class="bi bi-person-check" aria-hidden="true"></i> {{ fluent(key="this-is-you", lang=lang) }}</span>
+        <span class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-sm btn-primary" href="/{{ lang }}/me">{{ fluent(key="update-my-details", lang=lang) }}</a>
+            <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/me/capability/new">{{ fluent(key="add-my-capability", lang=lang) }}</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/me#flag">{{ fluent(key="flag-an-issue", lang=lang) }}</a>
+        </span>
+    </div>
+    {% endif %}
+
     <div class="detail-layout">
         <!-- Main pane: operational at-a-glance information -->
         <div class="detail-main">
@@ -160,10 +174,10 @@
                                 {% if role == "admin" %}
                                 <a class="btn btn-sm btn-outline-success" href="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/validate">{{ fluent(key="validate-button", lang=lang) }}</a>
                                 {% endif %}
-                                <form method="post" action="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/retire" class="m-0">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="retire-button", lang=lang) }}</button>
-                                </form>
+                                <a class="btn btn-sm btn-outline-danger"
+                                   href="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/retire"
+                                   hx-get="/{{ lang }}/person/{{ person.id }}/capability/{{ cap.id }}/retire"
+                                   hx-target="#confirm-modal-container" hx-swap="innerHTML">{{ fluent(key="retire-button", lang=lang) }}</a>
                             </span>
                             {% endif %}
                         </li>
@@ -315,10 +329,10 @@
                                         <a href="/{{lang}}/organization/{{aff.organization.id}}">{{ aff.organization.nameEn }}</a> &mdash; {{ aff.affiliationRole }}
                                     </span>
                                     {% if role == "operator" or role == "admin" %}
-                                    <form method="post" action="/{{ lang }}/person/{{ person.id }}/affiliation/{{ aff.id }}/end" class="m-0">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="end-affiliation", lang=lang) }}</button>
-                                    </form>
+                                    <a class="btn btn-sm btn-outline-danger"
+                                       href="/{{ lang }}/person/{{ person.id }}/affiliation/{{ aff.id }}/end"
+                                       hx-get="/{{ lang }}/person/{{ person.id }}/affiliation/{{ aff.id }}/end"
+                                       hx-target="#confirm-modal-container" hx-swap="innerHTML">{{ fluent(key="end-affiliation", lang=lang) }}</a>
                                     {% endif %}
                                 </li>
                                 {% endfor %}
@@ -356,4 +370,6 @@
 
 {# HTMX swaps the transfer-confirmation modal fragment in here on Assign. #}
 <div id="transfer-modal-container"></div>
+{# HTMX swaps destructive-action confirmation modals in here. #}
+<div id="confirm-modal-container"></div>
 {% endblock content %}

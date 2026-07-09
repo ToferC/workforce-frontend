@@ -59,25 +59,79 @@
                     </div>
                 </div>
 
-                <p class="text-muted small mb-1">{{ fluent(key="military-classification", lang=lang) }}</p>
-                <div class="row">
-                    <div class="col-md-6">
-                        {{ forms::select(name="rank", label=label_rank, options=ranks, selected=role_form.rank, required=false, blank_label=blank_label) }}
+                {# Explicit classification choice: a role is military, civilian, or
+                   unclassified — never both. The radio reveals only the relevant
+                   fieldset (and clears the other on switch); without JS both stay
+                   visible and the server enforces the exclusivity as before. #}
+                {% if role_form.rank or role_form.militaryOccupation %}{% set classification = "military" %}
+                {% elif role_form.occupationalGroup or role_form.occupationalLevel %}{% set classification = "civilian" %}
+                {% else %}{% set classification = "none" %}{% endif %}
+
+                <fieldset class="mb-2">
+                    <legend class="form-label fs-6">{{ fluent(key="classification-prompt", lang=lang) }}</legend>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="classification" id="cls-none" value="none" {% if classification == "none" %}checked{% endif %}>
+                        <label class="form-check-label" for="cls-none">{{ fluent(key="classification-none", lang=lang) }}</label>
                     </div>
-                    <div class="col-md-6">
-                        {{ forms::select(name="military_occupation", label=label_occupation, options=military_occupations, selected=role_form.militaryOccupation, required=false, blank_label=blank_label) }}
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="classification" id="cls-military" value="military" {% if classification == "military" %}checked{% endif %}>
+                        <label class="form-check-label" for="cls-military">{{ fluent(key="military-label", lang=lang) }}</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="classification" id="cls-civilian" value="civilian" {% if classification == "civilian" %}checked{% endif %}>
+                        <label class="form-check-label" for="cls-civilian">{{ fluent(key="civilian-label", lang=lang) }}</label>
+                    </div>
+                </fieldset>
+
+                <div id="military-fields">
+                    <p class="text-muted small mb-1">{{ fluent(key="military-classification", lang=lang) }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ forms::select(name="rank", label=label_rank, options=ranks, selected=role_form.rank, required=false, blank_label=blank_label) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ forms::select(name="military_occupation", label=label_occupation, options=military_occupations, selected=role_form.militaryOccupation, required=false, blank_label=blank_label) }}
+                        </div>
                     </div>
                 </div>
 
-                <p class="text-muted small mb-1">{{ fluent(key="civilian-classification", lang=lang) }}</p>
-                <div class="row">
-                    <div class="col-md-6">
-                        {{ forms::select(name="occupational_group", label=label_occ_group, options=occupational_groups, selected=role_form.occupationalGroup, required=false, blank_label=blank_label) }}
-                    </div>
-                    <div class="col-md-6">
-                        {{ forms::text_input(name="occupational_level", label=label_occ_level, value=role_form.occupationalLevel, type="number", required=false) }}
+                <div id="civilian-fields">
+                    <p class="text-muted small mb-1">{{ fluent(key="civilian-classification", lang=lang) }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ forms::select(name="occupational_group", label=label_occ_group, options=occupational_groups, selected=role_form.occupationalGroup, required=false, blank_label=blank_label) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ forms::text_input(name="occupational_level", label=label_occ_level, value=role_form.occupationalLevel, type="number", required=false) }}
+                        </div>
                     </div>
                 </div>
+
+                <script>
+                    (function () {
+                        var radios = document.querySelectorAll('input[name="classification"]');
+                        var mil = document.getElementById('military-fields');
+                        var civ = document.getElementById('civilian-fields');
+                        if (!radios.length || !mil || !civ) { return; }
+                        function clearFields(root) {
+                            root.querySelectorAll('input, select, gcds-input, gcds-select').forEach(function (el) {
+                                if ('value' in el) { el.value = ''; }
+                            });
+                        }
+                        function sync(clear) {
+                            var checked = document.querySelector('input[name="classification"]:checked');
+                            var v = checked ? checked.value : 'none';
+                            mil.style.display = (v === 'military') ? '' : 'none';
+                            civ.style.display = (v === 'civilian') ? '' : 'none';
+                            if (clear) {
+                                if (v !== 'military') { clearFields(mil); }
+                                if (v !== 'civilian') { clearFields(civ); }
+                            }
+                        }
+                        radios.forEach(function (r) { r.addEventListener('change', function () { sync(true); }); });
+                        sync(false);
+                    })();
+                </script>
 
                 <div class="row">
                     <div class="col-md-6">
@@ -88,7 +142,7 @@
                     </div>
                 </div>
 
-                {{ forms::text_input(name="person_name", label=label_person, value=role_form.personName, required=false, help=help_person) }}
+                {{ forms::person_picker(name="person_name", label=label_person, lang=lang, value=role_form.personName, help=help_person) }}
 
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>

@@ -7,12 +7,12 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_capability_by_name_and_level, get_skill_by_id, get_person_by_id, create_capability, update_capability, create_validation, get_user_by_email};
 use crate::security::{self, MinimumRole};
-use super::utility::{redirect_to, render_page, session_bearer};
+use super::utility::{redirect_to, render_confirm, render_page, session_bearer};
 
 /// CapabilityLevel enum values, kept in sync with the API schema.
 pub const CAPABILITY_LEVELS: [&str; 5] = ["DESIRED", "NOVICE", "EXPERIENCED", "EXPERT", "SPECIALIST"];
 
-fn level_options() -> serde_json::Value {
+pub fn level_options() -> serde_json::Value {
     json!(CAPABILITY_LEVELS
         .iter()
         .map(|l| json!({"value": l, "label": super::org_tier::humanize(l)}))
@@ -283,4 +283,57 @@ pub async fn validate_capability_post(
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
+}
+
+/// Confirmation step before retiring a capability from a person's profile.
+#[get("/{lang}/person/{person_id}/capability/{capability_id}/retire")]
+pub async fn retire_capability_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id, capability_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let person = match get_person_by_id(person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.person_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/people", &lang));
+        },
+    };
+
+    let person_name = format!("{} {}", person.given_name, person.family_name);
+    let capability_name = person.capabilities.iter()
+        .find(|c| c.id == capability_id)
+        .map(|c| c.name_en.clone())
+        .unwrap_or_else(|| by_lang(&lang, "this capability", "cette capacité").to_string());
+
+    let message = if lang == "fr" {
+        format!("La capacité « {} » sera retirée du profil de {}.", capability_name, person_name)
+    } else {
+        format!("The capability “{}” will be retired from {}'s profile.", capability_name, person_name)
+    };
+    let note = by_lang(
+        &lang,
+        "It will no longer count toward candidate matching or analytics. Any validation history is kept.",
+        "Elle ne comptera plus dans le jumelage des candidats ni dans l'analytique. L'historique de validation est conservé.",
+    );
+
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    render_confirm(
+        &data, &req, ctx,
+        by_lang(&lang, "Retire capability", "Retirer la capacité"),
+        &message,
+        Some(note),
+        &format!("/{}/person/{}/capability/{}/retire", &lang, &person_id, &capability_id),
+        by_lang(&lang, "Retire capability", "Retirer la capacité"),
+        &format!("/{}/person/{}", &lang, &person_id),
+    )
 }

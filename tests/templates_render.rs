@@ -1262,6 +1262,130 @@ fn org_chart_explore_offers_fullscreen_toggle() {
 }
 
 #[test]
+fn confirm_action_renders_page_and_modal() {
+    let tera = tera();
+    for lang in ["en", "fr"] {
+        for template in ["shared/confirm_action.html", "shared/_confirm_action.html"] {
+            let mut ctx = base_context(lang, "operator");
+            ctx.insert("confirm_title", "Vacate role");
+            ctx.insert("confirm_message", "Sam Lee will be unassigned from this role.");
+            ctx.insert("confirm_note", &Some("3 work item(s) will remain attached."));
+            ctx.insert("action_url", "/en/role/77777777-7777-7777-7777-777777777777/vacate");
+            ctx.insert("confirm_label", "Vacate role");
+            ctx.insert("cancel_url", "/en/role/77777777-7777-7777-7777-777777777777");
+            let html = tera.render(template, &ctx).unwrap();
+            assert!(html.contains("Sam Lee will be unassigned"));
+            assert!(html.contains("3 work item(s)"));
+            assert!(html.contains("name=\"csrf_token\""));
+            // The POST goes to the destructive action, not somewhere else
+            assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/vacate"));
+        }
+    }
+}
+
+#[test]
+fn role_detail_destructive_actions_go_through_confirmation() {
+    let tera = tera();
+    let mut role = sample_role_record();
+    role["requirements"] = json!([{"id": "eeee0000-0000-0000-0000-000000000001", "nameEn": "Threat Analysis", "domain": "CYBER_SECURITY", "requiredLevel": "EXPERT"}]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_record", &role);
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    // Vacate and requirement-retire are links into the confirm flow, not
+    // direct POST buttons.
+    assert!(html.contains("hx-target=\"#confirm-modal-container\""));
+    assert!(html.contains("href=\"/en/role/77777777-7777-7777-7777-777777777777/vacate\""));
+    assert!(html.contains("/requirement/eeee0000-0000-0000-0000-000000000001/retire\""));
+    assert!(html.contains("id=\"confirm-modal-container\""));
+}
+
+#[test]
+fn role_form_offers_classification_choice_and_person_typeahead() {
+    let tera = tera();
+    let (ranks, occupations) = role_enum_options();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_form", &sample_role_form());
+    ctx.insert("team", &sample_team());
+    ctx.insert("ranks", &ranks);
+    ctx.insert("military_occupations", &occupations);
+    ctx.insert("occupational_groups", &occupational_group_options());
+    let html = tera.render("role/role_form.html", &ctx).unwrap();
+    // Explicit classification chooser; military pre-selected from form values
+    assert!(html.contains("name=\"classification\""));
+    assert!(html.contains("id=\"cls-military\" value=\"military\" checked"));
+    assert!(html.contains("id=\"military-fields\""));
+    assert!(html.contains("id=\"civilian-fields\""));
+    // Person assignment is a typeahead bound to /person_options
+    assert!(html.contains("list=\"person_name-options\""));
+    assert!(html.contains("/en/person_options"));
+}
+
+#[test]
+fn role_status_form_allows_retitling() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_record", &sample_role_record());
+    let html = tera.render("role/role_status_form.html", &ctx).unwrap();
+    assert!(html.contains("name=\"title_en\""));
+    assert!(html.contains("name=\"title_fr\""));
+    assert!(html.contains("value=\"Analyst\""));
+}
+
+#[test]
+fn vacant_role_offers_direct_assignment_picker() {
+    let tera = tera();
+    let mut role = sample_role_record();
+    role["person"] = json!(null);
+    role["requirements"] = json!([]);
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("role_record", &role);
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(html.contains("/role/77777777-7777-7777-7777-777777777777/assign"));
+    assert!(html.contains("list=\"person_name-options\""));
+
+    // Plain users get neither the picker nor the confirm actions
+    let mut ctx = base_context("en", "user");
+    ctx.insert("role_record", &role);
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(!html.contains("/assign"));
+}
+
+#[test]
+fn person_page_shows_self_service_band_for_own_record() {
+    let tera = tera();
+    // Someone else's record: no band
+    let mut ctx = base_context("en", "user");
+    ctx.insert("person", &sample_person());
+    ctx.insert("is_self", &false);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(!html.contains("/en/me/capability/new"));
+
+    // Own record: self-service actions appear even for a plain user
+    let mut ctx = base_context("en", "user");
+    ctx.insert("person", &sample_person());
+    ctx.insert("is_self", &true);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(html.contains("/en/me\""));
+    assert!(html.contains("/en/me/capability/new"));
+    assert!(html.contains("/en/me#flag"));
+}
+
+#[test]
+fn my_capability_form_renders() {
+    let tera = tera();
+    for lang in ["en", "fr"] {
+        let mut ctx = base_context(lang, "user");
+        ctx.insert("skill_domains", &domain_options());
+        ctx.insert("skill_groups", &skill_group_options());
+        ctx.insert("capability_levels", &json!([{"value": "EXPERT", "label": "Expert"}]));
+        let html = tera.render("capability/my_capability_form.html", &ctx).unwrap();
+        assert!(html.contains(&format!("/{}/me/capability/new", lang)));
+        assert!(html.contains("name=\"skill_id\""));
+        assert!(html.contains("name=\"self_identified_level\""));
+    }
+}
+
+#[test]
 fn nav_offers_analytics_to_analysts_and_above_only() {
     let tera = tera();
     // Analytics handlers require MinimumRole::Analyst; the menu should match.

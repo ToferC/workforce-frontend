@@ -341,7 +341,7 @@ end-role-confirm = Retire this position? It becomes inactive with an end date of
 confirm-end-role-button = Yes, retire position
 role-ended = Retired
 role-active = Role is active
-role-edit-limited = Only the active flag and dates can be changed on an existing role. To change the title, rank, or person, end this role and create a new one — that preserves the history.
+role-edit-limited = Titles, the active flag and dates can be changed here. To change the classification or the person, end this role and create a new one, or use Assign/Vacate — that preserves the history.
 title-english = Title (English)
 title-french = Title (French)
 rank = Rank
@@ -722,3 +722,21 @@ coverage-rollup-hint = Aggregated at org-tier level 2; a person on several teams
 # Org chart fullscreen toggle
 fullscreen = Full screen
 exit-fullscreen = Exit full screen
+
+# Shared destructive-action confirmation
+please-confirm = Please confirm
+vacate-role = Vacate role
+
+# Role classification chooser
+classification-prompt = Classification
+classification-none = Unclassified
+military-label = Military
+civilian-label = Civilian
+no-requirements-specified = No requirements specified.
+assign-person-direct-help = Start typing a name and pick from the suggestions, or use the candidate matcher below.
+
+# Person page self-service band
+this-is-you = This is your record.
+update-my-details = Update my details
+add-my-capability = Add a capability
+add-my-capability-help = Declare a skill you hold and your own assessment of your level. An administrator can validate it later; validated levels always take precedence.

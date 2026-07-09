@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    <title>{{ fluent(key="add-my-capability", lang=lang) }}</title>
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+
+    <h1 class="mb-4"><i class="bi bi-award" aria-hidden="true"></i> {{ fluent(key="add-my-capability", lang=lang) }}</h1>
+    <p class="text-muted">{{ fluent(key="add-my-capability-help", lang=lang) }}</p>
+
+    {% set label_level = fluent(key="self-identified-level", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+    {% set cancel_url = "/" ~ lang ~ "/me" %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form method="post" action="/{{ lang }}/me/capability/new">
+                {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
+                {% include "skill/skill_picker.html" %}
+                {{ forms::select(name="self_identified_level", label=label_level, options=capability_levels) }}
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

@@ -24,6 +24,8 @@ use crate::handlers::{
     activate_post,
     my_profile,
     my_profile_post,
+    my_capability_form,
+    my_capability_post,
     flag_issue_post,
     grant_access_post,
 
@@ -43,6 +45,7 @@ use crate::handlers::{
     person_by_id,
     person_by_name,
     person_index,
+    person_options_datalist,
     create_person_form,
     create_person_post,
     edit_person_form,
@@ -50,6 +53,7 @@ use crate::handlers::{
     retire_person_form,
     retire_person_post,
     restore_person_post,
+    end_affiliation_form,
     create_affiliation_form,
     create_affiliation_post,
     end_affiliation_post,
@@ -68,10 +72,12 @@ use crate::handlers::{
     end_role_post,
     assign_role_post,
     transfer_preview,
+    vacate_role_form,
     vacate_role_post,
     offer_role_post,
     create_requirement_form,
     create_requirement_post,
+    retire_requirement_form,
     retire_requirement_post,
     edit_requirement_form,
     edit_requirement_post,
@@ -80,6 +86,7 @@ use crate::handlers::{
     capability_search,
     create_capability_form,
     create_capability_post,
+    retire_capability_form,
     retire_capability_post,
     validate_capability_form,
     validate_capability_post,
@@ -224,6 +231,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(activate_post);
     config.service(my_profile);
     config.service(my_profile_post);
+    config.service(my_capability_form);
+    config.service(my_capability_post);
     config.service(flag_issue_post);
     config.service(grant_access_post);
 
@@ -250,10 +259,12 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(restore_person_post);
     config.service(create_affiliation_form);
     config.service(create_affiliation_post);
+    config.service(end_affiliation_form);
     config.service(end_affiliation_post);
     config.service(create_language_form);
     config.service(create_language_post);
     config.service(person_index);
+    config.service(person_options_datalist);
     config.service(person_by_id);
     config.service(person_by_name);
 
@@ -267,6 +278,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(end_role_post);
     config.service(assign_role_post);
     config.service(transfer_preview);
+    config.service(vacate_role_form);
     config.service(vacate_role_post);
     config.service(offer_role_post);
     config.service(role_index);
@@ -274,6 +286,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(create_requirement_post);
     config.service(edit_requirement_form);
     config.service(edit_requirement_post);
+    config.service(retire_requirement_form);
     config.service(retire_requirement_post);
     config.service(role_matches);
     config.service(role_by_id);
@@ -282,6 +295,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(capability_search);
     config.service(create_capability_form);
     config.service(create_capability_post);
+    config.service(retire_capability_form);
     config.service(retire_capability_post);
     config.service(validate_capability_form);
     config.service(validate_capability_post);

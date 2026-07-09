@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{# Full-page fallback for the shared destructive-action confirmation. The
+   handler builds confirm_title / confirm_message / confirm_note (optional) /
+   action_url / confirm_label / cancel_url; HTMX requests get the modal
+   fragment (_confirm_action.html) instead. #}
+
+{% block title %}<title>{{ fluent(key="please-confirm", lang=lang) }}</title>{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+    <h1 class="mb-4"><i class="bi bi-exclamation-triangle text-warning" aria-hidden="true"></i> {{ confirm_title }}</h1>
+
+    <div class="card shadow-lg border-warning">
+        <div class="card-body">
+            <p class="lead">{{ confirm_message }}</p>
+            {% if confirm_note %}<p class="text-muted">{{ confirm_note }}</p>{% endif %}
+            <form method="post" action="{{ action_url | safe }}" class="d-flex gap-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-danger">{{ confirm_label }}</button>
+                <a class="btn btn-outline-secondary" href="{{ cancel_url | safe }}">{{ fluent(key="cancel-button", lang=lang) }}</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

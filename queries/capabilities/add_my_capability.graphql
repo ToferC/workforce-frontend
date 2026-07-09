@@ -1,0 +1,7 @@
+mutation AddMyCapability($skillId: UUID!, $selfIdentifiedLevel: CapabilityLevel!) {
+  addMyCapability(skillId: $skillId, selfIdentifiedLevel: $selfIdentifiedLevel) {
+    id
+    nameEn
+    selfIdentifiedLevel
+  }
+}

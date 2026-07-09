@@ -341,7 +341,7 @@ end-role-confirm = Retirer ce poste? Il deviendra inactif avec une date de fin d
 confirm-end-role-button = Oui, retirer le poste
 role-ended = Retiré
 role-active = Le rôle est actif
-role-edit-limited = Seuls l'indicateur actif et les dates peuvent être modifiés sur un rôle existant. Pour changer le titre, le grade ou la personne, terminez ce rôle et créez-en un nouveau — cela conserve l'historique.
+role-edit-limited = Les titres, l'indicateur actif et les dates peuvent être modifiés ici. Pour changer la classification ou la personne, terminez ce rôle et créez-en un nouveau, ou utilisez Affecter/Libérer — cela conserve l'historique.
 title-english = Titre (anglais)
 title-french = Titre (français)
 rank = Grade
@@ -722,3 +722,21 @@ coverage-rollup-hint = Agrégé au palier organisationnel de niveau 2; une perso
 # Bascule plein écran de l'organigramme
 fullscreen = Plein écran
 exit-fullscreen = Quitter le plein écran
+
+# Confirmation commune des actions destructrices
+please-confirm = Veuillez confirmer
+vacate-role = Libérer le rôle
+
+# Sélecteur de classification du rôle
+classification-prompt = Classification
+classification-none = Sans classification
+military-label = Militaire
+civilian-label = Civil
+no-requirements-specified = Aucune exigence définie.
+assign-person-direct-help = Commencez à taper un nom et choisissez parmi les suggestions, ou utilisez le jumelage de candidats ci-dessous.
+
+# Bande libre-service de la page Personne
+this-is-you = Ceci est votre dossier.
+update-my-details = Mettre à jour mes coordonnées
+add-my-capability = Ajouter une capacité
+add-my-capability-help = Déclarez une compétence que vous possédez et votre propre évaluation de votre niveau. Un administrateur pourra la valider plus tard; les niveaux validés ont toujours préséance.

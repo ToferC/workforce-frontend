@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, Responder, get, post, web};
+use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
 use actix_identity::{Identity};
 use serde::Deserialize;
 use serde_json::json;
@@ -7,10 +7,10 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang, level_weight, domain_short_label, chart_json};
-use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data, restore_person};
+use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, get_me, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data, restore_person};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_confirm, render_page, session_bearer};
 
 /// PersonnelType enum values, kept in sync with the API schema.
 pub const PERSONNEL_TYPES: [&str; 5] = ["MILITARY", "CIVILIAN", "CONTRACTOR", "STUDENT", "OTHER"];
@@ -157,7 +157,7 @@ pub async fn person_by_id(
 
     let bearer = session_bearer(&req.get_session());
 
-    let r = match get_person_by_id(person_id, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    let r = match get_person_by_id(person_id.clone(), bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -215,6 +215,20 @@ pub async fn person_by_id(
     }
 
     ctx.insert("person", &r.person_by_id);
+
+    // Self-service band: is this record the signed-in user's own person?
+    // Resolved through `me` (ownership-based) so it works for plain users,
+    // not just admins.
+    let is_self = if bearer.is_empty() {
+        false
+    } else {
+        get_me(bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
+            .ok()
+            .and_then(|r| r.me.person)
+            .map(|p| p.id == person_id)
+            .unwrap_or(false)
+    };
+    ctx.insert("is_self", &is_self);
 
     // Account status drives the status chip and the Grant-access action. The
     // userByEmail lookup is admin-guarded, so this only resolves for admins;
@@ -925,4 +939,103 @@ pub async fn restore_person_post(
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
+}
+
+/// Confirmation step before ending an affiliation.
+#[get("/{lang}/person/{person_id}/affiliation/{affiliation_id}/end")]
+pub async fn end_affiliation_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, person_id, affiliation_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let person = match get_person_by_id(person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.person_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/people", &lang));
+        },
+    };
+
+    let person_name = format!("{} {}", person.given_name, person.family_name);
+    let org_name = person.affiliations.iter()
+        .find(|a| a.id == affiliation_id)
+        .map(|a| a.organization.name_en.clone())
+        .unwrap_or_else(|| by_lang(&lang, "the affiliated organization", "l'organisation affiliée").to_string());
+
+    let message = if lang == "fr" {
+        format!("L'affiliation de {} avec {} prendra fin.", person_name, org_name)
+    } else {
+        format!("{}'s affiliation with {} will be ended.", person_name, org_name)
+    };
+
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    render_confirm(
+        &data, &req, ctx,
+        by_lang(&lang, "End affiliation", "Mettre fin à l'affiliation"),
+        &message,
+        None,
+        &format!("/{}/person/{}/affiliation/{}/end", &lang, &person_id, &affiliation_id),
+        by_lang(&lang, "End affiliation", "Mettre fin à l'affiliation"),
+        &format!("/{}/person/{}", &lang, &person_id),
+    )
+}
+
+#[derive(Deserialize, Debug)]
+pub struct PersonOptionsParams {
+    /// The typeahead sends the bound field's own name via hx-include, so
+    /// accept the common field names as the query.
+    #[serde(default)]
+    pub q: String,
+    #[serde(default)]
+    pub person_name: String,
+}
+
+/// HTMX datalist options for person-name typeahead fields (see the
+/// forms::person_picker macro). Returns bare <option> elements; without JS
+/// the bound input is still a plain text field the server resolves by name.
+#[get("/{lang}/person_options")]
+pub async fn person_options_datalist(
+    data: web::Data<AppData>,
+    path: web::Path<String>,
+    params: web::Query<PersonOptionsParams>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let raw = if !params.q.trim().is_empty() { params.q.trim() } else { params.person_name.trim() };
+    if raw.chars().count() < 2 {
+        return HttpResponse::Ok().body("");
+    }
+
+    // Search on the most discriminating token so a partially typed
+    // "given fam" still narrows on the family name.
+    let token = raw.split_whitespace().last().unwrap_or(raw).to_string();
+
+    let escape = |s: &str| s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;");
+
+    match get_people_by_name(token, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => {
+            let options: String = r.person_by_name.iter()
+                .take(10)
+                .map(|p| format!("<option value=\"{} {}\"></option>", escape(&p.given_name), escape(&p.family_name)))
+                .collect();
+            HttpResponse::Ok().body(options)
+        },
+        Err(_) => HttpResponse::Ok().body(""),
+    }
 }
