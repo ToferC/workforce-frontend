@@ -2,6 +2,7 @@
 {% import "macros/viz.html" as viz %}
 {% import "macros/charts.html" as charts %}
 {% import "macros/match.html" as match %}
+{% import "macros/forms.html" as forms %}
 
 {% block title %}
     <title>{{ fluent(key="role", lang=lang )}}</title>
@@ -31,12 +32,12 @@
                     <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-work", lang=lang) }}
                 </a>
                 {% if role_record.person %}
-                <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/vacate">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button type="submit" class="btn btn-outline-warning btn-sm">
-                        <i class="bi bi-person-dash" aria-hidden="true"></i> Vacate role
-                    </button>
-                </form>
+                <a class="btn btn-outline-warning btn-sm"
+                   href="/{{ lang }}/role/{{ role_record.id }}/vacate"
+                   hx-get="/{{ lang }}/role/{{ role_record.id }}/vacate"
+                   hx-target="#confirm-modal-container" hx-swap="innerHTML">
+                    <i class="bi bi-person-dash" aria-hidden="true"></i> {{ fluent(key="vacate-role", lang=lang) }}
+                </a>
                 {% endif %}
                 {% if role_record.active == "true" %}
                 <a class="btn btn-outline-danger btn-sm" href="/{{ lang }}/role/{{ role_record.id }}/end">
@@ -77,10 +78,10 @@
                                 <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/edit">
                                     <i class="bi bi-pencil" aria-hidden="true"></i> Edit
                                 </a>
-                                <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/retire" class="m-0">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">{{ fluent(key="retire-button", lang=lang) }}</button>
-                                </form>
+                                <a class="btn btn-sm btn-outline-danger"
+                                   href="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/retire"
+                                   hx-get="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/retire"
+                                   hx-target="#confirm-modal-container" hx-swap="innerHTML">{{ fluent(key="retire-button", lang=lang) }}</a>
                             </div>
                             {% endif %}
                         </li>
@@ -268,9 +269,22 @@
                             {% endfor %}
                         </ul>
                         {% else %}
-                        <p class="px-3 pb-3 text-muted">No requirements specified.</p>
+                        <p class="px-3 pb-3 text-muted">{{ fluent(key="no-requirements-specified", lang=lang) }}</p>
                         {% endif %}
                     </div>
+                    {% if role == "operator" or role == "admin" %}
+                    <div class="card-footer">
+                        {# Direct assignment for when the operator already knows who —
+                           the matcher below stays the guided path. #}
+                        <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/assign">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            {{ forms::person_picker(name="person_name", label=fluent(key="assign-person", lang=lang), lang=lang, help=fluent(key="assign-person-direct-help", lang=lang), required=true) }}
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="bi bi-person-plus" aria-hidden="true"></i> {{ fluent(key="assign-button", lang=lang) }}
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- Team -->
@@ -305,4 +319,6 @@
 
 {# HTMX swaps the transfer-confirmation modal fragment in here on Assign. #}
 <div id="transfer-modal-container"></div>
+{# HTMX swaps destructive-action confirmation modals in here. #}
+<div id="confirm-modal-container"></div>
 {% endblock content %}

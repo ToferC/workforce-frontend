@@ -199,3 +199,83 @@ pub async fn flag_issue_post(
 
     redirect_to(format!("/{}/me", &lang))
 }
+
+#[derive(Deserialize, Debug)]
+pub struct MyCapabilityForm {
+    pub csrf_token: String,
+    pub skill_id: String,
+    pub self_identified_level: String,
+}
+
+/// Self-service: declare a capability on your own profile. Any signed-in user
+/// with a linked person record; only the self-identified level is writable —
+/// validation remains an admin action.
+#[get("/{lang}/me/capability/new")]
+pub async fn my_capability_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path: web::Path<String>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let (skill_domains, skill_groups) = super::skill::skill_picker_data(&data, auth.bearer).await;
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    ctx.insert("skill_domains", &skill_domains);
+    ctx.insert("skill_groups", &skill_groups);
+    ctx.insert("capability_levels", &super::capability::level_options());
+
+    render_page(&data, "capability/my_capability_form.html", &ctx)
+}
+
+#[post("/{lang}/me/capability/new")]
+pub async fn my_capability_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path: web::Path<String>,
+    form: web::Form<MyCapabilityForm>,
+
+    req: HttpRequest) -> impl Responder {
+    let lang = path.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/me/capability/new", &lang));
+    }
+
+    let level: crate::graphql::add_my_capability::CapabilityLevel =
+        match serde_json::from_value(serde_json::json!(form.self_identified_level)) {
+            Ok(l) => l,
+            Err(_) => {
+                security::add_flash(&session, "danger", by_lang(&lang, "Invalid capability level.", "Niveau de capacité invalide."));
+                return redirect_to(format!("/{}/me/capability/new", &lang));
+            },
+        };
+
+    match crate::graphql::add_my_capability(form.skill_id.clone(), level, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Capability added to your profile.", "Capacité ajoutée à votre profil.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    // Land on the person page so the new capability is visible in context.
+    match crate::graphql::get_me(auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => match r.me.person {
+            Some(p) => redirect_to(format!("/{}/person/{}", &lang, p.id)),
+            None => redirect_to(format!("/{}/me", &lang)),
+        },
+        Err(_) => redirect_to(format!("/{}/me", &lang)),
+    }
+}

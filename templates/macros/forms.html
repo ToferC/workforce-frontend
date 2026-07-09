@@ -103,3 +103,21 @@
     {% if cancel_url %}<a class="btn btn-secondary" href="{{ cancel_url | safe }}">{{ cancel_label }}</a>{% endif %}
 </div>
 {% endmacro submit_row %}
+
+{% macro person_picker(name, label, lang, value="", required=false, help="") %}
+{# Person-name typeahead: a native input + datalist that HTMX refreshes from
+   /person_options as the user types. Degrades to the plain text-name field
+   the server already resolves when JS is unavailable. #}
+<div class="form-group mb-3">
+    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <input class="form-control" type="text" id="{{ name }}" name="{{ name }}" value="{{ value }}"
+           list="{{ name }}-options" autocomplete="off"
+           {% if required %}required{% endif %}
+           hx-get="/{{ lang }}/person_options"
+           hx-trigger="input changed delay:300ms"
+           hx-include="this"
+           hx-target="#{{ name }}-options" hx-swap="innerHTML">
+    <datalist id="{{ name }}-options"></datalist>
+    {% if help %}<div class="form-text">{{ help }}</div>{% endif %}
+</div>
+{% endmacro person_picker %}

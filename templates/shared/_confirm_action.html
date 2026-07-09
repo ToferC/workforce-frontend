@@ -1,0 +1,29 @@
+{# Confirmation modal fragment, swapped into #confirm-modal-container by HTMX.
+   Same context as confirm_action.html; non-JS requests get the full page. #}
+<div class="modal fade" id="confirmActionModal" tabindex="-1" role="dialog" aria-labelledby="confirmActionLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="confirmActionLabel">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ confirm_title }}
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="{{ fluent(key='cancel-button', lang=lang) }}"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">{{ confirm_message }}</p>
+        {% if confirm_note %}<p class="text-muted small mb-0">{{ confirm_note }}</p>{% endif %}
+        <form method="post" action="{{ action_url | safe }}" id="confirmActionForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">{{ fluent(key="cancel-button", lang=lang) }}</button>
+        <button type="submit" form="confirmActionForm" class="btn btn-danger">{{ confirm_label }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+    // Bootstrap 4 + jQuery are loaded globally; show the freshly-swapped modal.
+    $('#confirmActionModal').modal('show');
+</script>

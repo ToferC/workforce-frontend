@@ -12,7 +12,7 @@ use crate::graphql::{get_role_by_id, get_role_matches, all_roles, all_organizati
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_confirm, render_page, session_bearer};
 
 /// Rank enum values, kept in sync with the API schema.
 pub const RANKS: [&str; 17] = [
@@ -83,6 +83,8 @@ pub struct RoleStatusForm {
     // Checkbox: present ("true") when checked, absent otherwise
     #[serde(default)]
     pub active: Option<String>,
+    pub title_en: String,
+    pub title_fr: String,
     pub start_date: String,
     #[serde(default)]
     pub end_date: String,
@@ -598,9 +600,17 @@ pub async fn edit_role_post(
         return redirect_to(format!("/{}/role/{}/edit", &lang, &role_id));
     }
 
+    // Blank titles mean "leave unchanged" (the API also ignores empty strings).
+    let opt_title = |s: &str| {
+        let trimmed = s.trim();
+        if trimmed.is_empty() { None } else { Some(trimmed.to_string()) }
+    };
+
     let role_data = update_role::RoleData {
         id: role_id.clone(),
         active: Some(form.active.is_some()),
+        title_en: opt_title(&form.title_en),
+        title_fr: opt_title(&form.title_fr),
         start_datestamp: parse_date(&form.start_date),
         end_date: parse_date(&form.end_date),
     };
@@ -674,6 +684,8 @@ pub async fn end_role_post(
     let role_data = update_role::RoleData {
         id: role_id.clone(),
         active: Some(false),
+        title_en: None,
+        title_fr: None,
         start_datestamp: None,
         end_date: Some(chrono::Utc::now().naive_utc()),
     };
@@ -697,7 +709,14 @@ pub async fn end_role_post(
 #[derive(Deserialize, Debug)]
 pub struct AssignRoleForm {
     pub csrf_token: String,
+    /// Direct id from matcher/person-page buttons; empty when assigning by
+    /// typed name from the vacant-role panel.
+    #[serde(default)]
     pub person_id: String,
+    /// Full name from the typeahead picker; resolved server-side when no id
+    /// was posted.
+    #[serde(default)]
+    pub person_name: String,
     #[serde(default)]
     pub reassign_work_to: String,
 }
@@ -794,7 +813,21 @@ pub async fn assign_role_post(
         return redirect_to(format!("/{}/role/{}", &lang, &role_id));
     }
 
-    if form.person_id.trim().is_empty() {
+    // The matcher and person-page buttons post an id; the vacant-role panel
+    // posts a typed name from the typeahead, resolved here.
+    let mut person_id = form.person_id.trim().to_string();
+    if person_id.is_empty() && !form.person_name.trim().is_empty() {
+        match super::person::resolve_person_by_name(form.person_name.trim(), &auth.bearer, &lang, &data).await {
+            Ok(Some(id)) => person_id = id,
+            Ok(None) => {},
+            Err(message) => {
+                security::add_flash(&session, "danger", &message);
+                return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+            },
+        }
+    }
+
+    if person_id.is_empty() {
         security::add_flash(&session, "danger", by_lang(&lang, "No person selected.", "Aucune personne sélectionnée."));
         return redirect_to(format!("/{}/role/{}", &lang, &role_id));
     }
@@ -803,7 +836,7 @@ pub async fn assign_role_post(
     let mut work_ids_to_reassign: Vec<String> = Vec::new();
 
     if !reassign_target.is_empty() {
-        if let Ok(person) = get_person_by_id(form.person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        if let Ok(person) = get_person_by_id(person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
             for ar in &person.person_by_id.active_roles {
                 for w in &ar.work {
                     work_ids_to_reassign.push(w.id.clone());
@@ -812,7 +845,7 @@ pub async fn assign_role_post(
         }
     }
 
-    match assign_person_to_role(form.person_id.clone(), role_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match assign_person_to_role(person_id.clone(), role_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => {
             let mut reassign_count = 0;
             for work_id in &work_ids_to_reassign {
@@ -1232,4 +1265,118 @@ pub async fn role_index(
 
     let template = if is_htmx(&req) { "role/role_list.html" } else { "role/role_index.html" };
     render_page(&data, template, &ctx)
+}
+
+/// Confirmation step before vacating a role: shows who will be unassigned and
+/// how much work stays behind on the vacant position. HTMX gets the modal
+/// fragment; plain navigation gets a full confirmation page.
+#[get("/{lang}/role/{role_id}/vacate")]
+pub async fn vacate_role_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let role_rec = match get_role_by_id(role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.role_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/roles", &lang));
+        },
+    };
+
+    let incumbent = match &role_rec.person {
+        Some(p) => format!("{} {}", p.given_name, p.family_name),
+        None => {
+            security::add_flash(&session, "warning", by_lang(&lang, "This role is already vacant.", "Ce rôle est déjà vacant."));
+            return redirect_to(format!("/{}/role/{}", &lang, &role_id));
+        },
+    };
+
+    let work_count = role_rec.work.len();
+    let message = if lang == "fr" {
+        format!("{} sera désaffecté(e) de ce rôle.", incumbent)
+    } else {
+        format!("{} will be unassigned from this role.", incumbent)
+    };
+    let note = if work_count > 0 {
+        Some(if lang == "fr" {
+            format!("{} élément(s) de travail resteront rattachés au rôle vacant comme travail non assigné.", work_count)
+        } else {
+            format!("{} work item(s) will remain attached to the vacant role as unassigned work.", work_count)
+        })
+    } else {
+        None
+    };
+
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    render_confirm(
+        &data, &req, ctx,
+        by_lang(&lang, "Vacate role", "Libérer le rôle"),
+        &message,
+        note.as_deref(),
+        &format!("/{}/role/{}/vacate", &lang, &role_id),
+        by_lang(&lang, "Vacate role", "Libérer le rôle"),
+        &format!("/{}/role/{}", &lang, &role_id),
+    )
+}
+
+/// Confirmation step before retiring a requirement from a role.
+#[get("/{lang}/role/{role_id}/requirement/{requirement_id}/retire")]
+pub async fn retire_requirement_form(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<(String, String, String)>,
+
+    req: HttpRequest) -> impl Responder {
+    let (lang, role_id, requirement_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let role_rec = match get_role_by_id(role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.role_by_id,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/roles", &lang));
+        },
+    };
+
+    let requirement_name = role_rec.requirements.iter()
+        .find(|r| r.id == requirement_id)
+        .map(|r| r.name_en.clone())
+        .unwrap_or_else(|| by_lang(&lang, "this requirement", "cette exigence").to_string());
+
+    let message = if lang == "fr" {
+        format!("L'exigence « {} » sera retirée de ce rôle.", requirement_name)
+    } else {
+        format!("The requirement “{}” will be retired from this role.", requirement_name)
+    };
+    let note = by_lang(
+        &lang,
+        "It will no longer count toward candidate matching or coverage analytics.",
+        "Elle ne comptera plus dans le jumelage des candidats ni dans l'analyse de couverture.",
+    );
+
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    render_confirm(
+        &data, &req, ctx,
+        by_lang(&lang, "Retire requirement", "Retirer l'exigence"),
+        &message,
+        Some(note),
+        &format!("/{}/role/{}/requirement/{}/retire", &lang, &role_id, &requirement_id),
+        by_lang(&lang, "Retire requirement", "Retirer l'exigence"),
+        &format!("/{}/role/{}", &lang, &role_id),
+    )
 }

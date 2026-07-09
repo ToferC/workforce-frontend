@@ -17,6 +17,8 @@
         {{ fluent(key="role-edit-limited", lang=lang) }}
     </div>
 
+    {% set label_title_en = fluent(key="title-english", lang=lang) %}
+    {% set label_title_fr = fluent(key="title-french", lang=lang) %}
     {% set label_active = fluent(key="role-active", lang=lang) %}
     {% set label_start = fluent(key="start-date", lang=lang) %}
     {% set label_end = fluent(key="end-date", lang=lang) %}
@@ -29,6 +31,15 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/edit">
                 {{ forms::csrf(token=csrf_token) }}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="title_en", label=label_title_en, value=role_record.titleEnglish) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ forms::text_input(name="title_fr", label=label_title_fr, value=role_record.titleFrench) }}
+                    </div>
+                </div>
 
                 {{ forms::checkbox(name="active", label=label_active, checked=is_active) }}
 

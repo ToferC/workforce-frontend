@@ -36,6 +36,35 @@ pub fn session_bearer(session: &Session) -> String {
     session.get::<String>("bearer").ok().flatten().unwrap_or_default()
 }
 
+/// Render the shared destructive-action confirmation (modal fragment for
+/// HTMX, full page otherwise). The caller supplies plain, already-localized
+/// strings; the POST goes to `action_url` with the session CSRF token.
+#[allow(clippy::too_many_arguments)]
+pub fn render_confirm(
+    data: &AppData,
+    req: &HttpRequest,
+    mut ctx: Context,
+    title: &str,
+    message: &str,
+    note: Option<&str>,
+    action_url: &str,
+    confirm_label: &str,
+    cancel_url: &str,
+) -> HttpResponse {
+    ctx.insert("confirm_title", title);
+    ctx.insert("confirm_message", message);
+    ctx.insert("confirm_note", &note);
+    ctx.insert("action_url", action_url);
+    ctx.insert("confirm_label", confirm_label);
+    ctx.insert("cancel_url", cancel_url);
+    let template = if is_htmx(req) {
+        "shared/_confirm_action.html"
+    } else {
+        "shared/confirm_action.html"
+    };
+    render_page(data, template, &ctx)
+}
+
 /// Render a template into a 200 response, degrading to a plain 500 if Tera
 /// fails. Render errors are programming bugs (the render tests catch missing
 /// context), but a panic here would poison the whole worker thread.

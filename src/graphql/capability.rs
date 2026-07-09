@@ -48,3 +48,15 @@ pub struct UpdateCapability;
 pub async fn update_capability(data: update_capability::CapabilityData, bearer: String, api_url: &str, client: Arc<Client>) -> Result<update_capability::ResponseData, ApiError> {
     post_graphql::<UpdateCapability>(&client, api_url, &bearer, update_capability::Variables { data }).await
 }
+
+#[derive(GraphQLQuery, Serialize, Deserialize)]
+#[graphql(schema_path = "schema.graphql", query_path = "queries/capabilities/add_my_capability.graphql", response_derives = "Debug, Serialize, PartialEq")]
+pub struct AddMyCapability;
+
+/// Self-declare a capability on the signed-in user's own person record.
+pub async fn add_my_capability(skill_id: String, self_identified_level: add_my_capability::CapabilityLevel, bearer: String, api_url: &str, client: Arc<Client>) -> Result<add_my_capability::ResponseData, ApiError> {
+    post_graphql::<AddMyCapability>(&client, api_url, &bearer, add_my_capability::Variables {
+        skill_id,
+        self_identified_level,
+    }).await
+}
