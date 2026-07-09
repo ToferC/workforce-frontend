@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::Identity;
 use serde::Deserialize;
 use serde_json::json;
@@ -11,14 +11,9 @@ use crate::graphql::{
     all_users, get_user_by_id, create_user, update_user,
     disable_user, enable_user, invite_user, record_flags, resolve_record_flag,
 };
+use super::utility::{redirect_to, csrf_failure_flash, render_page};
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found().append_header(("Location", location)).finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(session, "danger", by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."));
-}
 
 fn role_options() -> serde_json::Value {
     json!([
@@ -58,8 +53,7 @@ pub async fn admin_users(
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
-    let rendered = data.tmpl.render("admin/users.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "admin/users.html", &ctx)
 }
 
 // ── Create user ──────────────────────────────────────────────────────────────
@@ -83,8 +77,7 @@ pub async fn admin_user_new_form(
     ctx.insert("role_options", &role_options());
     ctx.insert("account_type_options", &account_type_options());
 
-    let rendered = data.tmpl.render("admin/user_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "admin/user_form.html", &ctx)
 }
 
 #[derive(Deserialize, Debug)]
@@ -166,8 +159,7 @@ pub async fn admin_user_edit_form(
     ctx.insert("role_options", &role_options());
     ctx.insert("account_type_options", &account_type_options());
 
-    let rendered = data.tmpl.render("admin/user_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "admin/user_form.html", &ctx)
 }
 
 #[derive(Deserialize, Debug)]
@@ -330,8 +322,7 @@ pub async fn admin_flags(
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
-    let rendered = data.tmpl.render("admin/flags.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "admin/flags.html", &ctx)
 }
 
 #[post("/{lang}/admin/flags/{flag_id}/resolve")]

@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::Identity;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -7,14 +7,9 @@ use std::sync::Arc;
 use crate::{AppData, by_lang, generate_basic_context, security};
 use crate::security::MinimumRole;
 use crate::graphql::{activate_account, get_me, update_my_person, flag_record_issue};
+use super::utility::{redirect_to, csrf_failure_flash, render_page};
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found().append_header(("Location", location)).finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(session, "danger", by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."));
-}
 
 // ── Account activation (public) ──────────────────────────────────────────────
 
@@ -35,8 +30,7 @@ pub async fn activate_form(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("token", &query.token.clone().unwrap_or_default());
-    let rendered = data.tmpl.render("authentication/activate.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "authentication/activate.html", &ctx)
 }
 
 #[derive(Deserialize)]
@@ -108,8 +102,7 @@ pub async fn my_profile(
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),
     };
 
-    let rendered = data.tmpl.render("account/profile.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "account/profile.html", &ctx)
 }
 
 #[derive(Deserialize)]

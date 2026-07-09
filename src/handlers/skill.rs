@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::{Identity};
 use serde::Deserialize;
 use serde_json::json;
@@ -9,6 +9,7 @@ use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{all_skills, get_skill_by_id, create_skill, update_skill};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize, SKILL_DOMAINS};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
 
 #[derive(Deserialize, Debug)]
 pub struct SkillForm {
@@ -20,17 +21,7 @@ pub struct SkillForm {
     pub domain: String,
 }
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found().append_header(("Location", location)).finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(
-        session,
-        "danger",
-        by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."),
-    );
-}
 
 fn skill_from_form(form: &SkillForm, id: Option<&str>) -> serde_json::Value {
     json!({
@@ -43,9 +34,6 @@ fn skill_from_form(form: &SkillForm, id: Option<&str>) -> serde_json::Value {
     })
 }
 
-fn is_htmx(req: &HttpRequest) -> bool {
-    req.headers().get("HX-Request").is_some()
-}
 
 #[derive(Deserialize, Debug)]
 pub struct SkillIndexParams {
@@ -67,10 +55,7 @@ pub async fn skill_index(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
     let show_retired = params.retired == "1";
     let query = params.q.trim().to_lowercase();
@@ -94,8 +79,7 @@ pub async fn skill_index(
     ctx.insert("show_retired", &show_retired);
 
     let template = if is_htmx(&req) { "skill/skill_list.html" } else { "skill/skill_index.html" };
-    let rendered = data.tmpl.render(template, &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, template, &ctx)
 }
 
 /// SkillDomain key (e.g. "SOFTWARE_ENGINEERING") for a generated enum value.
@@ -162,10 +146,7 @@ pub async fn skill_options(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match session.get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&session);
 
     let domain = params.domain.trim().to_string();
     let options: Vec<serde_json::Value> = if domain.is_empty() {
@@ -184,8 +165,7 @@ pub async fn skill_options(
 
     ctx.insert("skill_options", &options);
 
-    let rendered = data.tmpl.render("skill/skill_select.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "skill/skill_select.html", &ctx)
 }
 
 #[get("/{lang}/skill/{skill_id}")]
@@ -199,19 +179,19 @@ pub async fn skill_by_id(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
-    let r = get_skill_by_id(skill_id, bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get skill");
+    let r = match get_skill_by_id(skill_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/skills", &lang));
+        },
+    };
 
     ctx.insert("skill", &r.skill_by_id);
 
-    let rendered = data.tmpl.render("skill/skill.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "skill/skill.html", &ctx)
 }
 
 #[get("/{lang}/skill/new")]
@@ -233,8 +213,7 @@ pub async fn create_skill_form(
     ctx.insert("skill", &json!({"nameEn": "", "nameFr": "", "descriptionEn": "", "descriptionFr": "", "domain": ""}));
     ctx.insert("skill_domains", &skill_domain_options());
 
-    let rendered = data.tmpl.render("skill/skill_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "skill/skill_form.html", &ctx)
 }
 
 #[post("/{lang}/skill/new")]
@@ -277,8 +256,7 @@ pub async fn create_skill_post(
             ctx.insert("edit", &false);
             ctx.insert("skill", &skill_from_form(&form, None));
             ctx.insert("skill_domains", &skill_domain_options());
-            let rendered = data.tmpl.render("skill/skill_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "skill/skill_form.html", &ctx)
         },
     }
 }
@@ -311,8 +289,7 @@ pub async fn edit_skill_form(
     ctx.insert("skill", &r.skill_by_id);
     ctx.insert("skill_domains", &skill_domain_options());
 
-    let rendered = data.tmpl.render("skill/skill_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "skill/skill_form.html", &ctx)
 }
 
 #[post("/{lang}/skill/{skill_id}/edit")]
@@ -356,8 +333,7 @@ pub async fn edit_skill_post(
             ctx.insert("edit", &true);
             ctx.insert("skill", &skill_from_form(&form, Some(&skill_id)));
             ctx.insert("skill_domains", &skill_domain_options());
-            let rendered = data.tmpl.render("skill/skill_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "skill/skill_form.html", &ctx)
         },
     }
 }

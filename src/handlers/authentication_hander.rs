@@ -10,6 +10,7 @@ use crate::{AppData, by_lang, generate_basic_context, graphql, security};
 use crate::graphql::ApiError;
 
 use super::LoginForm;
+use super::utility::{render_page};
 
 #[get("/{lang}/log_in")]
 pub async fn login_handler(
@@ -26,8 +27,7 @@ pub async fn login_handler(
 
     let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let rendered = data.tmpl.render("authentication/log_in.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "authentication/log_in.html", &ctx)
 }
 
 #[post("/{lang}/log_in")]

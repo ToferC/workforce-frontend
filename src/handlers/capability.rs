@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::Identity;
 use serde::Deserialize;
 use serde_json::json;
@@ -7,6 +7,7 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_capability_by_name_and_level, get_skill_by_id, get_person_by_id, create_capability, update_capability, create_validation, get_user_by_email};
 use crate::security::{self, MinimumRole};
+use super::utility::{redirect_to, render_page, session_bearer};
 
 /// CapabilityLevel enum values, kept in sync with the API schema.
 pub const CAPABILITY_LEVELS: [&str; 5] = ["DESIRED", "NOVICE", "EXPERIENCED", "EXPERT", "SPECIALIST"];
@@ -30,9 +31,6 @@ pub struct RetireForm {
     pub csrf_token: String,
 }
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found().append_header(("Location", location)).finish()
-}
 
 #[get("/{lang}/capability_search/{name}/{level}")]
 pub async fn capability_search(
@@ -47,31 +45,28 @@ pub async fn capability_search(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
     
     // query graphql API
-    let results = get_capability_by_name_and_level(
+    let results = match get_capability_by_name_and_level(
         name.to_lowercase().trim().to_string(),
         level.clone(),
         bearer.clone(),
         &data.api_url,
         Arc::clone(&data.client),
-    )
-    .await
-    .expect("Unable to find capabilities");
-
-    println!("{:?}", &results);
+    ).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}", &lang));
+        },
+    };
              
     ctx.insert("capabilities", &results.capabilities_by_name_and_level);
     ctx.insert("name", &name.to_owned());
     ctx.insert("level", &level);
 
-    let rendered = data.tmpl.render("capability/capability_search_results.html", &ctx).unwrap();
-    HttpResponse::Ok()
-        .body(rendered)
+    render_page(&data, "capability/capability_search_results.html", &ctx)
 }
 #[get("/{lang}/person/{person_id}/capability/new")]
 pub async fn create_capability_form(
@@ -104,8 +99,7 @@ pub async fn create_capability_form(
     ctx.insert("skill_groups", &skill_groups);
     ctx.insert("capability_levels", &level_options());
 
-    let rendered = data.tmpl.render("capability/capability_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "capability/capability_form.html", &ctx)
 }
 
 #[post("/{lang}/person/{person_id}/capability/new")]
@@ -238,8 +232,7 @@ pub async fn validate_capability_form(
     ctx.insert("capability_levels", &level_options());
     ctx.insert("validator_display", &validator_display);
 
-    let rendered = data.tmpl.render("capability/validation_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "capability/validation_form.html", &ctx)
 }
 
 #[post("/{lang}/person/{person_id}/capability/{capability_id}/validate")]

@@ -1,5 +1,5 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
+use actix_web::{HttpRequest, Responder, get, post, web};
 use actix_identity::{Identity};
 use serde::Deserialize;
 use serde_json::json;
@@ -9,6 +9,7 @@ use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_team_by_id, all_teams, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership, restore_team};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{parent_tier_options, skill_domain_options, OwnerForm};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
 
 #[derive(Deserialize, Debug)]
 pub struct TeamForm {
@@ -37,23 +38,8 @@ pub struct NewTeamParams {
     pub org_tier: String,
 }
 
-fn redirect_to(location: String) -> HttpResponse {
-    HttpResponse::Found()
-        .append_header(("Location", location))
-        .finish()
-}
 
-fn csrf_failure_flash(session: &actix_session::Session, lang: &str) {
-    security::add_flash(
-        session,
-        "danger",
-        by_lang(lang, "Invalid form token. Please try again.", "Jeton de formulaire invalide. Veuillez réessayer."),
-    );
-}
 
-fn is_htmx(req: &HttpRequest) -> bool {
-    req.headers().get("HX-Request").is_some()
-}
 
 /// Build a JSON array of {value, label} from a team's own roles (occupied
 /// first, then vacant) for selects that must be scoped to the team — e.g.
@@ -103,14 +89,15 @@ pub async fn team_by_id(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
-    let r = get_team_by_id(team_id, bearer, &data.api_url, Arc::clone(&data.client))
-        .await
-        .expect("Unable to get team");
+    let r = match get_team_by_id(team_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return redirect_to(format!("/{}/teams", &lang));
+        },
+    };
 
     let team = &r.team_by_id;
     ctx.insert("team", team);
@@ -178,8 +165,7 @@ pub async fn team_by_id(
     ctx.insert("active_work", &active_work);
     ctx.insert("work_count", &work_count);
 
-    let rendered = data.tmpl.render("team/team.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "team/team.html", &ctx)
 }
 
 /// Form to create a team. Takes ?organization=<uuid> and optionally
@@ -225,8 +211,7 @@ pub async fn create_team_form(
         "team/team_form.html"
     };
 
-    let rendered = data.tmpl.render(template, &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, template, &ctx)
 }
 
 #[post("/{lang}/team/new")]
@@ -301,8 +286,7 @@ pub async fn create_team_post(
                 "team/team_form.html"
             };
 
-            let rendered = data.tmpl.render(template, &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, template, &ctx)
         },
     }
 }
@@ -335,8 +319,7 @@ pub async fn edit_team_form(
     ctx.insert("team", &r.team_by_id);
     ctx.insert("skill_domains", &skill_domain_options());
 
-    let rendered = data.tmpl.render("team/team_form.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "team/team_form.html", &ctx)
 }
 
 #[post("/{lang}/team/{team_id}/edit")]
@@ -393,8 +376,7 @@ pub async fn edit_team_post(
             ctx.insert("team", &team_from_form(&form, Some(&team_id)));
             ctx.insert("skill_domains", &skill_domain_options());
 
-            let rendered = data.tmpl.render("team/team_form.html", &ctx).unwrap();
-            HttpResponse::Ok().body(rendered)
+            render_page(&data, "team/team_form.html", &ctx)
         },
     }
 }
@@ -425,8 +407,7 @@ pub async fn retire_team_form(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("team", &r.team_by_id);
 
-    let rendered = data.tmpl.render("team/team_retire.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "team/team_retire.html", &ctx)
 }
 
 #[post("/{lang}/team/{team_id}/retire")]
@@ -508,8 +489,7 @@ pub async fn assign_team_owner_form(
     ctx.insert("team", &r.team_by_id);
     ctx.insert("role_options", &role_options);
 
-    let rendered = data.tmpl.render("team/assign_owner.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "team/assign_owner.html", &ctx)
 }
 
 #[post("/{lang}/team/{team_id}/owner")]
@@ -592,10 +572,7 @@ pub async fn team_index(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match req.get_session().get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&req.get_session());
 
     let show_retired = params.retired == "1";
     let search = {
@@ -626,8 +603,7 @@ pub async fn team_index(
     ctx.insert("show_retired", &show_retired);
 
     let template = if is_htmx(&req) { "team/team_list.html" } else { "team/team_index.html" };
-    let rendered = data.tmpl.render(template, &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, template, &ctx)
 }
 
 #[post("/{lang}/team/{team_id}/restore")]

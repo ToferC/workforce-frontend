@@ -1099,6 +1099,7 @@ dependencies = [
  "futures",
  "graphql_client",
  "lazy_static",
+ "log",
  "rand 0.8.6",
  "regex",
  "reqwest 0.13.4",

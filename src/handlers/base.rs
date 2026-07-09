@@ -5,6 +5,7 @@ use actix_identity::Identity;
 use std::sync::Arc;
 use crate::{generate_basic_context, AppData, graphql::all_organizations};
 use crate::security;
+use super::utility::{render_page, session_bearer};
 
 #[get("/")]
 pub async fn raw_index() -> impl Responder {
@@ -25,8 +26,7 @@ pub async fn about(
     let session = req.get_session();
     let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let rendered = data.tmpl.render("about.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "about.html", &ctx)
 }
 
 // The language segment is constrained to en|fr so that requests like
@@ -45,10 +45,7 @@ pub async fn index(
     let session = req.get_session();
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let bearer = match session.get::<String>("bearer").unwrap() {
-        Some(s) => s,
-        None => "".to_string(),
-    };
+    let bearer = session_bearer(&session);
 
     // Not authenticated: send the visitor to the login page up front instead of
     // firing an API call with an empty token and depending on the API to error.
@@ -86,8 +83,7 @@ pub async fn index(
         }
     }
 
-    let rendered = data.tmpl.render("index.html", &ctx).unwrap();
-    HttpResponse::Ok().body(rendered)
+    render_page(&data, "index.html", &ctx)
 }
 
 fn bearer_is_empty_or_missing(session: &Session) -> bool {
