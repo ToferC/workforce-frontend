@@ -578,7 +578,7 @@ pub async fn assign_work_form(
     let (skill_opts, me_res, roles_res) = futures::join!(
         skill_options_for_domain(&work_domain, &auth.bearer, &data),
         get_me(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        all_roles(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_roles(None, None, None, None, 0, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
     );
 
     let current_role_id = work.role.as_ref().map(|r| r.id.clone()).unwrap_or_default();

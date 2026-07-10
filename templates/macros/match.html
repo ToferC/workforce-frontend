@@ -21,13 +21,13 @@
             <a href="/{{ lang }}/person/{{ c.person.id }}" class="fw-semibold">{{ c.person.givenName }} {{ c.person.familyName }}</a>
             <div class="mt-1">
                 {% if is_full %}
-                <span class="badge bg-success">100% &mdash; meets all {{ c.requirementsTotal }} requirements</span>
+                <span class="badge bg-success">{{ fluent(key="meets-all-reqs", total=c.requirementsTotal, lang=lang) }}</span>
                 {% else %}
-                <span class="badge bg-warning text-dark">{{ score_pct }}% match</span>
-                <span class="small text-muted ms-1">{{ c.requirementsMet }}/{{ c.requirementsTotal }} requirements met</span>
+                <span class="badge bg-warning text-dark">{{ fluent(key="match-pct", pct=score_pct, lang=lang) }}</span>
+                <span class="small text-muted ms-1">{{ fluent(key="reqs-met", met=c.requirementsMet, total=c.requirementsTotal, lang=lang) }}</span>
                 {% endif %}
             </div>
-            <div class="progress mt-2" style="height:6px; max-width:240px" title="Match score {{ score_pct }}%">
+            <div class="progress mt-2" style="height:6px; max-width:240px" title="{{ fluent(key='match-score-label', lang=lang) }} {{ score_pct }}%">
                 <div class="progress-bar {% if is_full %}bg-success{% else %}bg-warning{% endif %}" role="progressbar"
                      style="width:{{ score_pct }}%" aria-valuenow="{{ score_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
@@ -38,14 +38,14 @@
            href="/{{ lang }}/role/{{ role_id }}/transfer-preview?person_id={{ c.person.id }}"
            hx-get="/{{ lang }}/role/{{ role_id }}/transfer-preview?person_id={{ c.person.id }}"
            hx-target="#transfer-modal-container" hx-swap="innerHTML">
-            <i class="bi bi-person-plus" aria-hidden="true"></i> Assign
+            <i class="bi bi-person-plus" aria-hidden="true"></i> {{ fluent(key="assign-button", lang=lang) }}
         </a>
         {% else %}
         <form method="post" action="/{{ lang }}/role/{{ role_id }}/assign" class="m-0">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="hidden" name="person_id" value="{{ c.person.id }}">
             <button type="submit" class="btn btn-sm btn-success text-nowrap">
-                <i class="bi bi-person-plus" aria-hidden="true"></i> Assign
+                <i class="bi bi-person-plus" aria-hidden="true"></i> {{ fluent(key="assign-button", lang=lang) }}
             </button>
         </form>
         {% endif %}
@@ -56,12 +56,12 @@
     <div class="d-flex flex-wrap gap-1 mt-2">
         {% for g in c.requirementGaps %}
         {% if g.met %}
-        <span class="badge bg-success" title="Meets requirement">
+        <span class="badge bg-success" title="{{ fluent(key='meets-requirement', lang=lang) }}">
             <i class="bi bi-check2" aria-hidden="true"></i> {{ g.skillName }} &mdash; {{ g.actualLevel }}
         </span>
         {% else %}
-        <span class="badge bg-danger" title="Short by {{ g.gap }} level(s)">
-            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ g.skillName }}: needs {{ g.requiredLevel }}{% if g.actualLevel %}, has {{ g.actualLevel }}{% else %}, none held{% endif %}
+        <span class="badge bg-danger" title="{{ fluent(key='short-by', gap=g.gap, lang=lang) }}">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ g.skillName }}: {{ fluent(key="needs-label", lang=lang) }} {{ g.requiredLevel }}{% if g.actualLevel %}, {{ fluent(key="has-label", lang=lang) }} {{ g.actualLevel }}{% else %}, {{ fluent(key="none-held", lang=lang) }}{% endif %}
         </span>
         {% endif %}
         {% endfor %}
@@ -69,7 +69,7 @@
 
     {% if c.person.activeRoles | length > 0 %}
     <div class="small text-muted mt-2">
-        <span>Current role:</span>
+        <span>{{ fluent(key="current-role-label", lang=lang) }}:</span>
         {% for r in c.person.activeRoles %}{{ r.titleEnglish }}{% if r.militaryOccupation %} &mdash; {{ r.militaryOccupation }}-{{ r.rank }}{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}
     </div>
     {% endif %}
@@ -79,8 +79,8 @@
     {% if c.manager %}
     <div class="small mt-2 p-2 rounded bg-body-secondary border">
         <i class="bi bi-person-badge" aria-hidden="true"></i>
-        <span class="text-muted">Managed by:</span>
-        {% if c.manager.name %}<span class="fw-semibold">{{ c.manager.name }}</span>{% else %}<span class="text-muted">Vacant</span>{% endif %}
+        <span class="text-muted">{{ fluent(key="managed-by", lang=lang) }}:</span>
+        {% if c.manager.name %}<span class="fw-semibold">{{ c.manager.name }}</span>{% else %}<span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>{% endif %}
         <span class="text-muted">&mdash; {{ c.manager.ownerRoleTitle }} ({{ c.manager.teamName }})</span>
         {% if c.manager.email %}&middot; <a href="mailto:{{ c.manager.email }}">{{ c.manager.email }}</a>{% endif %}
         {% if c.manager.phone %}&middot; <span>{{ c.manager.phone }}</span>{% endif %}
@@ -89,9 +89,9 @@
         <form method="post" action="/{{ lang }}/role/{{ role_id }}/offer" class="mt-2 d-flex gap-2 align-items-center flex-wrap">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="hidden" name="person_id" value="{{ c.person.id }}">
-            <input type="text" name="message" class="form-control form-control-sm" placeholder="Optional message to their manager" style="max-width: 22rem;">
+            <input type="text" name="message" class="form-control form-control-sm" placeholder="{{ fluent(key='offer-message-placeholder', lang=lang) }}" style="max-width: 22rem;">
             <button type="submit" class="btn btn-sm btn-primary text-nowrap">
-                <i class="bi bi-send" aria-hidden="true"></i> Make offer
+                <i class="bi bi-send" aria-hidden="true"></i> {{ fluent(key="make-offer", lang=lang) }}
             </button>
         </form>
         {% endif %}

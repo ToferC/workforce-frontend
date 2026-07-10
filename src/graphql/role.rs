@@ -118,8 +118,14 @@ pub async fn vacate_role(role_id: UUID, bearer: String, api_url: &str, client: A
 #[graphql(schema_path = "schema.graphql", query_path = "queries/roles/all_roles.graphql", response_derives = "Debug, Serialize, PartialEq")]
 pub struct AllRoles;
 
-pub async fn all_roles(bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_roles::ResponseData, ApiError> {
-    post_graphql::<AllRoles>(&client, api_url, &bearer, all_roles::Variables {}).await
+pub async fn all_roles(search: Option<String>, organization_id: Option<String>, status: Option<String>, limit: Option<i64>, offset: i64, bearer: String, api_url: &str, client: Arc<Client>) -> Result<all_roles::ResponseData, ApiError> {
+    post_graphql::<AllRoles>(&client, api_url, &bearer, all_roles::Variables {
+        search,
+        organization_id,
+        status,
+        limit,
+        offset,
+    }).await
 }
 
 /// Lean list for role `<select>`s: just the fields needed to build a

@@ -1083,7 +1083,10 @@ fn role_index_renders_vacant_and_occupied() {
     ]));
     ctx.insert("q", "");
     ctx.insert("total", &2);
-    ctx.insert("truncated", &false);
+    ctx.insert("page", &1);
+    ctx.insert("total_pages", &1);
+    ctx.insert("has_prev", &false);
+    ctx.insert("has_next", &false);
     ctx.insert("organizations", &json!([{"id": "1", "nameEn": "Alpha Org"}, {"id": "2", "nameEn": "Beta Org"}]));
     ctx.insert("selected_org", "2");
     ctx.insert("selected_status", "vacant");

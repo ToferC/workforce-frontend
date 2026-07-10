@@ -56,7 +56,7 @@
             <!-- Requirements -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h4 mb-0"><i class="bi bi-check2-square" aria-hidden="true"></i> Requirements</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-check2-square" aria-hidden="true"></i> {{ fluent(key="requirements-heading", lang=lang) }}</h2>
                     {% if role == "operator" or role == "admin" %}
                     <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/new">
                         <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-requirement", lang=lang) }}
@@ -76,7 +76,7 @@
                             {% if role == "operator" or role == "admin" %}
                             <div class="d-flex gap-1">
                                 <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/edit">
-                                    <i class="bi bi-pencil" aria-hidden="true"></i> Edit
+                                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-button", lang=lang) }}
                                 </a>
                                 <a class="btn btn-sm btn-outline-danger"
                                    href="/{{ lang }}/role/{{ role_record.id }}/requirement/{{ req.id }}/retire"
@@ -93,12 +93,11 @@
                 </div>
                 {% if requirement_match %}
                 <div class="card-body border-top">
-                    <h3 class="h6 text-muted mb-2"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> Incumbent fit — required vs held</h3>
+                    <h3 class="h6 text-muted mb-2"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> {{ fluent(key="incumbent-fit", lang=lang) }}</h3>
                     {{ charts::chart(id="requirement-match", height="320px") }}
                     <script type="application/json" id="requirement-match-data">{{ requirement_match | safe }}</script>
                     <p class="small text-muted mb-0 mt-2">
-                        Green bars meet or exceed the required level; red bars fall short.
-                        Levels: Desired (1) → Specialist (5).
+                        {{ fluent(key="incumbent-fit-help", lang=lang) }}
                     </p>
                 </div>
                 {% endif %}
@@ -107,7 +106,7 @@
             <!-- Work -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-kanban" aria-hidden="true"></i> Work</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-kanban" aria-hidden="true"></i> {{ fluent(key="work", lang=lang) }}</h2>
                 </div>
                 <div class="card-body p-0">
                     {% if role_record.work %}
@@ -131,7 +130,7 @@
                         {% endfor %}
                     </ul>
                     {% else %}
-                    <div class="p-4 text-muted">No work assigned.</div>
+                    <div class="p-4 text-muted">{{ fluent(key="no-work-assigned", lang=lang) }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -139,7 +138,7 @@
             <!-- Potential Matches -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bullseye" aria-hidden="true"></i> Potential Matches</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-bullseye" aria-hidden="true"></i> {{ fluent(key="potential-matches", lang=lang) }}</h2>
                 </div>
                 {% if role_record.requirements %}
                 {# Tuning sliders sit outside #role-matches so they keep their
@@ -154,21 +153,21 @@
                         <div class="row">
                             <div class="col-sm-6 mb-2">
                                 <label for="min_coverage" class="form-label small mb-1">
-                                    Minimum match: <span id="min_coverage_label" class="fw-semibold">{{ min_coverage_pct }}</span>%
+                                    {{ fluent(key="min-match-label", lang=lang) }}: <span id="min_coverage_label" class="fw-semibold">{{ min_coverage_pct }}</span>%
                                 </label>
                                 <input type="range" class="custom-range" id="min_coverage" name="min_coverage"
                                        min="0.1" max="0.9" step="0.1" value="{{ min_coverage_pct / 100 }}"
                                        oninput="document.getElementById('min_coverage_label').textContent = Math.round(this.value * 100)">
-                                <div class="small text-muted">How much of the requirement set a close candidate must meet.</div>
+                                <div class="small text-muted">{{ fluent(key="min-match-help", lang=lang) }}</div>
                             </div>
                             <div class="col-sm-6 mb-2">
                                 <label for="max_gap_per_req" class="form-label small mb-1">
-                                    Allowed skill gap: <span id="max_gap_label" class="fw-semibold">{{ max_gap_per_req }}</span> level(s)
+                                    {{ fluent(key="max-gap-label", lang=lang) }}: <span id="max_gap_label" class="fw-semibold">{{ max_gap_per_req }}</span> {{ fluent(key="levels-suffix", lang=lang) }}
                                 </label>
                                 <input type="range" class="custom-range" id="max_gap_per_req" name="max_gap_per_req"
                                        min="0" max="4" step="1" value="{{ max_gap_per_req }}"
                                        oninput="document.getElementById('max_gap_label').textContent = this.value">
-                                <div class="small text-muted">Largest shortfall tolerated on any single skill.</div>
+                                <div class="small text-muted">{{ fluent(key="max-gap-help", lang=lang) }}</div>
                             </div>
                         </div>
                     </form>
@@ -178,7 +177,7 @@
                     {% if role_record.requirements %}
                     {% include "role/_matches.html" %}
                     {% else %}
-                    <div class="p-4 text-muted">Add requirements to this role to find matching candidates.</div>
+                    <div class="p-4 text-muted">{{ fluent(key="add-requirements-hint", lang=lang) }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -188,7 +187,7 @@
             {% if role_record.assignments %}
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-clock-history" aria-hidden="true"></i> Assignment History</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-clock-history" aria-hidden="true"></i> {{ fluent(key="assignment-history", lang=lang) }}</h2>
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
@@ -197,7 +196,7 @@
                             <a href="/{{ lang }}/person/{{ a.person.id }}" class="fw-semibold">{{ a.person.givenName }} {{ a.person.familyName }}</a>
                             <span class="text-muted small">
                                 {{ a.startDate }} &rarr; {{ a.endDate }}
-                                {% if a.isCurrent %}<span class="badge bg-success ms-2">Current</span>{% endif %}
+                                {% if a.isCurrent %}<span class="badge bg-success ms-2">{{ fluent(key="current-badge", lang=lang) }}</span>{% endif %}
                             </span>
                         </li>
                         {% endfor %}
@@ -214,16 +213,16 @@
                 <!-- Incumbent -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-person-badge" aria-hidden="true"></i> Incumbent</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-person-badge" aria-hidden="true"></i> {{ fluent(key="incumbent", lang=lang) }}</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item">
                                 <a href="/{{ lang }}/person/{{ role_record.person.id }}" class="fw-semibold">{{ role_record.person.givenName }} {{ role_record.person.familyName }}</a>
                             </li>
-                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Current Effort:</span> {{ viz::effort_meter(value=role_record.effort) }}</li>
-                            <li class="list-group-item"><span class="text-muted">Email:</span> {{ role_record.person.email }}</li>
-                            <li class="list-group-item"><span class="text-muted">Phone:</span> {{ role_record.person.phone }}</li>
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">{{ fluent(key="current-effort", lang=lang) }}:</span> {{ viz::effort_meter(value=role_record.effort) }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="email", lang=lang) }}:</span> {{ role_record.person.email }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="phone", lang=lang) }}:</span> {{ role_record.person.phone }}</li>
                         </ul>
                     </div>
                 </div>
@@ -231,21 +230,21 @@
                 <!-- Team -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> Team</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="team", lang=lang) }}</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item">
-                                <span class="text-muted">Name:</span>
+                                <span class="text-muted">{{ fluent(key="name", lang=lang) }}:</span>
                                 <a href="/{{lang}}/team/{{role_record.team.id}}">{{ role_record.team.nameEnglish }}</a>
                             </li>
                             <li class="list-group-item">
-                                <span class="text-muted">Owner:</span>
+                                <span class="text-muted">{{ fluent(key="owner", lang=lang) }}:</span>
                                 {% if role_record.team.owner.person %}
                                 <a href="/{{lang}}/person/{{role_record.team.owner.person.id}}">{{ role_record.team.owner.person.givenName }} {{ role_record.team.owner.person.familyName }}</a>
                                 &mdash; {{ role_record.team.owner.person.email }}
                                 {% else %}
-                                <span class="text-muted">Vacant</span>
+                                <span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>
                                 {% endif %}
                             </li>
                         </ul>
@@ -255,7 +254,7 @@
                 <!-- Vacant Role -->
                 <div class="card shadow-lg mb-4 border-warning">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h2 class="h4 mb-0"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> VACANT</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> <span class="text-uppercase">{{ fluent(key="vacant-label", lang=lang) }}</span></h2>
                         {% if role == "operator" or role == "admin" %}
                         <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/role/{{ role_record.id }}/requirement/new">
                             <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-requirement", lang=lang) }}
@@ -263,7 +262,7 @@
                         {% endif %}
                     </div>
                     <div class="card-body p-0">
-                        <div class="px-3 py-2 text-muted small">Requirements</div>
+                        <div class="px-3 py-2 text-muted small">{{ fluent(key="requirements-heading", lang=lang) }}</div>
                         {% if role_record.requirements %}
                         <ul class="list-group list-group-flush">
                             {% for req in role_record.requirements %}
@@ -297,20 +296,20 @@
                 {% if role_record.team %}
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> Team</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="team", lang=lang) }}</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item">
-                                <span class="text-muted">Name:</span>
+                                <span class="text-muted">{{ fluent(key="name", lang=lang) }}:</span>
                                 <a href="/{{lang}}/team/{{role_record.team.id}}">{{ role_record.team.nameEnglish }}</a>
                             </li>
                             <li class="list-group-item">
-                                <span class="text-muted">Owner:</span>
+                                <span class="text-muted">{{ fluent(key="owner", lang=lang) }}:</span>
                                 {% if role_record.team.owner.person %}
                                 <a href="/{{lang}}/person/{{role_record.team.owner.person.id}}">{{ role_record.team.owner.person.givenName }} {{ role_record.team.owner.person.familyName }}</a>
                                 {% else %}
-                                <span class="text-muted">Vacant</span>
+                                <span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>
                                 {% endif %}
                             </li>
                         </ul>

@@ -199,15 +199,17 @@ pub async fn person_by_id(
             .collect();
         let val_series: Vec<i64> = domains.iter().map(|d| *dom_validated.get(d).unwrap_or(&0)).collect();
         let self_series: Vec<i64> = domains.iter().map(|d| *dom_self.get(d).unwrap_or(&0)).collect();
+        let l_validated = by_lang(&lang, "Validated", "Validé");
+        let l_self = by_lang(&lang, "Self-identified", "Auto-déclaré");
         let radar = json!({
             "tooltip": {},
-            "legend": {"bottom": 0, "data": ["Validated", "Self-identified"]},
+            "legend": {"bottom": 0, "data": [l_validated, l_self]},
             "radar": {"indicator": indicators, "radius": "65%"},
             "series": [{
                 "type": "radar",
                 "data": [
-                    {"value": val_series, "name": "Validated", "areaStyle": {"opacity": 0.2}},
-                    {"value": self_series, "name": "Self-identified", "lineStyle": {"type": "dashed"}}
+                    {"value": val_series, "name": l_validated, "areaStyle": {"opacity": 0.2}},
+                    {"value": self_series, "name": l_self, "lineStyle": {"type": "dashed"}}
                 ]
             }]
         });
