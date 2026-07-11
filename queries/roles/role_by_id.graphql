@@ -87,5 +87,7 @@ query RoleById($id:UUID!) {
         familyName
       }
     }
+      annualSalary
+    finances { fiscalYear budgetedCents projectedCents lapseCents }
   }
 }

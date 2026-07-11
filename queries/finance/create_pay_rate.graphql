@@ -1,0 +1,6 @@
+mutation CreatePayRate($data: NewPayRate!) {
+  createPayRate(payRateData: $data) {
+    id
+    annualRateCents
+  }
+}

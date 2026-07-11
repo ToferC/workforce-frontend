@@ -135,6 +135,61 @@
                     {% endfor %}
                 </div>
             </div>
+
+            <!-- Contracts -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h2 class="h4 mb-0"><i class="bi bi-receipt" aria-hidden="true"></i> {{ fluent(key="contracts-heading", lang=lang) }}</h2>
+                    {% if role == "operator" or role == "admin" %}
+                    <a href="/{{ lang }}/task/{{ task.id }}/contract/new" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-contract", lang=lang) }}
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if task.contracts and task.contracts | length > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">{{ fluent(key="contract-reference", lang=lang) }}</th>
+                                    <th scope="col">{{ fluent(key="contract-vendor", lang=lang) }}</th>
+                                    <th scope="col">{{ fluent(key="contract-period", lang=lang) }}</th>
+                                    <th scope="col" class="text-end">{{ fluent(key="contract-value", lang=lang) }}</th>
+                                    <th scope="col">{{ fluent(key="status", lang=lang) }}</th>
+                                    {% if role == "operator" or role == "admin" %}<th scope="col"><span class="visually-hidden">{{ fluent(key="actions", lang=lang) }}</span></th>{% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for contract in task.contracts %}
+                                <tr>
+                                    <td>{{ contract.referenceNumber }}</td>
+                                    <td>{{ contract.vendor }}</td>
+                                    <td class="small text-muted">{{ contract.startDate | truncate(length=10, end="") }} &rarr; {{ contract.endDate | truncate(length=10, end="") }}</td>
+                                    <td class="text-end">{{ contract.totalValueCents | money(lang=lang) }}</td>
+                                    <td>{{ viz::contract_status_chip(status=contract.status) }}</td>
+                                    {% if role == "operator" or role == "admin" %}
+                                    <td class="text-end">
+                                        <a href="/{{ lang }}/contract/{{ contract.id }}/edit" class="btn btn-sm btn-outline-secondary" aria-label="{{ fluent(key='edit-button', lang=lang) }} {{ contract.referenceNumber }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                                        <a href="/{{ lang }}/contract/{{ contract.id }}/delete" class="btn btn-sm btn-outline-danger" aria-label="{{ fluent(key='delete-button', lang=lang) }} {{ contract.referenceNumber }}"><i class="bi bi-trash" aria-hidden="true"></i></a>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if task.finances %}
+                    <div class="p-3 border-top small text-muted">
+                        {{ fluent(key="contract-fy-share", lang=lang) }} ({{ task.finances.fiscalYear }}):
+                        <span class="fw-semibold">{{ task.finances.projectedCents | money(lang=lang) }}</span>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="p-4 text-muted">{{ fluent(key="no-contracts", lang=lang) }}</div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <!-- Sidebar pane: summary -->

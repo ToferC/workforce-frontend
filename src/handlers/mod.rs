@@ -22,6 +22,7 @@ pub mod capability;
 pub mod skill;
 pub mod product;
 pub mod analytics;
+pub mod finance;
 
 pub use authentication_hander::*;
 pub use account::*;
@@ -47,3 +48,4 @@ pub use capability::*;
 pub use skill::*;
 pub use product::*;
 pub use analytics::*;
+pub use finance::*;

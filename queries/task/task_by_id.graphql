@@ -54,6 +54,17 @@ query TaskById($id:UUID!) {
       	}
     	}
     }
+    contracts {
+      id
+      referenceNumber
+      vendor
+      description
+      startDate
+      endDate
+      totalValueCents
+      status
+    }
+    finances { fiscalYear budgetedCents projectedCents lapseCents }
     createdBy {
       id
       titleEnglish

@@ -1,0 +1,10 @@
+query PayRates {
+  payRates {
+    id
+    occupationalGroup
+    occupationalLevel
+    rank
+    annualRateCents
+    effectiveDate
+  }
+}

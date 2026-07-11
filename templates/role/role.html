@@ -318,6 +318,39 @@
                 {% endif %}
                 {% endif %}
 
+                <!-- Cost: salary rate and fiscal-year projection -->
+                {% if role_record.finances %}
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-cash-stack" aria-hidden="true"></i> {{ fluent(key="cost-heading", lang=lang) }} ({{ role_record.finances.fiscalYear }})</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% if role_record.annualSalary %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="text-muted">{{ fluent(key="annual-salary", lang=lang) }}</span>
+                                <span class="fw-semibold">{{ role_record.annualSalary | money(lang=lang) }}</span>
+                            </li>
+                            {% endif %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="text-muted">{{ fluent(key="fy-budget", lang=lang) }}</span>
+                                <span>{{ role_record.finances.budgetedCents | money(lang=lang) }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="text-muted">{{ fluent(key="fy-projected", lang=lang) }}</span>
+                                <span>{{ role_record.finances.projectedCents | money(lang=lang) }}</span>
+                            </li>
+                            {% if role_record.finances.lapseCents > 0 %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="text-muted">{{ fluent(key="fy-lapse", lang=lang) }}</span>
+                                <span class="text-warning fw-semibold">{{ role_record.finances.lapseCents | money(lang=lang) }}</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Reporting line: who this position answers to, and who
                      answers to it. Position-to-position, so a vacant manager
                      still shows as the reporting line. -->

@@ -72,6 +72,42 @@ pub fn by_lang<'a>(lang: &str, en: &'a str, fr: &'a str) -> &'a str {
     if lang == "fr" { fr } else { en }
 }
 
+/// Whole-dollar money string from integer cents: "$1,234,567" in English,
+/// "1 234 567 $" in French (non-breaking spaces). Cents are truncated —
+/// salary and contract figures read better without them.
+pub fn format_cents(cents: i64, lang: &str) -> String {
+    let dollars = cents / 100;
+    let negative = dollars < 0;
+    let digits = dollars.abs().to_string();
+    let sep = if lang == "fr" { '\u{a0}' } else { ',' };
+    let mut grouped = String::new();
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i) % 3 == 0 {
+            grouped.push(sep);
+        }
+        grouped.push(c);
+    }
+    let sign = if negative { "-" } else { "" };
+    if lang == "fr" {
+        format!("{}{}\u{a0}$", sign, grouped)
+    } else {
+        format!("{}${}", sign, grouped)
+    }
+}
+
+/// Tera filter over `format_cents`: `{{ summary.budgetedCents | money(lang=lang) }}`.
+pub fn money_filter(
+    value: &tera::Value,
+    args: &std::collections::HashMap<String, tera::Value>,
+) -> tera::Result<tera::Value> {
+    let cents = value
+        .as_i64()
+        .or_else(|| value.as_f64().map(|f| f as i64))
+        .unwrap_or(0);
+    let lang = args.get("lang").and_then(|v| v.as_str()).unwrap_or("en");
+    Ok(tera::Value::String(format_cents(cents, lang)))
+}
+
 /// Numeric weight for each CapabilityLevel; shared by analytics and org chart.
 pub fn level_weight(level: &str) -> i64 {
     match level {
