@@ -223,15 +223,17 @@ pub async fn role_by_id(
                 })
                 .collect();
 
+            let l_required = by_lang(&lang, "Required", "Requis");
+            let l_held = by_lang(&lang, "Held", "Détenu");
             let req_match = json!({
                 "tooltip": {"trigger": "axis"},
-                "legend": {"data": ["Required", "Held"], "bottom": 0},
+                "legend": {"data": [l_required, l_held], "bottom": 0},
                 "grid": {"left": "3%", "right": "4%", "bottom": "14%", "containLabel": true},
                 "xAxis": {"type": "category", "data": labels, "axisLabel": {"rotate": 20, "interval": 0}},
-                "yAxis": {"type": "value", "max": 5, "name": "Level"},
+                "yAxis": {"type": "value", "max": 5, "name": by_lang(&lang, "Level", "Niveau")},
                 "series": [
-                    {"name": "Required", "type": "bar", "data": required, "itemStyle": {"color": "#6c757d"}},
-                    {"name": "Held", "type": "bar", "data": held}
+                    {"name": l_required, "type": "bar", "data": required, "itemStyle": {"color": "#6c757d"}},
+                    {"name": l_held, "type": "bar", "data": held}
                 ]
             });
             ctx.insert("requirement_match", &chart_json(&req_match));
@@ -1224,7 +1226,12 @@ pub struct RoleIndexParams {
     /// "filled" | "vacant" | "" (all). Whether the role has an incumbent.
     #[serde(default)]
     pub status: String,
+    #[serde(default)]
+    pub page: String,
 }
+
+/// Server-side page size for the roles index.
+const ROLES_PAGE_SIZE: i64 = 50;
 
 #[get("/{lang}/roles")]
 pub async fn role_index(
@@ -1240,39 +1247,38 @@ pub async fn role_index(
 
     let bearer = session_bearer(&req.get_session());
 
-    let query = params.q.trim().to_lowercase();
     let selected_org = params.org.trim().to_string();
-    let selected_status = params.status.trim();
-    // allRoles is already active-only on the API side
-    let roles = all_roles(bearer.clone(), &data.api_url, Arc::clone(&data.client)).await
-        .map(|r| r.all_roles)
-        .unwrap_or_default();
+    let selected_status = params.status.trim().to_string();
+    let search = { let q = params.q.trim(); if q.is_empty() { None } else { Some(q.to_string()) } };
+    let org_filter = if selected_org.is_empty() { None } else { Some(selected_org.clone()) };
+    let status_filter = if selected_status.is_empty() { None } else { Some(selected_status.clone()) };
+    let page = params.page.trim().parse::<i64>().unwrap_or(1).max(1);
+    let offset = (page - 1) * ROLES_PAGE_SIZE;
 
-    let matched: Vec<_> = roles.iter()
-        .filter(|r| query.is_empty()
-            || r.title_english.to_lowercase().contains(&query)
-            || r.title_french.to_lowercase().contains(&query)
-            || r.person.as_ref().map_or(false, |p| format!("{} {}", p.given_name, p.family_name).to_lowercase().contains(&query)))
-        .filter(|r| selected_org.is_empty() || r.team.organization.id == selected_org)
-        .filter(|r| match selected_status {
-            "filled" => r.person.is_some(),
-            "vacant" => r.person.is_none(),
-            _ => true,
-        })
-        .collect();
-    let total = matched.len();
-    let visible: Vec<_> = matched.into_iter().take(super::person::INDEX_PAGE_CAP).collect();
+    // The API filters (search + org + filled/vacant) and paginates
+    // server-side; the org dropdown is independent, so fetch it concurrently.
+    let (roles_res, orgs_res) = futures::join!(
+        all_roles(search, org_filter, status_filter, Some(ROLES_PAGE_SIZE), offset, bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_organizations(bearer, &data.api_url, Arc::clone(&data.client)),
+    );
+    let (roles, total) = match roles_res {
+        Ok(r) => (r.all_roles, r.roles_count),
+        Err(_) => (Vec::new(), 0),
+    };
 
     // Organization filter options, active orgs only, sorted by name.
-    let mut organizations = all_organizations(bearer, &data.api_url, Arc::clone(&data.client)).await
-        .map(|r| r.all_organizations)
-        .unwrap_or_default();
+    let mut organizations = orgs_res.map(|r| r.all_organizations).unwrap_or_default();
     organizations.retain(|o| o.retired_at.is_none());
     organizations.sort_by(|a, b| a.name_en.to_lowercase().cmp(&b.name_en.to_lowercase()));
 
-    ctx.insert("roles", &visible);
+    let total_pages = ((total + ROLES_PAGE_SIZE - 1) / ROLES_PAGE_SIZE).max(1);
+
+    ctx.insert("roles", &roles);
     ctx.insert("total", &total);
-    ctx.insert("truncated", &(total > super::person::INDEX_PAGE_CAP));
+    ctx.insert("page", &page);
+    ctx.insert("total_pages", &total_pages);
+    ctx.insert("has_prev", &(page > 1));
+    ctx.insert("has_next", &(page < total_pages));
     ctx.insert("q", &params.q);
     ctx.insert("organizations", &organizations);
     ctx.insert("selected_org", &selected_org);

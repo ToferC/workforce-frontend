@@ -55,7 +55,7 @@
                     <div class="card shadow-sm h-100 text-center">
                         <div class="card-body py-3">
                             <div class="fs-2 fw-bold text-primary">{{ team.headcount }}</div>
-                            <div class="small text-muted">Headcount</div>
+                            <div class="small text-muted">{{ fluent(key="headcount", lang=lang) }}</div>
                         </div>
                     </div>
                 </div>
@@ -63,7 +63,7 @@
                     <div class="card shadow-sm h-100 text-center">
                         <div class="card-body py-3">
                             <div class="fs-2 fw-bold text-info">{{ team.totalEffort }}</div>
-                            <div class="small text-muted">Total Effort</div>
+                            <div class="small text-muted">{{ fluent(key="total-effort", lang=lang) }}</div>
                         </div>
                     </div>
                 </div>
@@ -71,7 +71,7 @@
                     <div class="card shadow-sm h-100 text-center">
                         <div class="card-body py-3">
                             <div class="fs-2 fw-bold text-secondary">{{ products | length }}</div>
-                            <div class="small text-muted">Products</div>
+                            <div class="small text-muted">{{ fluent(key="products", lang=lang) }}</div>
                         </div>
                     </div>
                 </div>
@@ -79,7 +79,7 @@
                     <div class="card shadow-sm h-100 text-center">
                         <div class="card-body py-3">
                             <div class="fs-2 fw-bold text-secondary">{{ work_count }}</div>
-                            <div class="small text-muted">Work Items</div>
+                            <div class="small text-muted">{{ fluent(key="work-items", lang=lang) }}</div>
                         </div>
                     </div>
                 </div>
@@ -88,8 +88,8 @@
             <!-- Team Members -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> Team Members</h2>
-                    <span class="badge bg-secondary">{{ team.occupiedRoles | length }} filled &middot; {{ team.vacantRoles | length }} vacant</span>
+                    <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="team-members", lang=lang) }}</h2>
+                    <span class="badge bg-secondary">{{ team.occupiedRoles | length }} {{ fluent(key="filled-suffix", lang=lang) }} &middot; {{ team.vacantRoles | length }} {{ fluent(key="vacant-suffix", lang=lang) }}</span>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm table-hover mb-0 align-middle">
@@ -106,7 +106,7 @@
                                 <td class="text-end" style="min-width:120px">{{ viz::effort_meter(value=role.effort) }}</td>
                             </tr>
                             {% else %}
-                            <tr><td class="text-muted p-3">No members assigned.</td></tr>
+                            <tr><td class="text-muted p-3">{{ fluent(key="no-members-assigned", lang=lang) }}</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -137,11 +137,11 @@
             <!-- Delivery at a Glance -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-diagram-2" aria-hidden="true"></i> Delivery at a Glance</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-diagram-2" aria-hidden="true"></i> {{ fluent(key="delivery-at-a-glance", lang=lang) }}</h2>
                 </div>
                 <div class="card-body">
                     <!-- Products -->
-                    <h3 class="h6 text-muted"><i class="bi bi-box-seam" aria-hidden="true"></i> Products</h3>
+                    <h3 class="h6 text-muted"><i class="bi bi-box-seam" aria-hidden="true"></i> {{ fluent(key="products", lang=lang) }}</h3>
                     {% if products | length > 0 %}
                     <div class="mb-3">
                         {% for p in products %}
@@ -151,11 +151,11 @@
                         {% endfor %}
                     </div>
                     {% else %}
-                    <p class="text-muted small mb-3">No products linked to this team's work.</p>
+                    <p class="text-muted small mb-3">{{ fluent(key="no-products-linked", lang=lang) }}</p>
                     {% endif %}
 
                     <!-- Tasks -->
-                    <h3 class="h6 text-muted"><i class="bi bi-list-task" aria-hidden="true"></i> Tasks</h3>
+                    <h3 class="h6 text-muted"><i class="bi bi-list-task" aria-hidden="true"></i> {{ fluent(key="tasks", lang=lang) }}</h3>
                     {% if tasks | length > 0 %}
                     <ul class="list-group list-group-flush mb-3">
                         {% for t in tasks %}
@@ -166,11 +166,11 @@
                         {% endfor %}
                     </ul>
                     {% else %}
-                    <p class="text-muted small mb-3">No tasks underway.</p>
+                    <p class="text-muted small mb-3">{{ fluent(key="no-tasks-underway", lang=lang) }}</p>
                     {% endif %}
 
                     <!-- Active Work -->
-                    <h3 class="h6 text-muted"><i class="bi bi-lightning-charge" aria-hidden="true"></i> Active Work</h3>
+                    <h3 class="h6 text-muted"><i class="bi bi-lightning-charge" aria-hidden="true"></i> {{ fluent(key="active-work-heading", lang=lang) }}</h3>
                     {% if active_work | length > 0 %}
                     <ul class="list-group list-group-flush">
                         {% for w in active_work %}
@@ -187,7 +187,7 @@
                         {% endfor %}
                     </ul>
                     {% else %}
-                    <p class="text-muted small mb-0">No work currently in progress.</p>
+                    <p class="text-muted small mb-0">{{ fluent(key="no-work-in-progress", lang=lang) }}</p>
                     {% endif %}
                 </div>
             </div>
@@ -199,25 +199,25 @@
                 <!-- Details -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> Details</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ fluent(key="details-heading", lang=lang) }}</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item">
-                                <span class="text-muted">Organization:</span>
+                                <span class="text-muted">{{ fluent(key="organization", lang=lang) }}:</span>
                                 <a href="/{{lang}}/organization/{{ team.organization.id }}">{{ team.organization.nameEn }}</a>
                             </li>
                             <li class="list-group-item">
-                                <span class="text-muted">Organization Level:</span>
+                                <span class="text-muted">{{ fluent(key="org-tier", lang=lang) }}:</span>
                                 <a href="/{{lang}}/org_tier/{{ team.organizationLevel.id }}">{{ team.organizationLevel.nameEn }}</a>
                             </li>
                             <li class="list-group-item">
-                                <span class="text-muted">Owner:</span>
+                                <span class="text-muted">{{ fluent(key="owner", lang=lang) }}:</span>
                                 {% if team.owner.person %}
                                 <a href="/{{lang}}/person/{{team.owner.person.id}}">{{ team.owner.person.givenName }} {{ team.owner.person.familyName }}</a>
                                 &mdash; {{ team.owner.person.email }}
                                 {% else %}
-                                <span class="text-muted">Vacant</span>
+                                <span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>
                                 {% endif %}
                             </li>
                         </ul>
@@ -227,14 +227,14 @@
             {% if domain_summary %}
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> Capabilities by Domain</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> {{ fluent(key="capabilities-by-domain", lang=lang) }}</h2>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm table-hover mb-0 align-middle">
                         <thead>
                             <tr>
-                                <th>Domain</th>
-                                <th class="text-end">Total Capabilities</th>
+                                <th>{{ fluent(key="domain-label", lang=lang) }}</th>
+                                <th class="text-end">{{ fluent(key="total-capabilities", lang=lang) }}</th>
                             </tr>
                         </thead>
                         <tbody>

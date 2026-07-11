@@ -12,35 +12,35 @@
   negotiated.
 #}
 {% if match_error %}
-<div class="p-4 text-danger"><i class="bi bi-exclamation-octagon" aria-hidden="true"></i> Could not load matches: {{ match_error }}</div>
+<div class="p-4 text-danger"><i class="bi bi-exclamation-octagon" aria-hidden="true"></i> {{ fluent(key="could-not-load-matches", lang=lang) }}: {{ match_error }}</div>
 {% else %}
 
 {# ══ In the owner's area ══════════════════════════════════════════════════════ #}
 <div class="px-3 pt-3 pb-1 d-flex align-items-center gap-2">
-    <h3 class="h6 mb-0"><i class="bi bi-diagram-3-fill text-primary" aria-hidden="true"></i> In your area</h3>
-    <span class="small text-muted">Under the org tier this role's owner manages — reassign directly.</span>
+    <h3 class="h6 mb-0"><i class="bi bi-diagram-3-fill text-primary" aria-hidden="true"></i> {{ fluent(key="in-your-area", lang=lang) }}</h3>
+    <span class="small text-muted">{{ fluent(key="in-your-area-hint", lang=lang) }}</span>
 </div>
 
 {# Full matches #}
 <div class="px-3 pt-2 pb-2 d-flex align-items-center gap-2">
-    <h4 class="small fw-semibold mb-0 text-success"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Full matches</h4>
+    <h4 class="small fw-semibold mb-0 text-success"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> {{ fluent(key="full-matches", lang=lang) }}</h4>
     <span class="badge bg-success">{{ match_managed_full | length }}</span>
-    <span class="small text-muted">Meet every requirement at or above the required level.</span>
+    <span class="small text-muted">{{ fluent(key="full-matches-hint", lang=lang) }}</span>
 </div>
 {% if match_managed_full %}
 {% for c in match_managed_full %}
 {{ match::candidate_card(c=c, lang=lang, role=role, csrf_token=csrf_token, role_id=match_role_id, is_full=true) }}
 {% endfor %}
 {% else %}
-<div class="px-3 pb-3 text-muted">No one in your area meets every requirement.</div>
+<div class="px-3 pb-3 text-muted">{{ fluent(key="no-full-in-area", lang=lang) }}</div>
 {% endif %}
 
 {# Close matches #}
 <div class="px-3 pt-2 pb-2 d-flex align-items-center gap-2">
-    <h4 class="small fw-semibold mb-0 text-warning"><i class="bi bi-bullseye" aria-hidden="true"></i> Close matches</h4>
+    <h4 class="small fw-semibold mb-0 text-warning"><i class="bi bi-bullseye" aria-hidden="true"></i> {{ fluent(key="close-matches", lang=lang) }}</h4>
     <span class="badge bg-warning text-dark">{{ match_managed_partial | length }}</span>
     <span class="small text-muted">
-        &ge; {{ min_coverage_pct }}% of requirements met, no single skill short by more than {{ max_gap_per_req }} level{% if max_gap_per_req != 1 %}s{% endif %}.
+        {{ fluent(key="close-matches-hint", pct=min_coverage_pct, gap=max_gap_per_req, lang=lang) }}
     </span>
 </div>
 {% if match_managed_partial %}
@@ -48,18 +48,18 @@
 {{ match::candidate_card(c=c, lang=lang, role=role, csrf_token=csrf_token, role_id=match_role_id, is_full=false) }}
 {% endfor %}
 {% else %}
-<div class="px-3 pb-3 text-muted">No close matches in your area at this threshold.</div>
+<div class="px-3 pb-3 text-muted">{{ fluent(key="no-close-in-area", lang=lang) }}</div>
 {% endif %}
 
 {# ══ Elsewhere in the organization ════════════════════════════════════════════ #}
 <div class="px-3 pt-3 pb-1 border-top d-flex align-items-center gap-2">
-    <h3 class="h6 mb-0"><i class="bi bi-people-fill text-secondary" aria-hidden="true"></i> Elsewhere in the organization</h3>
-    <span class="small text-muted">Outside your area — contact the person's manager to arrange a move.</span>
+    <h3 class="h6 mb-0"><i class="bi bi-people-fill text-secondary" aria-hidden="true"></i> {{ fluent(key="elsewhere-in-org", lang=lang) }}</h3>
+    <span class="small text-muted">{{ fluent(key="elsewhere-hint", lang=lang) }}</span>
 </div>
 
 {# Full matches #}
 <div class="px-3 pt-2 pb-2 d-flex align-items-center gap-2">
-    <h4 class="small fw-semibold mb-0 text-success"><i class="bi bi-check-circle" aria-hidden="true"></i> Full matches</h4>
+    <h4 class="small fw-semibold mb-0 text-success"><i class="bi bi-check-circle" aria-hidden="true"></i> {{ fluent(key="full-matches", lang=lang) }}</h4>
     <span class="badge bg-success">{{ match_external_full | length }}</span>
 </div>
 {% if match_external_full %}
@@ -67,12 +67,12 @@
 {{ match::candidate_card(c=c, lang=lang, role=role, csrf_token=csrf_token, role_id=match_role_id, is_full=true) }}
 {% endfor %}
 {% else %}
-<div class="px-3 pb-3 text-muted">No full matches elsewhere.</div>
+<div class="px-3 pb-3 text-muted">{{ fluent(key="no-full-elsewhere", lang=lang) }}</div>
 {% endif %}
 
 {# Close matches #}
 <div class="px-3 pt-2 pb-2 d-flex align-items-center gap-2">
-    <h4 class="small fw-semibold mb-0 text-warning"><i class="bi bi-bullseye" aria-hidden="true"></i> Close matches</h4>
+    <h4 class="small fw-semibold mb-0 text-warning"><i class="bi bi-bullseye" aria-hidden="true"></i> {{ fluent(key="close-matches", lang=lang) }}</h4>
     <span class="badge bg-warning text-dark">{{ match_external_partial | length }}</span>
 </div>
 {% if match_external_partial %}
@@ -80,7 +80,7 @@
 {{ match::candidate_card(c=c, lang=lang, role=role, csrf_token=csrf_token, role_id=match_role_id, is_full=false) }}
 {% endfor %}
 {% else %}
-<div class="px-3 pb-3 text-muted">No close matches elsewhere at this threshold.</div>
+<div class="px-3 pb-3 text-muted">{{ fluent(key="no-close-elsewhere", lang=lang) }}</div>
 {% endif %}
 
 {% endif %}

@@ -5,7 +5,7 @@ use serde_json::json;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
-use crate::{AppData, generate_basic_context, status_color, chart_json, domain_short_label};
+use crate::{AppData, by_lang, generate_basic_context, status_color, chart_json, domain_short_label};
 use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap,
     team_capability_matrix, org_tier_capability_matrix, talent_movements, capability_growth,
     capability_supply_demand, all_teams, all_org_tiers, priority_mismatches};
@@ -47,7 +47,7 @@ pub async fn analytics_dashboard(
     // and each section lazy-loads its own data via HTMX (see the fragment
     // handlers below). This keeps any single request well under Heroku's 30s
     // limit even when the underlying GraphQL queries are slow.
-    if let Err(response) = security::require_role(&session, &lang, MinimumRole::Analyst) {
+    if let Err(response) = security::require_role(&session, &lang, MinimumRole::User) {
         return response;
     }
 
@@ -70,7 +70,7 @@ pub async fn analytics_section_work(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -132,7 +132,7 @@ pub async fn analytics_section_capacity(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -207,7 +207,7 @@ pub async fn analytics_section_vacancies(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -243,7 +243,7 @@ pub async fn analytics_section_gaps(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -371,7 +371,7 @@ pub async fn analytics_coverage(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -517,7 +517,7 @@ pub async fn analytics_delivery(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -668,7 +668,7 @@ pub async fn analytics_consistency(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -730,7 +730,7 @@ pub async fn analytics_mobility_view(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -884,7 +884,7 @@ pub async fn analytics_growth(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -932,7 +932,7 @@ pub async fn analytics_growth(
         "legend": { "data": legend_data, "bottom": "0%", "type": "scroll" },
         "grid": { "top": "8%", "left": "8%", "right": "5%", "bottom": "18%" },
         "xAxis": { "type": "time" },
-        "yAxis": { "type": "value", "name": "Capability Depth" },
+        "yAxis": { "type": "value", "name": by_lang(&lang, "Capability Depth", "Profondeur des capacités") },
         "series": echarts_series,
     });
 
@@ -960,7 +960,7 @@ pub async fn analytics_supply_demand(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -991,15 +991,17 @@ pub async fn analytics_supply_demand(
         let latest_demand = s.points.last().map(|p| p.demand).unwrap_or(0.0);
         let gap = latest_supply - latest_demand;
 
+        let l_supply = by_lang(&lang, "Supply", "Offre");
+        let l_demand = by_lang(&lang, "Demand", "Demande");
         let chart_opt = json!({
             "tooltip": { "trigger": "axis" },
-            "legend": { "data": ["Supply", "Demand"], "bottom": "0%" },
+            "legend": { "data": [l_supply, l_demand], "bottom": "0%" },
             "grid": { "top": "12%", "left": "12%", "right": "5%", "bottom": "18%" },
             "xAxis": { "type": "time", "axisLabel": { "fontSize": 10 } },
             "yAxis": { "type": "value" },
             "series": [
                 {
-                    "name": "Supply",
+                    "name": l_supply,
                     "type": "line",
                     "smooth": true,
                     "data": supply_data,
@@ -1007,7 +1009,7 @@ pub async fn analytics_supply_demand(
                     "itemStyle": { "color": "#3cb44b" },
                 },
                 {
-                    "name": "Demand",
+                    "name": l_demand,
                     "type": "line",
                     "smooth": true,
                     "data": demand_data,

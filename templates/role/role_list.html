@@ -1,23 +1,44 @@
-{# Role list rows — standalone for HTMX search, included by role_index. #}
-<ul class="list-group list-group-flush" id="role-list">
-    {% for r in roles %}
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-        <a href="/{{ lang }}/role/{{ r.id }}">
-            {% if lang == "fr" %}{{ r.titleFrench }}{% else %}{{ r.titleEnglish }}{% endif %}
-        </a>
-        <span>
-            {% if r.person %}
-            <span class="text-muted small">{{ r.person.givenName }} {{ r.person.familyName }}</span>
-            {% else %}
-            <span class="badge bg-danger">{{ fluent(key="vacant", lang=lang) }}</span>
+{# Role list + pagination — standalone for HTMX filtering, and included by
+   the full role_index page. The wrapper carries id="role-list" so an HTMX
+   filter swap replaces both the rows and the page controls. #}
+<div id="role-list">
+    <ul class="list-group list-group-flush">
+        {% for r in roles %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="/{{ lang }}/role/{{ r.id }}">
+                {% if lang == "fr" %}{{ r.titleFrench }}{% else %}{{ r.titleEnglish }}{% endif %}
+            </a>
+            <span>
+                {% if r.person %}
+                <span class="text-muted small">{{ r.person.givenName }} {{ r.person.familyName }}</span>
+                {% else %}
+                <span class="badge bg-danger">{{ fluent(key="vacant", lang=lang) }}</span>
+                {% endif %}
+                <span class="text-muted small ms-1">{{ r.team.nameEnglish }}</span>
+            </span>
+        </li>
+        {% else %}
+        <li class="list-group-item text-muted">{{ fluent(key="no-results", lang=lang) }}</li>
+        {% endfor %}
+    </ul>
+
+    {% if total_pages > 1 %}
+    {% set q_enc = q | urlencode %}
+    {% set qs = "q=" ~ q_enc ~ "&org=" ~ selected_org ~ "&status=" ~ selected_status %}
+    <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="{{ fluent(key='pagination', lang=lang) }}">
+        <span class="text-muted small">{{ fluent(key="page", lang=lang) }} {{ page }} / {{ total_pages }} ({{ total }})</span>
+        <span class="btn-group">
+            {% if has_prev %}
+            <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/roles?{{ qs }}&page={{ page - 1 }}">
+                <i class="bi bi-chevron-left" aria-hidden="true"></i> {{ fluent(key="previous", lang=lang) }}
+            </a>
             {% endif %}
-            <span class="text-muted small ms-1">{{ r.team.nameEnglish }}</span>
+            {% if has_next %}
+            <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/roles?{{ qs }}&page={{ page + 1 }}">
+                {{ fluent(key="next", lang=lang) }} <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+            {% endif %}
         </span>
-    </li>
-    {% else %}
-    <li class="list-group-item text-muted">{{ fluent(key="no-results", lang=lang) }}</li>
-    {% endfor %}
-    {% if truncated %}
-    <li class="list-group-item text-muted small">{{ fluent(key="showing-first", lang=lang) }} {{ roles | length }} / {{ total }} — {{ fluent(key="refine-search", lang=lang) }}</li>
+    </nav>
     {% endif %}
-</ul>
+</div>

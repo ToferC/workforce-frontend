@@ -1,11 +1,14 @@
-query AllRoles {
-  allRoles {
+query AllRoles($search: String, $organizationId: UUID, $status: String, $limit: Int, $offset: Int!) {
+  allRoles(search: $search, organizationId: $organizationId, status: $status, limit: $limit, offset: $offset) {
     id
     titleEnglish
     titleFrench
     militaryOccupation
     rank
+    occupationalGroup
+    occupationalLevel
     person { id givenName familyName }
     team { id nameEnglish organization { id nameEn } }
   }
+  rolesCount(search: $search, organizationId: $organizationId, status: $status)
 }
