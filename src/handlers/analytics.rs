@@ -47,7 +47,7 @@ pub async fn analytics_dashboard(
     // and each section lazy-loads its own data via HTMX (see the fragment
     // handlers below). This keeps any single request well under Heroku's 30s
     // limit even when the underlying GraphQL queries are slow.
-    if let Err(response) = security::require_role(&session, &lang, MinimumRole::Analyst) {
+    if let Err(response) = security::require_role(&session, &lang, MinimumRole::User) {
         return response;
     }
 
@@ -70,7 +70,7 @@ pub async fn analytics_section_work(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -132,7 +132,7 @@ pub async fn analytics_section_capacity(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -207,7 +207,7 @@ pub async fn analytics_section_vacancies(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -243,7 +243,7 @@ pub async fn analytics_section_gaps(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -371,7 +371,7 @@ pub async fn analytics_coverage(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -517,7 +517,7 @@ pub async fn analytics_delivery(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -668,7 +668,7 @@ pub async fn analytics_consistency(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -730,7 +730,7 @@ pub async fn analytics_mobility_view(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -884,7 +884,7 @@ pub async fn analytics_growth(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
@@ -960,7 +960,7 @@ pub async fn analytics_supply_demand(
     let lang = path.into_inner();
     let session = req.get_session();
 
-    let auth = match security::require_role(&session, &lang, MinimumRole::Analyst) {
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
         Ok(auth) => auth,
         Err(response) => return response,
     };

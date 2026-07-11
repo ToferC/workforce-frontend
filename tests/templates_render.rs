@@ -1465,16 +1465,16 @@ fn team_page_lists_vacant_roles_with_find_candidates() {
 }
 
 #[test]
-fn nav_offers_analytics_to_analysts_and_above_only() {
+fn nav_offers_analytics_to_all_signed_in_users() {
     let tera = tera();
-    // Analytics handlers require MinimumRole::Analyst; the menu should match.
-    for (role, expected) in [("user", false), ("analyst", true), ("operator", true), ("admin", true)] {
+    // Analytics handlers require only a signed-in user; the menu should match.
+    for role in ["user", "analyst", "operator", "admin"] {
         let mut ctx = base_context("en", role);
         ctx.insert("organizations", &json!([]));
         let html = tera.render("index.html", &ctx).unwrap();
-        assert_eq!(
-            html.contains("/en/analytics"), expected,
-            "role {} should{} see the analytics menu", role, if expected { "" } else { " not" }
+        assert!(
+            html.contains("/en/analytics"),
+            "role {} should see the analytics menu", role
         );
     }
 }
