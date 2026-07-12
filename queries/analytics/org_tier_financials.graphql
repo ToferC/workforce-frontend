@@ -1,0 +1,16 @@
+query OrgTierFinancials($maxLevel: Int!, $orgTierId: UUID) {
+  orgTierFinancials(maxLevel: $maxLevel, orgTierId: $orgTierId) {
+    orgTierId
+    nameEn
+    nameFr
+    tierLevel
+    parentId
+    fiscalYear
+    allocationCents
+    childAllocatedCents
+    budgetedCents
+    projectedCents
+    lapseCents
+    contractCents
+  }
+}

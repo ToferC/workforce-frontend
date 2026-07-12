@@ -831,3 +831,19 @@ annual-salary = Salaire annuel
 fy-budget = Budget
 fy-projected = Projection au 31 mars
 fy-lapse = Fonds inutilisés (vacance)
+
+# Analyse financière + allocations budgétaires
+financials = Finances
+financials-tagline = Budgets, projections et allocations de l'exercice financier dans l'ensemble de l'organisation.
+allocation-vs-projected = Allocation et dépenses projetées par organisation N1
+financials-chart-help = En dollars entiers. Les projections salariales supposent que les titulaires actuels restent jusqu'au 31 mars; les contrats comptent leur part de l'exercice.
+allocation = Allocation
+rolled-down = Alloué aux enfants
+unallocated = Non alloué
+over-allocated = Surallocation
+no-allocation = Aucune allocation définie
+variance = Écart
+budget-heading = Budget
+allocation-amount = Allocation ($)
+allocation-amount-help = Enveloppe de l'exercice financier pour ce niveau, en dollars.
+set-allocation = Définir l'allocation

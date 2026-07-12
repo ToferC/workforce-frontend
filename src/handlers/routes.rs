@@ -211,8 +211,10 @@ use crate::handlers::{
     delete_contract_post,
     pay_rates_admin,
     pay_rate_create_post,
+    set_org_tier_budget_post,
 
     // analytics
+    analytics_financials,
     analytics_dashboard,
     analytics_section_work,
     analytics_section_capacity,
@@ -346,6 +348,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(restore_org_tier_post);
     config.service(assign_org_owner_form);
     config.service(assign_org_owner_post);
+    config.service(set_org_tier_budget_post);
     config.service(org_tier_by_id);
 
     // org chart builder
@@ -435,6 +438,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(product_by_id);
 
     // analytics — specific sub-paths before the dashboard catch-all
+    config.service(analytics_financials);
     config.service(analytics_coverage);
     config.service(analytics_delivery);
     config.service(analytics_consistency);

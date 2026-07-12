@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% import "macros/charts.html" as charts %}
+
+{% block title %}<title>{{ fluent(key="financials", lang=lang) }}</title>{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/{{ lang }}/analytics">{{ fluent(key="analytics", lang=lang) }}</a></li>
+            <li class="breadcrumb-item active">{{ fluent(key="financials", lang=lang) }}</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="bi bi-cash-stack" aria-hidden="true"></i> {{ fluent(key="financials", lang=lang) }} — {{ fiscal_year }}</h1>
+        <span class="text-muted small">{{ fluent(key="financials-tagline", lang=lang) }}</span>
+    </div>
+
+    <!-- Allocation vs projected spend per L1 -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header">
+            <h2 class="h4 mb-0">{{ fluent(key="allocation-vs-projected", lang=lang) }}</h2>
+        </div>
+        <div class="card-body">
+            {{ charts::chart(id="financials-chart", height=financials_chart_height) }}
+            <script type="application/json" id="financials-chart-data">{{ financials_chart | safe }}</script>
+            <p class="small text-muted mb-0 mt-2">{{ fluent(key="financials-chart-help", lang=lang) }}</p>
+        </div>
+    </div>
+
+    <!-- L1 -> L2 -> L3 drill-down -->
+    {% for tier in tiers %}
+    <div class="card shadow-lg mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="h5 mb-0">
+                <a href="/{{ lang }}/org_tier/{{ tier.id }}">{{ tier.name }}</a>
+            </h2>
+            <span class="small text-muted">
+                {% if tier.allocationCents %}
+                {{ fluent(key="allocation", lang=lang) }}: <span class="fw-semibold">{{ tier.allocationCents | money(lang=lang) }}</span>
+                &middot; {{ fluent(key="rolled-down", lang=lang) }}: {{ tier.childAllocatedCents | money(lang=lang) }}
+                {% if tier.remainingCents >= 0 %}
+                &middot; {{ fluent(key="unallocated", lang=lang) }}: {{ tier.remainingCents | money(lang=lang) }}
+                {% else %}
+                &middot; <span class="text-danger">{{ fluent(key="over-allocated", lang=lang) }}: {{ tier.remainingCents | money(lang=lang) }}</span>
+                {% endif %}
+                {% else %}
+                {{ fluent(key="no-allocation", lang=lang) }}
+                {% endif %}
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ fluent(key="org-tier", lang=lang) }}</th>
+                            <th scope="col" class="text-end">{{ fluent(key="allocation", lang=lang) }}</th>
+                            <th scope="col" class="text-end">{{ fluent(key="fy-budget", lang=lang) }}</th>
+                            <th scope="col" class="text-end">{{ fluent(key="fy-projected", lang=lang) }}</th>
+                            <th scope="col" class="text-end">{{ fluent(key="fy-lapse", lang=lang) }}</th>
+                            <th scope="col" class="text-end">{{ fluent(key="contracts-heading", lang=lang) }}</th>
+                            <th scope="col" class="text-end">{{ fluent(key="variance", lang=lang) }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="fw-semibold">
+                            <td>{{ tier.name }}</td>
+                            <td class="text-end">{% if tier.allocationCents %}{{ tier.allocationCents | money(lang=lang) }}{% else %}&mdash;{% endif %}</td>
+                            <td class="text-end">{{ tier.budgetedCents | money(lang=lang) }}</td>
+                            <td class="text-end">{{ tier.projectedCents | money(lang=lang) }}</td>
+                            <td class="text-end">{{ tier.lapseCents | money(lang=lang) }}</td>
+                            <td class="text-end">{{ tier.contractCents | money(lang=lang) }}</td>
+                            <td class="text-end">
+                                {% if tier.varianceCents is number %}
+                                <span class="{% if tier.varianceCents < 0 %}text-danger{% else %}text-success{% endif %}">{{ tier.varianceCents | money(lang=lang) }}</span>
+                                {% else %}&mdash;{% endif %}
+                            </td>
+                        </tr>
+                        {% for l2 in tier.children %}
+                        <tr>
+                            <td class="ps-4"><a href="/{{ lang }}/org_tier/{{ l2.id }}">{{ l2.name }}</a></td>
+                            <td class="text-end">{% if l2.allocationCents %}{{ l2.allocationCents | money(lang=lang) }}{% else %}&mdash;{% endif %}</td>
+                            <td class="text-end">{{ l2.budgetedCents | money(lang=lang) }}</td>
+                            <td class="text-end">{{ l2.projectedCents | money(lang=lang) }}</td>
+                            <td class="text-end">{{ l2.lapseCents | money(lang=lang) }}</td>
+                            <td class="text-end">{{ l2.contractCents | money(lang=lang) }}</td>
+                            <td class="text-end">
+                                {% if l2.varianceCents is number %}
+                                <span class="{% if l2.varianceCents < 0 %}text-danger{% else %}text-success{% endif %}">{{ l2.varianceCents | money(lang=lang) }}</span>
+                                {% else %}&mdash;{% endif %}
+                            </td>
+                        </tr>
+                        {% for l3 in l2.children %}
+                        <tr class="small">
+                            <td class="ps-5"><a href="/{{ lang }}/org_tier/{{ l3.id }}" class="text-muted">{{ l3.name }}</a></td>
+                            <td class="text-end">{% if l3.allocationCents %}{{ l3.allocationCents | money(lang=lang) }}{% else %}&mdash;{% endif %}</td>
+                            <td class="text-end">{{ l3.budgetedCents | money(lang=lang) }}</td>
+                            <td class="text-end">{{ l3.projectedCents | money(lang=lang) }}</td>
+                            <td class="text-end">{{ l3.lapseCents | money(lang=lang) }}</td>
+                            <td class="text-end">{{ l3.contractCents | money(lang=lang) }}</td>
+                            <td class="text-end">
+                                {% if l3.varianceCents is number %}
+                                <span class="{% if l3.varianceCents < 0 %}text-danger{% else %}text-success{% endif %}">{{ l3.varianceCents | money(lang=lang) }}</span>
+                                {% else %}&mdash;{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock content %}

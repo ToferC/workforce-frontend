@@ -1100,6 +1100,85 @@ fn pay_rates_page_renders_tables_and_form() {
 }
 
 #[test]
+fn analytics_financials_page_renders_hierarchy() {
+    let tera = tera();
+    let mut ctx = base_context("en", "user");
+    ctx.insert("fiscal_year", "2026-27");
+    ctx.insert("financials_chart", "{}");
+    ctx.insert("financials_chart_height", "300px");
+    ctx.insert("tiers", &json!([{
+        "id": "11111111-1111-1111-1111-111111111111", "name": "Level One Command", "tierLevel": 1,
+        "allocationCents": 5_400_000_000_i64, "childAllocatedCents": 5_170_000_000_i64,
+        "remainingCents": 230_000_000_i64, "budgetedCents": 5_139_913_221_i64,
+        "projectedCents": 4_941_300_916_i64, "lapseCents": 198_612_305_i64,
+        "contractCents": 4_289_448_064_i64, "varianceCents": 458_699_084_i64,
+        "children": [{
+            "id": "22222222-2222-2222-2222-222222222222", "name": "Level Two Directorate", "tierLevel": 2,
+            "allocationCents": 5_170_000_000_i64, "childAllocatedCents": 0,
+            "remainingCents": 5_170_000_000_i64, "budgetedCents": 4_920_212_306_i64,
+            "projectedCents": 4_800_000_000_i64, "lapseCents": 120_212_306_i64,
+            "contractCents": 4_200_000_000_i64, "varianceCents": 370_000_000_i64,
+            "children": [{
+                "id": "33333333-3333-3333-3333-333333333333", "name": "Level Three Section", "tierLevel": 3,
+                "allocationCents": null, "childAllocatedCents": 0, "remainingCents": null,
+                "budgetedCents": 500_000_000_i64, "projectedCents": 480_000_000_i64,
+                "lapseCents": 20_000_000_i64, "contractCents": 0, "varianceCents": null,
+                "children": []
+            }]
+        }]
+    }]));
+    let html = tera.render("analytics/financials.html", &ctx).unwrap();
+    assert!(html.contains("Level One Command"));
+    assert!(html.contains("Level Two Directorate"));
+    assert!(html.contains("Level Three Section"));
+    // L1 header shows the envelope and roll-down amounts
+    assert!(html.contains("$54,000,000"));
+    assert!(html.contains("$51,700,000"));
+    // Unallocated L3 shows a dash, not a broken number
+    assert!(html.contains("Unallocated"));
+    // Tier links for drill-down
+    assert!(html.contains("/en/org_tier/33333333-3333-3333-3333-333333333333"));
+}
+
+#[test]
+fn org_tier_page_shows_budget_card_with_set_form_for_operator() {
+    let tera = tera();
+    let mut tier = sample_org_tier();
+    tier["headcount"] = json!(12);
+    tier["totalEffort"] = json!(48);
+    tier["capabilityCounts"] = json!([]);
+    let budget = json!({
+        "id": "22222222-2222-2222-2222-222222222222", "name": "Test Tier", "fiscalYear": "2026-27",
+        "allocationCents": 100_000_000_i64, "childAllocatedCents": 60_000_000_i64,
+        "remainingCents": 40_000_000_i64, "budgetedCents": 95_000_000_i64,
+        "projectedCents": 90_000_000_i64, "lapseCents": 5_000_000_i64,
+        "varianceCents": 10_000_000_i64
+    });
+    let children = json!([{
+        "id": "55555555-5555-5555-5555-555555555555", "name": "Child Tier", "fiscalYear": "2026-27",
+        "allocationCents": 60_000_000_i64, "childAllocatedCents": 0, "remainingCents": 60_000_000_i64,
+        "budgetedCents": 50_000_000_i64, "projectedCents": 48_000_000_i64, "lapseCents": 2_000_000_i64,
+        "varianceCents": 12_000_000_i64
+    }]);
+
+    for (role, sees_form) in [("operator", true), ("user", false)] {
+        let mut ctx = base_context("en", role);
+        ctx.insert("org_tier", &tier);
+        ctx.insert("domain_summary", &json!([]));
+        ctx.insert("budget", &budget);
+        ctx.insert("budget_children", &children);
+        ctx.insert("budget_amount_dollars", "1000000");
+        let html = tera.render("org_tier/org_tier.html", &ctx).unwrap();
+        assert!(html.contains("$1,000,000")); // allocation
+        assert!(html.contains("Child Tier"));
+        assert_eq!(
+            html.contains("/en/org_tier/22222222-2222-2222-2222-222222222222/budget"), sees_form,
+            "role {} should{} see the set-allocation form", role, if sees_form { "" } else { " not" }
+        );
+    }
+}
+
+#[test]
 fn work_form_renders() {
     let tera = tera();
     let work = json!({"id": "b0000000-0000-0000-0000-000000000001", "workDescription": "Draft plan", "url": "",

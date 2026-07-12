@@ -831,3 +831,19 @@ annual-salary = Annual salary
 fy-budget = Budget
 fy-projected = Projected to Mar 31
 fy-lapse = Vacancy lapse
+
+# Financials analytics + budget allocations
+financials = Financials
+financials-tagline = Fiscal-year budgets, projections and allocations across the organization.
+allocation-vs-projected = Allocation vs projected spend by L1 organization
+financials-chart-help = Whole dollars. Salary projections assume current occupants stay to March 31; contracts count their fiscal-year share.
+allocation = Allocation
+rolled-down = Allocated to children
+unallocated = Unallocated
+over-allocated = Over-allocated
+no-allocation = No allocation set
+variance = Variance
+budget-heading = Budget
+allocation-amount = Allocation ($)
+allocation-amount-help = Fiscal-year envelope for this tier, in dollars.
+set-allocation = Set allocation

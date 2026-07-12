@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{all_org_tiers, get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership, get_org_ownership_by_tier_id, update_org_ownership, restore_org_tier};
+use crate::graphql::{org_tier_financials, all_org_tiers, get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership, get_org_ownership_by_tier_id, update_org_ownership, restore_org_tier};
 use crate::security::{self, MinimumRole};
 use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
 
@@ -177,7 +177,7 @@ pub async fn org_tier_by_id(
 
     let bearer = session_bearer(&req.get_session());
 
-    let r = match get_org_tier_by_id(org_tier_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
+    let r = match get_org_tier_by_id(org_tier_id, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -197,6 +197,37 @@ pub async fn org_tier_by_id(
         .map(|(domain, count)| json!({"domain": domain, "count": count}))
         .collect();
     ctx.insert("domain_summary", &domain_summary);
+
+    // Budget card: this tier's own fiscal-year row plus its direct children,
+    // so an envelope can be rolled down level by level. Best-effort — the
+    // page still renders without it.
+    if let Ok(fin) = org_tier_financials(9, Some(tier.id.clone()), bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        let rows = fin.org_tier_financials;
+        let pick = |r: &crate::graphql::org_tier_financials::OrgTierFinancialsOrgTierFinancials| json!({
+            "id": r.org_tier_id,
+            "name": if lang == "fr" { r.name_fr.clone() } else { r.name_en.clone() },
+            "fiscalYear": r.fiscal_year,
+            "allocationCents": r.allocation_cents,
+            "childAllocatedCents": r.child_allocated_cents,
+            "remainingCents": r.allocation_cents.map(|a| a - r.child_allocated_cents),
+            "budgetedCents": r.budgeted_cents,
+            "projectedCents": r.projected_cents,
+            "lapseCents": r.lapse_cents,
+            "varianceCents": r.allocation_cents.map(|a| a - r.projected_cents),
+        });
+        if let Some(own) = rows.iter().find(|r| r.org_tier_id == tier.id) {
+            ctx.insert("budget", &pick(own));
+            if let Some(alloc) = own.allocation_cents {
+                ctx.insert("budget_amount_dollars", &format!("{}", alloc / 100));
+            }
+        }
+        let children: Vec<serde_json::Value> = rows
+            .iter()
+            .filter(|r| r.parent_id.as_deref() == Some(tier.id.as_str()))
+            .map(|r| pick(r))
+            .collect();
+        ctx.insert("budget_children", &children);
+    }
 
     render_page(&data, "org_tier/org_tier.html", &ctx)
 }

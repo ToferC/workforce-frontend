@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
 {% import "macros/viz.html" as viz %}
 
 {% block title %}
@@ -97,6 +98,79 @@
                     </ul>
                 </div>
             </div>
+
+            <!-- Budget (fiscal-year envelope + roll-down) -->
+            {% if budget %}
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-cash-stack" aria-hidden="true"></i> {{ fluent(key="budget-heading", lang=lang) }} ({{ budget.fiscalYear }})</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="fs-5 fw-bold text-primary">{% if budget.allocationCents %}{{ budget.allocationCents | money(lang=lang) }}{% else %}&mdash;{% endif %}</div>
+                            <div class="small text-muted">{{ fluent(key="allocation", lang=lang) }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="fs-5 fw-bold text-info">{{ budget.projectedCents | money(lang=lang) }}</div>
+                            <div class="small text-muted">{{ fluent(key="fy-projected", lang=lang) }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="fs-5 fw-bold">{{ budget.budgetedCents | money(lang=lang) }}</div>
+                            <div class="small text-muted">{{ fluent(key="fy-budget", lang=lang) }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            {% if budget.varianceCents is number %}
+                            <div class="fs-5 fw-bold {% if budget.varianceCents < 0 %}text-danger{% else %}text-success{% endif %}">{{ budget.varianceCents | money(lang=lang) }}</div>
+                            {% else %}
+                            <div class="fs-5 fw-bold">&mdash;</div>
+                            {% endif %}
+                            <div class="small text-muted">{{ fluent(key="variance", lang=lang) }}</div>
+                        </div>
+                    </div>
+
+                    {% if budget_children and budget_children | length > 0 %}
+                    <h3 class="h6 text-muted">{{ fluent(key="rolled-down", lang=lang) }}
+                        {% if budget.allocationCents %}
+                        &mdash; {{ budget.childAllocatedCents | money(lang=lang) }}
+                        / {{ budget.allocationCents | money(lang=lang) }}
+                        {% endif %}
+                    </h3>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">{{ fluent(key="org-tier", lang=lang) }}</th>
+                                    <th scope="col" class="text-end">{{ fluent(key="allocation", lang=lang) }}</th>
+                                    <th scope="col" class="text-end">{{ fluent(key="fy-projected", lang=lang) }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for child in budget_children %}
+                                <tr>
+                                    <td><a href="/{{ lang }}/org_tier/{{ child.id }}">{{ child.name }}</a></td>
+                                    <td class="text-end">{% if child.allocationCents %}{{ child.allocationCents | money(lang=lang) }}{% else %}<span class="text-muted">{{ fluent(key="no-allocation", lang=lang) }}</span>{% endif %}</td>
+                                    <td class="text-end">{{ child.projectedCents | money(lang=lang) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if role == "operator" or role == "admin" %}
+                    <form method="post" action="/{{ lang }}/org_tier/{{ org_tier.id }}/budget" class="d-flex align-items-end gap-2 flex-wrap">
+                        {{ forms::csrf(token=csrf_token) }}
+                        {% set label_amount = fluent(key="allocation-amount", lang=lang) %}
+                        <div class="flex-grow-1" style="max-width: 20rem">
+                            {{ forms::text_input(name="amount", label=label_amount, value=budget_amount_dollars | default(value=""), help=fluent(key="allocation-amount-help", lang=lang)) }}
+                        </div>
+                        <button type="submit" class="btn btn-primary mb-3">{{ fluent(key="set-allocation", lang=lang) }}</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Analytics Summary -->
             <div class="row g-3 mb-4">

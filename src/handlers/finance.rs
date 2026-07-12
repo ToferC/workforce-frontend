@@ -9,7 +9,7 @@ use serde_json::json;
 use crate::{generate_basic_context, by_lang, AppData};
 use crate::graphql::{
     create_contract, update_contract, delete_contract, get_contract_by_id,
-    all_pay_rates, create_pay_rate,
+    all_pay_rates, create_pay_rate, set_budget_allocation,
 };
 use crate::handlers::utility::{redirect_to, csrf_failure_flash, session_bearer, render_page, render_confirm};
 use crate::security::{self, MinimumRole};
@@ -474,4 +474,59 @@ pub async fn pay_rate_create_post(
     };
 
     redirect_to(format!("/{}/admin/pay_rates", &lang))
+}
+
+
+// ---------------------------------------------------------------------------
+// Budget allocations (org tiers)
+// ---------------------------------------------------------------------------
+
+/// Starting year of the current fiscal year (2026 = FY 2026-27).
+fn current_fiscal_year_start() -> i64 {
+    let today = chrono::Utc::now().date_naive();
+    use chrono::Datelike;
+    if today.month() >= 4 { today.year() as i64 } else { today.year() as i64 - 1 }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct BudgetForm {
+    pub csrf_token: String,
+    pub amount: String,
+}
+
+#[post("/{lang}/org_tier/{org_tier_id}/budget")]
+pub async fn set_org_tier_budget_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<(String, String)>,
+    form: web::Form<BudgetForm>,
+    req: HttpRequest,
+) -> impl Responder {
+    let (lang, org_tier_id) = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id));
+    }
+
+    let Some(cents) = dollars_to_cents(&form.amount) else {
+        security::add_flash(&session, "danger", by_lang(&lang,
+            "Enter a valid allocation amount.",
+            "Entrez un montant d'allocation valide."));
+        return redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id));
+    };
+
+    match set_budget_allocation(org_tier_id.clone(), current_fiscal_year_start(), cents, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(&session, "success",
+            by_lang(&lang, "Budget allocation saved.", "Allocation budgétaire enregistrée.")),
+        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+    };
+
+    redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id))
 }
