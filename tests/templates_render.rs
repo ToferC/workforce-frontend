@@ -1106,6 +1106,7 @@ fn analytics_financials_page_renders_hierarchy() {
     ctx.insert("fiscal_year", "2026-27");
     ctx.insert("financials_chart", "{}");
     ctx.insert("financials_chart_height", "300px");
+    ctx.insert("fy_nav", &json!({"prev": 2025, "next": 2027, "viewingOther": false}));
     ctx.insert("tiers", &json!([{
         "id": "11111111-1111-1111-1111-111111111111", "name": "Level One Command", "tierLevel": 1,
         "allocationCents": 5_400_000_000_i64, "childAllocatedCents": 5_170_000_000_i64,
@@ -1138,6 +1139,8 @@ fn analytics_financials_page_renders_hierarchy() {
     assert!(html.contains("Unallocated"));
     // Tier links for drill-down
     assert!(html.contains("/en/org_tier/33333333-3333-3333-3333-333333333333"));
+    // Fiscal-year stepper
+    assert!(html.contains("/en/analytics/financials?fy=2027"));
 }
 
 #[test]
@@ -1167,13 +1170,21 @@ fn org_tier_page_shows_budget_card_with_set_form_for_operator() {
         ctx.insert("domain_summary", &json!([]));
         ctx.insert("budget", &budget);
         ctx.insert("budget_children", &children);
-        ctx.insert("budget_amount_dollars", "1000000");
+        ctx.insert("budget_amount_dollars", "1000000.00");
+        ctx.insert("budget_fy_options", &json!([
+            {"value": 2026, "label": "2026-27"},
+            {"value": 2027, "label": "2027-28"},
+            {"value": 2028, "label": "2028-29"}]));
         let html = tera.render("org_tier/org_tier.html", &ctx).unwrap();
         assert!(html.contains("$1,000,000")); // allocation
         assert!(html.contains("Child Tier"));
         assert_eq!(
             html.contains("/en/org_tier/22222222-2222-2222-2222-222222222222/budget"), sees_form,
             "role {} should{} see the set-allocation form", role, if sees_form { "" } else { " not" }
+        );
+        assert_eq!(
+            html.contains("name=\"fiscal_year\"") && html.contains("2027-28"), sees_form,
+            "role {} should{} see the fiscal-year selector", role, if sees_form { "" } else { " not" }
         );
     }
 }

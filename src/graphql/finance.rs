@@ -88,8 +88,8 @@ pub async fn create_pay_rate(data: create_pay_rate::NewPayRate, bearer: String, 
 )]
 pub struct OrgTierFinancials;
 
-pub async fn org_tier_financials(max_level: i64, org_tier_id: Option<UUID>, bearer: String, api_url: &str, client: Arc<Client>) -> Result<org_tier_financials::ResponseData, ApiError> {
-    post_graphql::<OrgTierFinancials>(&client, api_url, &bearer, org_tier_financials::Variables { max_level, org_tier_id }).await
+pub async fn org_tier_financials(max_level: i64, org_tier_id: Option<UUID>, fiscal_year: Option<i64>, bearer: String, api_url: &str, client: Arc<Client>) -> Result<org_tier_financials::ResponseData, ApiError> {
+    post_graphql::<OrgTierFinancials>(&client, api_url, &bearer, org_tier_financials::Variables { max_level, org_tier_id, fiscal_year }).await
 }
 
 #[derive(GraphQLQuery, Serialize, Deserialize)]
@@ -100,6 +100,6 @@ pub async fn org_tier_financials(max_level: i64, org_tier_id: Option<UUID>, bear
 )]
 pub struct SetBudgetAllocation;
 
-pub async fn set_budget_allocation(org_tier_id: UUID, fiscal_year: i64, amount_cents: i64, bearer: String, api_url: &str, client: Arc<Client>) -> Result<set_budget_allocation::ResponseData, ApiError> {
+pub async fn set_budget_allocation(org_tier_id: UUID, fiscal_year: Option<i64>, amount_cents: i64, bearer: String, api_url: &str, client: Arc<Client>) -> Result<set_budget_allocation::ResponseData, ApiError> {
     post_graphql::<SetBudgetAllocation>(&client, api_url, &bearer, set_budget_allocation::Variables { org_tier_id, fiscal_year, amount_cents }).await
 }

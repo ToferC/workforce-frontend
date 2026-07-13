@@ -509,17 +509,13 @@ pub async fn pay_rate_create_post(
 // Budget allocations (org tiers)
 // ---------------------------------------------------------------------------
 
-/// Starting year of the current fiscal year (2026 = FY 2026-27).
-fn current_fiscal_year_start() -> i64 {
-    let today = chrono::Utc::now().date_naive();
-    use chrono::Datelike;
-    if today.month() >= 4 { today.year() as i64 } else { today.year() as i64 - 1 }
-}
-
 #[derive(Deserialize, Debug)]
 pub struct BudgetForm {
     pub csrf_token: String,
     pub amount: String,
+    /// Starting year of the fiscal year the envelope applies to; the options
+    /// come from the API's own labels, so the April-1 rule lives only there.
+    pub fiscal_year: String,
 }
 
 #[post("/{lang}/org_tier/{org_tier_id}/budget")]
@@ -549,8 +545,14 @@ pub async fn set_org_tier_budget_post(
             "Entrez un montant d'allocation valide."));
         return redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id));
     };
+    let Some(fiscal_year) = form.fiscal_year.trim().parse::<i64>().ok().filter(|y| (2000..2100).contains(y)) else {
+        security::add_flash(&session, "danger", by_lang(&lang,
+            "Choose a valid fiscal year.",
+            "Choisissez un exercice financier valide."));
+        return redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id));
+    };
 
-    match set_budget_allocation(org_tier_id.clone(), current_fiscal_year_start(), cents, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match set_budget_allocation(org_tier_id.clone(), Some(fiscal_year), cents, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success",
             by_lang(&lang, "Budget allocation saved.", "Allocation budgétaire enregistrée.")),
         Err(e) => security::add_flash(&session, "danger", &e.to_string()),

@@ -847,3 +847,7 @@ budget-heading = Budget
 allocation-amount = Allocation ($)
 allocation-amount-help = Enveloppe de l'exercice financier pour ce niveau, en dollars.
 set-allocation = Définir l'allocation
+fiscal-year = Exercice financier
+current-fiscal-year = Exercice financier en cours
+previous-fiscal-year = Exercice financier précédent
+next-fiscal-year = Exercice financier suivant

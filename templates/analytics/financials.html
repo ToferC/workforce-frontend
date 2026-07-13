@@ -14,9 +14,20 @@
         </ol>
     </nav>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h1 class="h3 mb-0"><i class="bi bi-cash-stack" aria-hidden="true"></i> {{ fluent(key="financials", lang=lang) }} — {{ fiscal_year }}</h1>
-        <span class="text-muted small">{{ fluent(key="financials-tagline", lang=lang) }}</span>
+        <span class="d-flex align-items-center gap-2">
+            {% if fy_nav %}
+            <nav class="btn-group" aria-label="{{ fluent(key='fiscal-year', lang=lang) }}">
+                <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/analytics/financials?fy={{ fy_nav.prev }}" aria-label="{{ fluent(key='previous-fiscal-year', lang=lang) }}">&laquo;</a>
+                {% if fy_nav.viewingOther %}
+                <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/analytics/financials">{{ fluent(key="current-fiscal-year", lang=lang) }}</a>
+                {% endif %}
+                <a class="btn btn-sm btn-outline-secondary" href="/{{ lang }}/analytics/financials?fy={{ fy_nav.next }}" aria-label="{{ fluent(key='next-fiscal-year', lang=lang) }}">&raquo;</a>
+            </nav>
+            {% endif %}
+            <span class="text-muted small">{{ fluent(key="financials-tagline", lang=lang) }}</span>
+        </span>
     </div>
 
     <!-- Allocation vs projected spend per L1 -->

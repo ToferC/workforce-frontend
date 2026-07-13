@@ -847,3 +847,7 @@ budget-heading = Budget
 allocation-amount = Allocation ($)
 allocation-amount-help = Fiscal-year envelope for this tier, in dollars.
 set-allocation = Set allocation
+fiscal-year = Fiscal year
+current-fiscal-year = Current fiscal year
+previous-fiscal-year = Previous fiscal year
+next-fiscal-year = Next fiscal year

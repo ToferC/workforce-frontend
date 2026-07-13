@@ -162,9 +162,15 @@
                     <form method="post" action="/{{ lang }}/org_tier/{{ org_tier.id }}/budget" class="d-flex align-items-end gap-2 flex-wrap">
                         {{ forms::csrf(token=csrf_token) }}
                         {% set label_amount = fluent(key="allocation-amount", lang=lang) %}
+                        {% set label_fy = fluent(key="fiscal-year", lang=lang) %}
                         <div class="flex-grow-1" style="max-width: 20rem">
                             {{ forms::text_input(name="amount", label=label_amount, value=budget_amount_dollars | default(value=""), help=fluent(key="allocation-amount-help", lang=lang)) }}
                         </div>
+                        {% if budget_fy_options %}
+                        <div style="max-width: 11rem">
+                            {{ forms::select(name="fiscal_year", label=label_fy, options=budget_fy_options, selected=budget_fy_options.0.value) }}
+                        </div>
+                        {% endif %}
                         <button type="submit" class="btn btn-primary mb-3">{{ fluent(key="set-allocation", lang=lang) }}</button>
                     </form>
                     {% endif %}

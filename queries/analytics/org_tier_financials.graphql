@@ -1,5 +1,5 @@
-query OrgTierFinancials($maxLevel: Int!, $orgTierId: UUID) {
-  orgTierFinancials(maxLevel: $maxLevel, orgTierId: $orgTierId) {
+query OrgTierFinancials($maxLevel: Int!, $orgTierId: UUID, $fiscalYear: Int) {
+  orgTierFinancials(maxLevel: $maxLevel, orgTierId: $orgTierId, fiscalYear: $fiscalYear) {
     orgTierId
     nameEn
     nameFr

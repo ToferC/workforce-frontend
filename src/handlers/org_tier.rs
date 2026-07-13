@@ -183,7 +183,7 @@ pub async fn org_tier_by_id(
     const MAX_TIER_DEPTH: i64 = 9;
     let (r, fin) = futures::join!(
         get_org_tier_by_id(org_tier_id.clone(), bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        org_tier_financials(MAX_TIER_DEPTH, Some(org_tier_id.clone()), bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        org_tier_financials(MAX_TIER_DEPTH, Some(org_tier_id.clone()), None, bearer.clone(), &data.api_url, Arc::clone(&data.client)),
     );
     let r = match r {
         Ok(r) => r,
@@ -226,7 +226,17 @@ pub async fn org_tier_by_id(
         if let Some(own) = rows.iter().find(|r| r.org_tier_id == tier.id) {
             ctx.insert("budget", &pick(own));
             if let Some(alloc) = own.allocation_cents {
-                ctx.insert("budget_amount_dollars", &format!("{}", alloc / 100));
+                ctx.insert("budget_amount_dollars", &format!("{:.2}", alloc as f64 / 100.0));
+            }
+            // Fiscal-year choices for the set-allocation form: the viewed
+            // year (from the API's label, so the April-1 rule stays there)
+            // plus the next two, for forward planning.
+            if let Ok(start) = own.fiscal_year[..4.min(own.fiscal_year.len())].parse::<i64>() {
+                let label = |y: i64| format!("{}-{:02}", y, (y + 1) % 100);
+                let options: Vec<serde_json::Value> = (start..start + 3)
+                    .map(|y| json!({"value": y, "label": label(y)}))
+                    .collect();
+                ctx.insert("budget_fy_options", &options);
             }
         }
         let children: Vec<serde_json::Value> = rows

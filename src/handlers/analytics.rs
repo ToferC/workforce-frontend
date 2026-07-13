@@ -1049,11 +1049,19 @@ pub async fn analytics_supply_demand(
 
 /// Fiscal-year financials rolled up the org-tier tree: allocation vs
 /// projected spend per L1, with an L1 -> L2 -> L3 drill-down table.
+#[derive(serde::Deserialize, Debug)]
+pub struct FinancialsParams {
+    /// Starting year of the fiscal year to view (e.g. 2027 for FY 2027-28);
+    /// omitted = the current one, resolved by the API.
+    pub fy: Option<i64>,
+}
+
 #[get("/{lang}/analytics/financials")]
 pub async fn analytics_financials(
     data: web::Data<AppData>,
     id: Option<Identity>,
     path_params: web::Path<String>,
+    params: web::Query<FinancialsParams>,
     req: HttpRequest,
 ) -> impl Responder {
     let lang = path_params.into_inner();
@@ -1066,7 +1074,7 @@ pub async fn analytics_financials(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
 
-    let rows = match org_tier_financials(3, None, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    let rows = match org_tier_financials(3, None, params.fy, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.org_tier_financials,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -1162,6 +1170,18 @@ pub async fn analytics_financials(
             }
         ]
     });
+
+    // Year stepper: derived from the viewed year's label, so the fiscal-year
+    // rule itself stays in the API.
+    if let Ok(viewed_start) = fiscal_year[..4.min(fiscal_year.len())].parse::<i64>() {
+        // Raw years, not prebuilt URLs: Tera escapes '/' in interpolated
+        // strings, so the template assembles the hrefs itself.
+        ctx.insert("fy_nav", &json!({
+            "prev": viewed_start - 1,
+            "next": viewed_start + 1,
+            "viewingOther": params.fy.is_some(),
+        }));
+    }
 
     ctx.insert("fiscal_year", &fiscal_year);
     ctx.insert("tiers", &tiers);
