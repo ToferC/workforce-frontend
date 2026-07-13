@@ -1105,36 +1105,52 @@ pub async fn analytics_financials(
         })
     };
 
-    let mut l3_by_parent: HashMap<String, Vec<serde_json::Value>> = HashMap::new();
-    for r in rows.iter().filter(|r| r.tier_level >= 3) {
-        if let Some(parent) = &r.parent_id {
-            l3_by_parent.entry(parent.clone()).or_default().push(node(r));
+    // Root the tree at the org's actual top tiers (no parent), then nest by
+    // parentId. The top of the hierarchy is whatever has no parent — not a
+    // hardcoded tier_level — so the department-level roll-up always shows,
+    // regardless of whether tier levels start at 0 or 1.
+    type Row = crate::graphql::org_tier_financials::OrgTierFinancialsOrgTierFinancials;
+    let mut children_by_parent: HashMap<String, Vec<&Row>> = HashMap::new();
+    let mut roots: Vec<&Row> = Vec::new();
+    for r in &rows {
+        match &r.parent_id {
+            Some(parent) => children_by_parent.entry(parent.clone()).or_default().push(r),
+            None => roots.push(r),
         }
     }
-    let mut l2_by_parent: HashMap<String, Vec<serde_json::Value>> = HashMap::new();
-    for r in rows.iter().filter(|r| r.tier_level == 2) {
-        let mut n = node(r);
-        n["children"] = json!(l3_by_parent.remove(&r.org_tier_id).unwrap_or_default());
-        if let Some(parent) = &r.parent_id {
-            l2_by_parent.entry(parent.clone()).or_default().push(n);
-        }
-    }
-    let tiers: Vec<serde_json::Value> = rows
+    let empty: Vec<&Row> = Vec::new();
+    let tiers: Vec<serde_json::Value> = roots
         .iter()
-        .filter(|r| r.tier_level == 1)
-        .map(|r| {
-            let mut n = node(r);
-            n["children"] = json!(l2_by_parent.remove(&r.org_tier_id).unwrap_or_default());
+        .map(|root| {
+            let l2s: Vec<serde_json::Value> = children_by_parent
+                .get(&root.org_tier_id)
+                .unwrap_or(&empty)
+                .iter()
+                .map(|l2| {
+                    let l3s: Vec<serde_json::Value> = children_by_parent
+                        .get(&l2.org_tier_id)
+                        .unwrap_or(&empty)
+                        .iter()
+                        .map(|l3| node(l3))
+                        .collect();
+                    let mut n = node(l2);
+                    n["children"] = json!(l3s);
+                    n
+                })
+                .collect();
+            let mut n = node(root);
+            n["children"] = json!(l2s);
             n
         })
         .collect();
 
-    // Allocation vs projected per L1, in whole dollars, largest first.
-    // Palette (#2a78d6 / #1baf7a) validated for both surfaces; the table
-    // below the chart is the required relief for the light-mode contrast WARN.
+    // Allocation vs projected per top-level tier, in whole dollars, largest
+    // first. Palette (#2a78d6 / #1baf7a) validated for both surfaces; the
+    // table below the chart is the required relief for the light-mode
+    // contrast WARN.
     let l_alloc = by_lang(&lang, "Allocation", "Allocation");
     let l_proj = by_lang(&lang, "Projected spend", "Dépenses projetées");
-    let mut l1_sorted: Vec<_> = rows.iter().filter(|r| r.tier_level == 1).collect();
+    let mut l1_sorted: Vec<&Row> = roots.clone();
     l1_sorted.sort_by(|a, b| b.projected_cents.cmp(&a.projected_cents));
     let names: Vec<String> = l1_sorted.iter().map(|r| name_of(r)).collect();
     let alloc_dollars: Vec<i64> = l1_sorted.iter().map(|r| r.allocation_cents.unwrap_or(0) / 100).collect();
