@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use crate::{AppData, by_lang, generate_basic_context, status_color, chart_json, domain_short_label};
-use crate::graphql::{all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap,
+use crate::graphql::{org_tier_financials, all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap,
     team_capability_matrix, org_tier_capability_matrix, talent_movements, capability_growth,
     capability_supply_demand, all_teams, all_org_tiers, priority_mismatches};
 
@@ -1044,4 +1044,149 @@ pub async fn analytics_supply_demand(
     }));
 
     render_page(&data, "analytics/supply_demand.html", &ctx)
+}
+
+
+/// Fiscal-year financials rolled up the org-tier tree: allocation vs
+/// projected spend per L1, with an L1 -> L2 -> L3 drill-down table.
+#[derive(serde::Deserialize, Debug)]
+pub struct FinancialsParams {
+    /// Starting year of the fiscal year to view (e.g. 2027 for FY 2027-28);
+    /// omitted = the current one, resolved by the API.
+    pub fy: Option<i64>,
+}
+
+#[get("/{lang}/analytics/financials")]
+pub async fn analytics_financials(
+    data: web::Data<AppData>,
+    id: Option<Identity>,
+    path_params: web::Path<String>,
+    params: web::Query<FinancialsParams>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::User) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
+
+    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+
+    let rows = match org_tier_financials(3, None, params.fy, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => r.org_tier_financials,
+        Err(e) => {
+            security::add_flash(&session, "danger", &e.to_string());
+            return super::utility::redirect_to(format!("/{}/analytics", &lang));
+        },
+    };
+
+    let fiscal_year = rows.first().map(|r| r.fiscal_year.clone()).unwrap_or_default();
+    let name_of = |r: &crate::graphql::org_tier_financials::OrgTierFinancialsOrgTierFinancials| {
+        if lang == "fr" { r.name_fr.clone() } else { r.name_en.clone() }
+    };
+
+    // One JSON node per tier; nest L3 under L2 under L1 via parentId.
+    let node = |r: &crate::graphql::org_tier_financials::OrgTierFinancialsOrgTierFinancials| {
+        json!({
+            "id": r.org_tier_id,
+            "name": name_of(r),
+            "tierLevel": r.tier_level,
+            "allocationCents": r.allocation_cents,
+            "childAllocatedCents": r.child_allocated_cents,
+            "remainingCents": r.allocation_cents.map(|a| a - r.child_allocated_cents),
+            "budgetedCents": r.budgeted_cents,
+            "projectedCents": r.projected_cents,
+            "lapseCents": r.lapse_cents,
+            "contractCents": r.contract_cents,
+            "varianceCents": r.allocation_cents.map(|a| a - r.projected_cents),
+            "children": Vec::<serde_json::Value>::new(),
+        })
+    };
+
+    let mut l3_by_parent: HashMap<String, Vec<serde_json::Value>> = HashMap::new();
+    for r in rows.iter().filter(|r| r.tier_level >= 3) {
+        if let Some(parent) = &r.parent_id {
+            l3_by_parent.entry(parent.clone()).or_default().push(node(r));
+        }
+    }
+    let mut l2_by_parent: HashMap<String, Vec<serde_json::Value>> = HashMap::new();
+    for r in rows.iter().filter(|r| r.tier_level == 2) {
+        let mut n = node(r);
+        n["children"] = json!(l3_by_parent.remove(&r.org_tier_id).unwrap_or_default());
+        if let Some(parent) = &r.parent_id {
+            l2_by_parent.entry(parent.clone()).or_default().push(n);
+        }
+    }
+    let tiers: Vec<serde_json::Value> = rows
+        .iter()
+        .filter(|r| r.tier_level == 1)
+        .map(|r| {
+            let mut n = node(r);
+            n["children"] = json!(l2_by_parent.remove(&r.org_tier_id).unwrap_or_default());
+            n
+        })
+        .collect();
+
+    // Allocation vs projected per L1, in whole dollars, largest first.
+    // Palette (#2a78d6 / #1baf7a) validated for both surfaces; the table
+    // below the chart is the required relief for the light-mode contrast WARN.
+    let l_alloc = by_lang(&lang, "Allocation", "Allocation");
+    let l_proj = by_lang(&lang, "Projected spend", "Dépenses projetées");
+    let mut l1_sorted: Vec<_> = rows.iter().filter(|r| r.tier_level == 1).collect();
+    l1_sorted.sort_by(|a, b| b.projected_cents.cmp(&a.projected_cents));
+    let names: Vec<String> = l1_sorted.iter().map(|r| name_of(r)).collect();
+    let alloc_dollars: Vec<i64> = l1_sorted.iter().map(|r| r.allocation_cents.unwrap_or(0) / 100).collect();
+    let proj_dollars: Vec<i64> = l1_sorted.iter().map(|r| r.projected_cents / 100).collect();
+    let chart_height = format!("{}px", 120 + names.len() * 56);
+
+    let chart_option = json!({
+        "tooltip": { "trigger": "axis", "axisPointer": { "type": "shadow" } },
+        "legend": { "data": [l_alloc, l_proj], "bottom": "0%" },
+        "grid": { "left": "3%", "right": "6%", "top": "2%", "bottom": "10%", "containLabel": true },
+        "xAxis": { "type": "value", "axisLabel": { "formatter": if lang == "fr" { "{value} $" } else { "${value}" } } },
+        "yAxis": {
+            "type": "category",
+            "data": names,
+            "inverse": true,
+            "axisLabel": { "width": 220, "overflow": "truncate" }
+        },
+        "series": [
+            {
+                "name": l_alloc,
+                "type": "bar",
+                "data": alloc_dollars,
+                "barWidth": 10,
+                "barGap": "20%",
+                "itemStyle": { "color": "#2a78d6", "borderRadius": [0, 4, 4, 0] }
+            },
+            {
+                "name": l_proj,
+                "type": "bar",
+                "data": proj_dollars,
+                "barWidth": 10,
+                "itemStyle": { "color": "#1baf7a", "borderRadius": [0, 4, 4, 0] }
+            }
+        ]
+    });
+
+    // Year stepper: derived from the viewed year's label, so the fiscal-year
+    // rule itself stays in the API.
+    if let Ok(viewed_start) = fiscal_year[..4.min(fiscal_year.len())].parse::<i64>() {
+        // Raw years, not prebuilt URLs: Tera escapes '/' in interpolated
+        // strings, so the template assembles the hrefs itself.
+        ctx.insert("fy_nav", &json!({
+            "prev": viewed_start - 1,
+            "next": viewed_start + 1,
+            "viewingOther": params.fy.is_some(),
+        }));
+    }
+
+    ctx.insert("fiscal_year", &fiscal_year);
+    ctx.insert("tiers", &tiers);
+    ctx.insert("financials_chart", &chart_json(&chart_option));
+    ctx.insert("financials_chart_height", &chart_height);
+
+    render_page(&data, "analytics/financials.html", &ctx)
 }

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    <title>{{ fluent(key="pay-rates", lang=lang) }}</title>
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 px-md-4 px-2 py-4">
+    <h1 class="mb-1"><i class="bi bi-cash-stack" aria-hidden="true"></i> {{ fluent(key="pay-rates", lang=lang) }}</h1>
+    <p class="text-muted mb-4">{{ fluent(key="pay-rates-intro", lang=lang) }}</p>
+
+    <div class="row">
+        <div class="col-12 col-lg-7">
+            <h2 class="h4">{{ fluent(key="civilian-rates", lang=lang) }}</h2>
+            <div class="table-responsive mb-4">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ fluent(key="occupational-group", lang=lang) }}</th>
+                            <th scope="col">{{ fluent(key="level", lang=lang) }}</th>
+                            <th scope="col" class="text-end">{{ fluent(key="annual-rate", lang=lang) }}</th>
+                            <th scope="col">{{ fluent(key="effective-date", lang=lang) }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rate in civilian_rates %}
+                        <tr>
+                            <td>{{ rate.group }}</td>
+                            <td>{{ rate.level }}</td>
+                            <td class="text-end">{{ rate.annualRateCents | money(lang=lang) }}</td>
+                            <td>{{ rate.effectiveDate }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="h4">{{ fluent(key="military-rates", lang=lang) }}</h2>
+            <div class="table-responsive mb-4">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ fluent(key="rank", lang=lang) }}</th>
+                            <th scope="col" class="text-end">{{ fluent(key="annual-rate", lang=lang) }}</th>
+                            <th scope="col">{{ fluent(key="effective-date", lang=lang) }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rate in military_rates %}
+                        <tr>
+                            <td>{{ rate.rank }}</td>
+                            <td class="text-end">{{ rate.annualRateCents | money(lang=lang) }}</td>
+                            <td>{{ rate.effectiveDate }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <h2 class="h4">{{ fluent(key="add-pay-rate", lang=lang) }}</h2>
+            <p class="text-muted">{{ fluent(key="add-pay-rate-help", lang=lang) }}</p>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="post" action="/{{ lang }}/admin/pay_rates/new">
+                        {{ forms::csrf(token=csrf_token) }}
+                        {{ forms::error_summary() }}
+                        {% set label_group = fluent(key="occupational-group", lang=lang) %}
+                        {% set label_level = fluent(key="level", lang=lang) %}
+                        {% set label_rank = fluent(key="rank", lang=lang) %}
+                        {% set label_rate = fluent(key="annual-rate", lang=lang) %}
+                        {% set help_rate = fluent(key="annual-rate-help", lang=lang) %}
+                        {% set label_effective = fluent(key="effective-date", lang=lang) %}
+                        {% set label_save = fluent(key="save-button", lang=lang) %}
+                        {% set blank = fluent(key="select-blank", lang=lang) %}
+                        {{ forms::select(name="occupational_group", label=label_group, options=occupational_groups, required=false, blank_label=blank) }}
+                        {{ forms::text_input(name="occupational_level", label=label_level, required=false, type="number") }}
+                        {{ forms::select(name="rank", label=label_rank, options=ranks, required=false, blank_label=blank) }}
+                        {{ forms::text_input(name="annual_rate", label=label_rate, help=help_rate) }}
+                        {{ forms::date_input(name="effective_date", label=label_effective, value=today, required=true) }}
+                        {{ forms::submit_row(label=label_save) }}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

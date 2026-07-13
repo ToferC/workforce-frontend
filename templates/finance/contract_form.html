@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% import "macros/forms.html" as forms %}
+
+{% block title %}
+    {% if contract %}
+    <title>{{ fluent(key="edit-contract", lang=lang) }}</title>
+    {% else %}
+    <title>{{ fluent(key="add-contract", lang=lang) }}</title>
+    {% endif %}
+{% endblock title %}
+
+{% block content %}
+<div class="col-12 col-md-8 px-md-4 px-2 py-4">
+    {% if contract %}
+    <h1 class="mb-1"><i class="bi bi-receipt" aria-hidden="true"></i> {{ fluent(key="edit-contract", lang=lang) }}</h1>
+    <p class="text-muted mb-4">{{ contract.referenceNumber }} — {{ contract.vendor }}</p>
+    {% else %}
+    <h1 class="mb-4"><i class="bi bi-receipt" aria-hidden="true"></i> {{ fluent(key="add-contract", lang=lang) }}</h1>
+    {% endif %}
+
+    {% set label_reference = fluent(key="contract-reference", lang=lang) %}
+    {% set label_vendor = fluent(key="contract-vendor", lang=lang) %}
+    {% set label_description = fluent(key="description", lang=lang) %}
+    {% set label_start = fluent(key="start-date", lang=lang) %}
+    {% set label_end = fluent(key="end-date", lang=lang) %}
+    {% set label_value = fluent(key="contract-value", lang=lang) %}
+    {% set help_value = fluent(key="contract-value-help", lang=lang) %}
+    {% set label_status = fluent(key="status", lang=lang) %}
+    {% set label_save = fluent(key="save-button", lang=lang) %}
+    {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
+    {% set cancel_url = "/" ~ lang ~ "/task/" ~ task_id %}
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            {% if contract %}
+            <form method="post" action="/{{ lang }}/contract/{{ contract.id }}/edit">
+            {% else %}
+            <form method="post" action="/{{ lang }}/task/{{ task_id }}/contract/new">
+            {% endif %}
+                {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
+
+                {% if contract %}
+                {{ forms::text_input(name="reference_number", label=label_reference, value=contract.referenceNumber) }}
+                {{ forms::text_input(name="vendor", label=label_vendor, value=contract.vendor) }}
+                {{ forms::textarea(name="description", label=label_description, value=contract.description, required=false) }}
+                {{ forms::date_input(name="start_date", label=label_start, value=contract.startDate, required=true) }}
+                {{ forms::date_input(name="end_date", label=label_end, value=contract.endDate, required=true) }}
+                {{ forms::text_input(name="total_value", label=label_value, value=contract.totalValueDollars, help=help_value) }}
+                {{ forms::select(name="status", label=label_status, options=contract_statuses, selected=contract.status) }}
+                {% else %}
+                {{ forms::text_input(name="reference_number", label=label_reference, placeholder="PSPC-2026-1234") }}
+                {{ forms::text_input(name="vendor", label=label_vendor) }}
+                {{ forms::textarea(name="description", label=label_description, required=false) }}
+                {{ forms::date_input(name="start_date", label=label_start, value=today, required=true) }}
+                {{ forms::date_input(name="end_date", label=label_end, required=true) }}
+                {{ forms::text_input(name="total_value", label=label_value, help=help_value) }}
+                {{ forms::select(name="status", label=label_status, options=contract_statuses, selected="ACTIVE") }}
+                {% endif %}
+
+                {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

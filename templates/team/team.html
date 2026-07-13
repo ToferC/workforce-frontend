@@ -85,6 +85,36 @@
                 </div>
             </div>
 
+            <!-- Finances -->
+            {% if team.finances %}
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-4">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-4 fw-bold text-primary">{{ team.finances.budgetedCents | money(lang=lang) }}</div>
+                            <div class="small text-muted">{{ fluent(key="fy-budget", lang=lang) }} ({{ team.finances.fiscalYear }})</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-4 fw-bold text-info">{{ team.finances.projectedCents | money(lang=lang) }}</div>
+                            <div class="small text-muted">{{ fluent(key="fy-projected", lang=lang) }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-4 fw-bold {% if team.finances.lapseCents > 0 %}text-warning{% else %}text-success{% endif %}">{{ team.finances.lapseCents | money(lang=lang) }}</div>
+                            <div class="small text-muted">{{ fluent(key="fy-lapse", lang=lang) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Team Members -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">

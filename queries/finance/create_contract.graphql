@@ -1,0 +1,7 @@
+mutation CreateContract($data: NewContract!) {
+  createContract(contractData: $data) {
+    id
+    taskId
+    referenceNumber
+  }
+}

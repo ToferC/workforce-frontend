@@ -1,0 +1,6 @@
+mutation SetBudgetAllocation($orgTierId: UUID!, $fiscalYear: Int, $amountCents: Int!) {
+  setBudgetAllocation(orgTierId: $orgTierId, fiscalYear: $fiscalYear, amountCents: $amountCents) {
+    id
+    amountCents
+  }
+}

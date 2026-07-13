@@ -1,0 +1,7 @@
+mutation UpdateContract($data: ContractUpdate!) {
+  updateContract(contractData: $data) {
+    id
+    taskId
+    referenceNumber
+  }
+}

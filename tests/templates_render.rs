@@ -19,6 +19,7 @@ static_loader! {
 fn tera() -> Tera {
     let mut tera = Tera::new("templates/**/*").unwrap();
     tera.register_filter("snake_case", tera_text_filters::snake_case);
+    tera.register_filter("money", frontend::money_filter);
     tera.register_function("fluent", FluentLoader::new(&*LOCALES));
     tera
 }
@@ -967,6 +968,224 @@ fn task_index_and_form_render() {
         assert!(html.contains("name=\"task_status\""));
         assert!(html.contains("name=\"priority\""));
         assert!(html.contains("name=\"product_id\""));
+    }
+}
+
+#[test]
+fn task_page_shows_contracts_with_fy_share() {
+    let tera = tera();
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("task", &json!({
+        "id": "a0000000-0000-0000-0000-000000000001", "title": "Stand up cyber cell",
+        "domain": "CYBER_SECURITY", "intendedOutcome": "Cell operational", "finalOutcome": "",
+        "approvalTier": 2, "url": "", "startDatestamp": "2026-01-01",
+        "targetCompletionDate": "2026-06-01", "taskStatus": "PLANNING", "completedDate": "",
+        "priority": "MEDIUM", "effort": 4, "approvalStatus": "DRAFT", "workPriorityMismatchCount": 0, "work": [], "createdBy": {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Director", "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "email": "", "phone": "", "activeRoles": []}, "team": {"id": "99999999-9999-9999-9999-999999999999", "nameEnglish": "Cyber Team"}},
+        "contracts": [{
+            "id": "c0000000-0000-0000-0000-000000000001",
+            "referenceNumber": "PSPC-2026-1234", "vendor": "Calian Group", "description": "",
+            "startDate": "2026-05-01T00:00:00", "endDate": "2027-03-31T00:00:00",
+            "totalValueCents": 18_150_000_i64, "status": "ACTIVE"
+        }],
+        "finances": {"fiscalYear": "2026-27", "budgetedCents": 18_150_000_i64,
+                     "projectedCents": 18_150_000_i64, "lapseCents": 0}
+    }));
+    let html = tera.render("task/task.html", &ctx).unwrap();
+    assert!(html.contains("PSPC-2026-1234"));
+    assert!(html.contains("Calian Group"));
+    // Money filter renders whole dollars with separators
+    assert!(html.contains("$181,500"));
+    // Operator sees add/edit/delete affordances
+    assert!(html.contains("/en/task/a0000000-0000-0000-0000-000000000001/contract/new"));
+    assert!(html.contains("/en/contract/c0000000-0000-0000-0000-000000000001/edit"));
+    assert!(html.contains("/en/contract/c0000000-0000-0000-0000-000000000001/delete"));
+
+    // A plain user sees the contracts but no mutation links
+    let mut ctx = base_context("en", "user");
+    ctx.insert("task", &json!({
+        "id": "a0000000-0000-0000-0000-000000000001", "title": "Stand up cyber cell",
+        "domain": "CYBER_SECURITY", "intendedOutcome": "x", "finalOutcome": "",
+        "approvalTier": 2, "url": "", "startDatestamp": "2026-01-01",
+        "targetCompletionDate": "2026-06-01", "taskStatus": "PLANNING", "completedDate": "",
+        "priority": "MEDIUM", "effort": 4, "approvalStatus": "DRAFT", "workPriorityMismatchCount": 0, "work": [], "createdBy": {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Director", "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "email": "", "phone": "", "activeRoles": []}, "team": {"id": "99999999-9999-9999-9999-999999999999", "nameEnglish": "Cyber Team"}},
+        "contracts": [], "finances": {"fiscalYear": "2026-27", "budgetedCents": 0, "projectedCents": 0, "lapseCents": 0}
+    }));
+    let html = tera.render("task/task.html", &ctx).unwrap();
+    assert!(html.contains("No contracts recorded"));
+    assert!(!html.contains("/contract/new"));
+}
+
+#[test]
+fn role_page_shows_cost_card() {
+    let tera = tera();
+    let mut ctx = base_context("en", "user");
+    let mut role = sample_role_record();
+    role["annualSalary"] = json!(10_000_000_i64);
+    role["finances"] = json!({"fiscalYear": "2026-27", "budgetedCents": 10_000_000_i64,
+                              "projectedCents": 7_500_000_i64, "lapseCents": 2_500_000_i64});
+    ctx.insert("role_record", &role);
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(html.contains("Cost"));
+    assert!(html.contains("$100,000")); // annual salary
+    assert!(html.contains("$75,000"));  // projected
+    assert!(html.contains("$25,000"));  // vacancy lapse
+}
+
+#[test]
+fn team_page_shows_finance_tiles() {
+    let tera = tera();
+    let mut ctx = base_context("fr", "user");
+    let mut team = sample_team();
+    team["finances"] = json!({"fiscalYear": "2026-27", "budgetedCents": 123_456_700_i64,
+                              "projectedCents": 120_000_000_i64, "lapseCents": 3_456_700_i64});
+    ctx.insert("team", &team);
+    team_page_extras(&mut ctx);
+    let html = tera.render("team/team.html", &ctx).unwrap();
+    // French money format: non-breaking-space separators, trailing $
+    assert!(html.contains("1\u{a0}234\u{a0}567\u{a0}$"));
+    assert!(html.contains("Projection au 31 mars"));
+}
+
+#[test]
+fn contract_form_renders_create_and_edit() {
+    let tera = tera();
+    // Create mode
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("task_id", "a0000000-0000-0000-0000-000000000001");
+    ctx.insert("contract_statuses", &json!([
+        {"value": "PLANNED", "label": "Planned"},
+        {"value": "ACTIVE", "label": "Active"},
+        {"value": "CLOSED", "label": "Closed"}]));
+    ctx.insert("today", "2026-07-11");
+    let html = tera.render("finance/contract_form.html", &ctx).unwrap();
+    assert!(html.contains("/en/task/a0000000-0000-0000-0000-000000000001/contract/new"));
+    assert!(html.contains("name=\"reference_number\""));
+    assert!(html.contains("name=\"total_value\""));
+
+    // Edit mode
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("task_id", "a0000000-0000-0000-0000-000000000001");
+    ctx.insert("contract", &json!({
+        "id": "c0000000-0000-0000-0000-000000000001", "referenceNumber": "PSPC-2026-1234",
+        "vendor": "Calian Group", "description": "Services", "startDate": "2026-05-01",
+        "endDate": "2027-03-31", "totalValueDollars": "181500.00", "status": "ACTIVE"}));
+    ctx.insert("contract_statuses", &json!([
+        {"value": "PLANNED", "label": "Planned"},
+        {"value": "ACTIVE", "label": "Active"},
+        {"value": "CLOSED", "label": "Closed"}]));
+    let html = tera.render("finance/contract_form.html", &ctx).unwrap();
+    assert!(html.contains("/en/contract/c0000000-0000-0000-0000-000000000001/edit"));
+    assert!(html.contains("PSPC-2026-1234"));
+}
+
+#[test]
+fn pay_rates_page_renders_tables_and_form() {
+    let tera = tera();
+    let mut ctx = base_context("en", "admin");
+    ctx.insert("civilian_rates", &json!([
+        {"id": "p1", "group": "Computer Systems", "level": 3, "rank": null,
+         "annualRateCents": 8_650_000_i64, "effectiveDate": "2025-07-11"}]));
+    ctx.insert("military_rates", &json!([
+        {"id": "p2", "group": null, "level": null, "rank": "Colonel",
+         "annualRateCents": 19_200_000_i64, "effectiveDate": "2025-07-11"}]));
+    ctx.insert("occupational_groups", &json!([{"value": "COMPUTER_SYSTEMS", "label": "Computer Systems"}]));
+    ctx.insert("ranks", &json!([{"value": "COLONEL", "label": "Colonel"}]));
+    ctx.insert("today", "2026-07-11");
+    let html = tera.render("finance/pay_rates.html", &ctx).unwrap();
+    assert!(html.contains("Computer Systems"));
+    assert!(html.contains("$86,500"));
+    assert!(html.contains("Colonel"));
+    assert!(html.contains("$192,000"));
+    assert!(html.contains("/en/admin/pay_rates/new"));
+}
+
+#[test]
+fn analytics_financials_page_renders_hierarchy() {
+    let tera = tera();
+    let mut ctx = base_context("en", "user");
+    ctx.insert("fiscal_year", "2026-27");
+    ctx.insert("financials_chart", "{}");
+    ctx.insert("financials_chart_height", "300px");
+    ctx.insert("fy_nav", &json!({"prev": 2025, "next": 2027, "viewingOther": false}));
+    ctx.insert("tiers", &json!([{
+        "id": "11111111-1111-1111-1111-111111111111", "name": "Level One Command", "tierLevel": 1,
+        "allocationCents": 5_400_000_000_i64, "childAllocatedCents": 5_170_000_000_i64,
+        "remainingCents": 230_000_000_i64, "budgetedCents": 5_139_913_221_i64,
+        "projectedCents": 4_941_300_916_i64, "lapseCents": 198_612_305_i64,
+        "contractCents": 4_289_448_064_i64, "varianceCents": 458_699_084_i64,
+        "children": [{
+            "id": "22222222-2222-2222-2222-222222222222", "name": "Level Two Directorate", "tierLevel": 2,
+            "allocationCents": 5_170_000_000_i64, "childAllocatedCents": 0,
+            "remainingCents": 5_170_000_000_i64, "budgetedCents": 4_920_212_306_i64,
+            "projectedCents": 4_800_000_000_i64, "lapseCents": 120_212_306_i64,
+            "contractCents": 4_200_000_000_i64, "varianceCents": 370_000_000_i64,
+            "children": [{
+                "id": "33333333-3333-3333-3333-333333333333", "name": "Level Three Section", "tierLevel": 3,
+                "allocationCents": null, "childAllocatedCents": 0, "remainingCents": null,
+                "budgetedCents": 500_000_000_i64, "projectedCents": 480_000_000_i64,
+                "lapseCents": 20_000_000_i64, "contractCents": 0, "varianceCents": null,
+                "children": []
+            }]
+        }]
+    }]));
+    let html = tera.render("analytics/financials.html", &ctx).unwrap();
+    assert!(html.contains("Level One Command"));
+    assert!(html.contains("Level Two Directorate"));
+    assert!(html.contains("Level Three Section"));
+    // L1 header shows the envelope and roll-down amounts
+    assert!(html.contains("$54,000,000"));
+    assert!(html.contains("$51,700,000"));
+    // Unallocated L3 shows a dash, not a broken number
+    assert!(html.contains("Unallocated"));
+    // Tier links for drill-down
+    assert!(html.contains("/en/org_tier/33333333-3333-3333-3333-333333333333"));
+    // Fiscal-year stepper
+    assert!(html.contains("/en/analytics/financials?fy=2027"));
+}
+
+#[test]
+fn org_tier_page_shows_budget_card_with_set_form_for_operator() {
+    let tera = tera();
+    let mut tier = sample_org_tier();
+    tier["headcount"] = json!(12);
+    tier["totalEffort"] = json!(48);
+    tier["capabilityCounts"] = json!([]);
+    let budget = json!({
+        "id": "22222222-2222-2222-2222-222222222222", "name": "Test Tier", "fiscalYear": "2026-27",
+        "allocationCents": 100_000_000_i64, "childAllocatedCents": 60_000_000_i64,
+        "remainingCents": 40_000_000_i64, "budgetedCents": 95_000_000_i64,
+        "projectedCents": 90_000_000_i64, "lapseCents": 5_000_000_i64,
+        "varianceCents": 10_000_000_i64
+    });
+    let children = json!([{
+        "id": "55555555-5555-5555-5555-555555555555", "name": "Child Tier", "fiscalYear": "2026-27",
+        "allocationCents": 60_000_000_i64, "childAllocatedCents": 0, "remainingCents": 60_000_000_i64,
+        "budgetedCents": 50_000_000_i64, "projectedCents": 48_000_000_i64, "lapseCents": 2_000_000_i64,
+        "varianceCents": 12_000_000_i64
+    }]);
+
+    for (role, sees_form) in [("operator", true), ("user", false)] {
+        let mut ctx = base_context("en", role);
+        ctx.insert("org_tier", &tier);
+        ctx.insert("domain_summary", &json!([]));
+        ctx.insert("budget", &budget);
+        ctx.insert("budget_children", &children);
+        ctx.insert("budget_amount_dollars", "1000000.00");
+        ctx.insert("budget_fy_options", &json!([
+            {"value": 2026, "label": "2026-27"},
+            {"value": 2027, "label": "2027-28"},
+            {"value": 2028, "label": "2028-29"}]));
+        let html = tera.render("org_tier/org_tier.html", &ctx).unwrap();
+        assert!(html.contains("$1,000,000")); // allocation
+        assert!(html.contains("Child Tier"));
+        assert_eq!(
+            html.contains("/en/org_tier/22222222-2222-2222-2222-222222222222/budget"), sees_form,
+            "role {} should{} see the set-allocation form", role, if sees_form { "" } else { " not" }
+        );
+        assert_eq!(
+            html.contains("name=\"fiscal_year\"") && html.contains("2027-28"), sees_form,
+            "role {} should{} see the fiscal-year selector", role, if sees_form { "" } else { " not" }
+        );
     }
 }
 

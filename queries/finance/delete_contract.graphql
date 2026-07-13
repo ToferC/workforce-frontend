@@ -1,0 +1,3 @@
+mutation DeleteContract($id: UUID!) {
+  deleteContract(id: $id)
+}

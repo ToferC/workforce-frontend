@@ -1,0 +1,13 @@
+query ContractById($id: UUID!) {
+  contractById(id: $id) {
+    id
+    taskId
+    referenceNumber
+    vendor
+    description
+    startDate
+    endDate
+    totalValueCents
+    status
+  }
+}

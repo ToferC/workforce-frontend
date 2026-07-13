@@ -202,7 +202,19 @@ use crate::handlers::{
     edit_product_form,
     edit_product_post,
 
+    // finance
+    create_contract_form,
+    create_contract_post,
+    edit_contract_form,
+    edit_contract_post,
+    delete_contract_form,
+    delete_contract_post,
+    pay_rates_admin,
+    pay_rate_create_post,
+    set_org_tier_budget_post,
+
     // analytics
+    analytics_financials,
     analytics_dashboard,
     analytics_section_work,
     analytics_section_capacity,
@@ -247,6 +259,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(admin_user_enable);
     config.service(admin_flags);
     config.service(admin_flag_resolve);
+    config.service(pay_rates_admin);
+    config.service(pay_rate_create_post);
 
     // person
     // "new" must be registered before the {person_id} catch-all
@@ -334,6 +348,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(restore_org_tier_post);
     config.service(assign_org_owner_form);
     config.service(assign_org_owner_post);
+    config.service(set_org_tier_budget_post);
     config.service(org_tier_by_id);
 
     // org chart builder
@@ -406,6 +421,12 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(submit_task_approval_post);
     config.service(approve_task_post);
     config.service(reject_task_post);
+    config.service(create_contract_form);
+    config.service(create_contract_post);
+    config.service(edit_contract_form);
+    config.service(edit_contract_post);
+    config.service(delete_contract_form);
+    config.service(delete_contract_post);
     config.service(task_by_id);
 
     // product — "new" must be registered before the {product_id} catch-all
@@ -417,6 +438,7 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(product_by_id);
 
     // analytics — specific sub-paths before the dashboard catch-all
+    config.service(analytics_financials);
     config.service(analytics_coverage);
     config.service(analytics_delivery);
     config.service(analytics_consistency);
