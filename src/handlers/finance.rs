@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{web, get, post, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, get, post, HttpRequest, Responder};
 use actix_identity::Identity;
 use actix_session::SessionExt;
 use serde::Deserialize;
@@ -14,6 +14,7 @@ use crate::graphql::{
 use crate::handlers::utility::{redirect_to, csrf_failure_flash, session_bearer, render_page, render_confirm};
 use crate::security::{self, MinimumRole};
 use super::role::{RANKS, OCCUPATIONAL_GROUPS};
+use super::admin::CsrfOnlyForm;
 
 /// ContractStatus enum values, kept in sync with the API schema.
 pub const CONTRACT_STATUSES: [&str; 3] = ["PLANNED", "ACTIVE", "CLOSED"];
@@ -40,18 +41,50 @@ fn enum_options(values: &[&str]) -> serde_json::Value {
         .collect::<Vec<serde_json::Value>>())
 }
 
-/// "1234567.89" (or "1,234,567") in dollars -> integer cents.
-fn dollars_to_cents(input: &str) -> Option<i64> {
-    let cleaned: String = input
+/// Dollars typed into a form -> integer cents, honouring the page language's
+/// separators: English "1,234,567.89" (comma groups, period decimal), French
+/// "1 234 567,89" (space or period groups, comma decimal). Anything that
+/// doesn't parse as a number after normalization is rejected.
+fn dollars_to_cents(input: &str, lang: &str) -> Option<i64> {
+    let mut cleaned: String = input
         .trim()
         .chars()
-        .filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-')
+        .filter(|c| !c.is_whitespace() && *c != '$' && *c != '\u{a0}' && *c != '\u{202f}')
         .collect();
+    if lang == "fr" {
+        cleaned = cleaned.replace('.', "").replace(',', ".");
+    } else {
+        cleaned = cleaned.replace(',', "");
+    }
     let value: f64 = cleaned.parse().ok()?;
     if !value.is_finite() {
         return None;
     }
     Some((value * 100.0).round() as i64)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::dollars_to_cents;
+
+    #[test]
+    fn parses_english_separators() {
+        assert_eq!(dollars_to_cents("1,234,567.89", "en"), Some(123_456_789));
+        assert_eq!(dollars_to_cents("1000", "en"), Some(100_000));
+        assert_eq!(dollars_to_cents("$250,000", "en"), Some(25_000_000));
+        assert_eq!(dollars_to_cents("abc", "en"), None);
+        assert_eq!(dollars_to_cents("1.2.3", "en"), None);
+    }
+
+    #[test]
+    fn parses_french_separators() {
+        // Comma is the decimal separator in French — the bug this guards
+        // against read "1000,50" as $100,050.
+        assert_eq!(dollars_to_cents("1000,50", "fr"), Some(100_050));
+        assert_eq!(dollars_to_cents("1\u{a0}234\u{a0}567,89", "fr"), Some(123_456_789));
+        assert_eq!(dollars_to_cents("1.234.567,89", "fr"), Some(123_456_789));
+        assert_eq!(dollars_to_cents("1000", "fr"), Some(100_000));
+    }
 }
 
 /// "YYYY-MM-DD" from a date input -> NaiveDateTime at midnight.
@@ -123,7 +156,7 @@ pub async fn create_contract_post(
     let (start, end, cents) = (
         parse_form_date(&form.start_date),
         parse_form_date(&form.end_date),
-        dollars_to_cents(&form.total_value),
+        dollars_to_cents(&form.total_value, &lang),
     );
     let (Some(start), Some(end), Some(cents)) = (start, end, cents) else {
         security::add_flash(&session, "danger", by_lang(&lang,
@@ -223,7 +256,7 @@ pub async fn edit_contract_post(
     let (start, end, cents) = (
         parse_form_date(&form.start_date),
         parse_form_date(&form.end_date),
-        dollars_to_cents(&form.total_value),
+        dollars_to_cents(&form.total_value, &lang),
     );
     let (Some(start), Some(end), Some(cents)) = (start, end, cents) else {
         security::add_flash(&session, "danger", by_lang(&lang,
@@ -343,11 +376,6 @@ pub async fn delete_contract_post(
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct CsrfOnlyForm {
-    pub csrf_token: String,
-}
-
 // ---------------------------------------------------------------------------
 // Pay rates (admin)
 // ---------------------------------------------------------------------------
@@ -437,7 +465,7 @@ pub async fn pay_rate_create_post(
 
     let has_civilian = !form.occupational_group.trim().is_empty();
     let has_military = !form.rank.trim().is_empty();
-    let cents = dollars_to_cents(&form.annual_rate);
+    let cents = dollars_to_cents(&form.annual_rate, &lang);
     let effective = parse_form_date(&form.effective_date);
 
     let (Some(cents), Some(effective)) = (cents, effective) else {
@@ -515,7 +543,7 @@ pub async fn set_org_tier_budget_post(
         return redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id));
     }
 
-    let Some(cents) = dollars_to_cents(&form.amount) else {
+    let Some(cents) = dollars_to_cents(&form.amount, &lang) else {
         security::add_flash(&session, "danger", by_lang(&lang,
             "Enter a valid allocation amount.",
             "Entrez un montant d'allocation valide."));

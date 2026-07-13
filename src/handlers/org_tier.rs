@@ -177,7 +177,15 @@ pub async fn org_tier_by_id(
 
     let bearer = session_bearer(&req.get_session());
 
-    let r = match get_org_tier_by_id(org_tier_id, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    // The financials rollup only needs the tier id we already have, so both
+    // API calls run concurrently. Deep enough that the scoped rollup always
+    // includes the tier's direct children, whatever their level.
+    const MAX_TIER_DEPTH: i64 = 9;
+    let (r, fin) = futures::join!(
+        get_org_tier_by_id(org_tier_id.clone(), bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        org_tier_financials(MAX_TIER_DEPTH, Some(org_tier_id.clone()), bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+    );
+    let r = match r {
         Ok(r) => r,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -201,7 +209,7 @@ pub async fn org_tier_by_id(
     // Budget card: this tier's own fiscal-year row plus its direct children,
     // so an envelope can be rolled down level by level. Best-effort — the
     // page still renders without it.
-    if let Ok(fin) = org_tier_financials(9, Some(tier.id.clone()), bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    if let Ok(fin) = fin {
         let rows = fin.org_tier_financials;
         let pick = |r: &crate::graphql::org_tier_financials::OrgTierFinancialsOrgTierFinancials| json!({
             "id": r.org_tier_id,
