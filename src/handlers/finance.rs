@@ -380,13 +380,32 @@ pub async fn delete_contract_post(
 // Pay rates (admin)
 // ---------------------------------------------------------------------------
 
+/// Civilian and military rates are entered through separate forms, so each
+/// form only carries its own classification fields. Every gcds-* field gets
+/// `#[serde(default)]`: an untouched form-associated GCDS component submits
+/// no value at all (not an empty string), and without the default actix
+/// rejects the whole POST with an opaque "missing field" parse error.
 #[derive(Deserialize, Debug)]
-pub struct PayRateForm {
+pub struct CivilianRateForm {
     pub csrf_token: String,
+    #[serde(default)]
     pub occupational_group: String,
+    #[serde(default)]
     pub occupational_level: String,
-    pub rank: String,
+    #[serde(default)]
     pub annual_rate: String,
+    #[serde(default)]
+    pub effective_date: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct MilitaryRateForm {
+    pub csrf_token: String,
+    #[serde(default)]
+    pub rank: String,
+    #[serde(default)]
+    pub annual_rate: String,
+    #[serde(default)]
     pub effective_date: String,
 }
 
@@ -413,9 +432,29 @@ pub async fn pay_rates_admin(
         },
     };
 
-    // Split civilian and military rates for the two tables.
+    // Split civilian and military rates for the two tables. Civilian rates
+    // read best grouped by classification (newest rate first within one);
+    // military rates in order of seniority, which is RANKS's array order.
     let mut civilian: Vec<serde_json::Value> = Vec::new();
     let mut military: Vec<serde_json::Value> = Vec::new();
+    let mut rates = rates;
+    rates.sort_by(|a, b| {
+        match (&a.rank, &b.rank) {
+            (Some(ra), Some(rb)) => {
+                let seniority = |r: &str| RANKS.iter().position(|v| *v == r).unwrap_or(usize::MAX);
+                seniority(&format!("{:?}", ra))
+                    .cmp(&seniority(&format!("{:?}", rb)))
+                    .then(b.effective_date.cmp(&a.effective_date))
+            }
+            _ => a
+                .occupational_group
+                .as_ref()
+                .map(|g| format!("{:?}", g))
+                .cmp(&b.occupational_group.as_ref().map(|g| format!("{:?}", g)))
+                .then(a.occupational_level.cmp(&b.occupational_level))
+                .then(b.effective_date.cmp(&a.effective_date)),
+        }
+    });
     for rate in &rates {
         let row = json!({
             "id": rate.id,
@@ -442,12 +481,48 @@ pub async fn pay_rates_admin(
     render_page(&data, "finance/pay_rates.html", &ctx)
 }
 
-#[post("/{lang}/admin/pay_rates/new")]
-pub async fn pay_rate_create_post(
+/// Rate and effective date validation shared by both pay-rate forms.
+/// Returns a flash message (already localized) on failure.
+fn parse_rate_and_date(
+    annual_rate: &str,
+    effective_date: &str,
+    lang: &str,
+) -> Result<(i64, chrono::NaiveDateTime), String> {
+    match (dollars_to_cents(annual_rate, lang), parse_form_date(effective_date)) {
+        (Some(cents), _) if cents <= 0 => Err(by_lang(lang,
+            "The annual rate must be greater than zero.",
+            "Le taux annuel doit être supérieur à zéro.").to_string()),
+        (Some(cents), Some(effective)) => Ok((cents, effective)),
+        (None, _) => Err(by_lang(lang,
+            "Enter the annual rate in dollars, e.g. 95,000.",
+            "Entrez le taux annuel en dollars, p. ex. 95 000.").to_string()),
+        (_, None) => Err(by_lang(lang,
+            "Enter a valid effective date.",
+            "Entrez une date d'entrée en vigueur valide.").to_string()),
+    }
+}
+
+async fn submit_pay_rate(
+    data: &web::Data<AppData>,
+    session: &actix_session::Session,
+    lang: &str,
+    bearer: String,
+    new_rate: create_pay_rate::NewPayRate,
+) -> actix_web::HttpResponse {
+    match create_pay_rate(new_rate, bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(_) => security::add_flash(session, "success",
+            by_lang(lang, "Pay rate added.", "Taux de rémunération ajouté.")),
+        Err(e) => security::add_flash(session, "danger", &e.to_string()),
+    };
+    redirect_to(format!("/{}/admin/pay_rates", lang))
+}
+
+#[post("/{lang}/admin/pay_rates/civilian")]
+pub async fn pay_rate_civilian_post(
     data: web::Data<AppData>,
     _id: Option<Identity>,
     path_params: web::Path<String>,
-    form: web::Form<PayRateForm>,
+    form: web::Form<CivilianRateForm>,
     req: HttpRequest,
 ) -> impl Responder {
     let lang = path_params.into_inner();
@@ -463,45 +538,84 @@ pub async fn pay_rate_create_post(
         return redirect_to(format!("/{}/admin/pay_rates", &lang));
     }
 
-    let has_civilian = !form.occupational_group.trim().is_empty();
-    let has_military = !form.rank.trim().is_empty();
-    let cents = dollars_to_cents(&form.annual_rate, &lang);
-    let effective = parse_form_date(&form.effective_date);
-
-    let (Some(cents), Some(effective)) = (cents, effective) else {
+    let group: Option<create_pay_rate::OccupationalGroup> =
+        serde_json::from_value(json!(form.occupational_group.trim())).ok();
+    let Some(group) = group else {
         security::add_flash(&session, "danger", by_lang(&lang,
-            "Enter a valid annual rate and effective date.",
-            "Entrez un taux annuel et une date d'entrée en vigueur valides."));
+            "Choose an occupational group.",
+            "Choisissez un groupe professionnel."));
         return redirect_to(format!("/{}/admin/pay_rates", &lang));
     };
-    if has_civilian == has_military {
+    let level = form.occupational_level.trim().parse::<i64>().ok().filter(|l| (1..=15).contains(l));
+    let Some(level) = level else {
         security::add_flash(&session, "danger", by_lang(&lang,
-            "Choose either an occupational group and level, or a rank.",
-            "Choisissez soit un groupe professionnel et un niveau, soit un grade."));
+            "Enter a level between 1 and 15.",
+            "Entrez un niveau entre 1 et 15."));
         return redirect_to(format!("/{}/admin/pay_rates", &lang));
-    }
+    };
+    let (cents, effective) = match parse_rate_and_date(&form.annual_rate, &form.effective_date, &lang) {
+        Ok(parsed) => parsed,
+        Err(message) => {
+            security::add_flash(&session, "danger", &message);
+            return redirect_to(format!("/{}/admin/pay_rates", &lang));
+        }
+    };
 
     let new_rate = create_pay_rate::NewPayRate {
-        occupational_group: if has_civilian {
-            serde_json::from_value(json!(form.occupational_group)).ok()
-        } else { None },
-        occupational_level: if has_civilian {
-            form.occupational_level.trim().parse::<i64>().ok()
-        } else { None },
-        rank: if has_military {
-            serde_json::from_value(json!(form.rank)).ok()
-        } else { None },
+        occupational_group: Some(group),
+        occupational_level: Some(level),
+        rank: None,
         annual_rate_cents: cents,
         effective_date: effective,
     };
+    submit_pay_rate(&data, &session, &lang, auth.bearer, new_rate).await
+}
 
-    match create_pay_rate(new_rate, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
-        Ok(_) => security::add_flash(&session, "success",
-            by_lang(&lang, "Pay rate added.", "Taux de rémunération ajouté.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+#[post("/{lang}/admin/pay_rates/military")]
+pub async fn pay_rate_military_post(
+    data: web::Data<AppData>,
+    _id: Option<Identity>,
+    path_params: web::Path<String>,
+    form: web::Form<MilitaryRateForm>,
+    req: HttpRequest,
+) -> impl Responder {
+    let lang = path_params.into_inner();
+    let session = req.get_session();
+
+    let auth = match security::require_role(&session, &lang, MinimumRole::Admin) {
+        Ok(auth) => auth,
+        Err(response) => return response,
     };
 
-    redirect_to(format!("/{}/admin/pay_rates", &lang))
+    if !security::verify_csrf_token(&session, &form.csrf_token) {
+        csrf_failure_flash(&session, &lang);
+        return redirect_to(format!("/{}/admin/pay_rates", &lang));
+    }
+
+    let rank: Option<create_pay_rate::Rank> =
+        serde_json::from_value(json!(form.rank.trim())).ok();
+    let Some(rank) = rank else {
+        security::add_flash(&session, "danger", by_lang(&lang,
+            "Choose a rank.",
+            "Choisissez un grade."));
+        return redirect_to(format!("/{}/admin/pay_rates", &lang));
+    };
+    let (cents, effective) = match parse_rate_and_date(&form.annual_rate, &form.effective_date, &lang) {
+        Ok(parsed) => parsed,
+        Err(message) => {
+            security::add_flash(&session, "danger", &message);
+            return redirect_to(format!("/{}/admin/pay_rates", &lang));
+        }
+    };
+
+    let new_rate = create_pay_rate::NewPayRate {
+        occupational_group: None,
+        occupational_level: None,
+        rank: Some(rank),
+        annual_rate_cents: cents,
+        effective_date: effective,
+    };
+    submit_pay_rate(&data, &session, &lang, auth.bearer, new_rate).await
 }
 
 

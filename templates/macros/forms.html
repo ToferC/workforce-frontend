@@ -27,9 +27,11 @@
 <gcds-error-summary listen="true"{% if heading %} heading="{{ heading }}"{% endif %}></gcds-error-summary>
 {% endmacro error_summary %}
 
-{% macro text_input(name, label, value="", required=true, type="text", help="", placeholder="", error="") %}
+{# `field_id` overrides the element id (defaults to `name`); pass it when the
+   same field name appears in two forms on one page so ids stay unique. #}
+{% macro text_input(name, label, value="", required=true, type="text", help="", placeholder="", error="", field_id="") %}
 <gcds-input
-    input-id="{{ name }}"
+    input-id="{% if field_id %}{{ field_id }}{% else %}{{ name }}{% endif %}"
     name="{{ name }}"
     label="{{ label }}"
     type="{{ type }}"
@@ -83,10 +85,12 @@
 
 {# Native date field: already accessible and submits YYYY-MM-DD, which the
    handlers parse. Kept native to avoid changing the submitted value format. #}
-{% macro date_input(name, label, value="", required=false) %}
+{% macro date_input(name, label, value="", required=false, field_id="") %}
+{% set the_id = field_id | default(value="") %}
+{% if not the_id %}{% set the_id = name %}{% endif %}
 <div class="mb-3">
-    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
-    <input type="date" class="form-control" id="{{ name }}" name="{{ name }}" value="{{ value }}"{% if required %} required{% endif %}>
+    <label class="form-label" for="{{ the_id }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <input type="date" class="form-control" id="{{ the_id }}" name="{{ name }}" value="{{ value }}"{% if required %} required{% endif %}>
 </div>
 {% endmacro date_input %}
 

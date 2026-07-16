@@ -210,7 +210,8 @@ use crate::handlers::{
     delete_contract_form,
     delete_contract_post,
     pay_rates_admin,
-    pay_rate_create_post,
+    pay_rate_civilian_post,
+    pay_rate_military_post,
     set_org_tier_budget_post,
 
     // analytics
@@ -260,7 +261,8 @@ pub fn configure_services(config: &mut web::ServiceConfig) {
     config.service(admin_flags);
     config.service(admin_flag_resolve);
     config.service(pay_rates_admin);
-    config.service(pay_rate_create_post);
+    config.service(pay_rate_civilian_post);
+    config.service(pay_rate_military_post);
 
     // person
     // "new" must be registered before the {person_id} catch-all
