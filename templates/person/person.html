@@ -67,6 +67,18 @@
                 {{ viz::effort_meter(value=person.activeEffort) }}
             </span>
             {% endif %}
+            {% if person.email %}
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="email", lang=lang) }}</span>
+                <a href="mailto:{{ person.email }}">{{ person.email }}</a>
+            </span>
+            {% endif %}
+            {% if person.phone %}
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="phone", lang=lang) }}</span>
+                <span>{{ person.phone }}</span>
+            </span>
+            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -89,6 +101,9 @@
         <!-- Main pane: operational at-a-glance information -->
         <div class="detail-main">
             <!-- Active Roles -->
+            {# The loop variable shadows the session `role`; keep the access
+               level reachable inside. #}
+            {% set session_role = role %}
             {% for role in person.activeRoles %}
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
@@ -110,6 +125,8 @@
                             {% if role.team.owner.person %}
                             <a href="/{{lang}}/person/{{role.team.owner.person.id}}">{{ role.team.owner.person.givenName }} {{ role.team.owner.person.familyName }}</a>
                             &mdash; {{ role.team.owner.person.email }}
+                            {% elif session_role == "operator" or session_role == "admin" %}
+                            <a href="/{{ lang }}/team/{{ role.team.id }}/owner">{{ fluent(key="vacant-label", lang=lang) }} &mdash; {{ fluent(key="assign-owner", lang=lang) }}</a>
                             {% else %}
                             <span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>
                             {% endif %}

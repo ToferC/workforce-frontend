@@ -19,13 +19,13 @@
 
             {% if role == "operator" or role == "admin" %}
             <div class="entity-header__actions">
-                <a class="btn btn-primary btn-sm" href="/{{ lang }}/team/{{ team.id }}/edit">
-                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-team", lang=lang) }}
-                </a>
-                <a class="btn btn-outline-info btn-sm" href="/{{ lang }}/role/new?team={{ team.id }}&org_tier={{ team.organizationLevel.id }}&organization={{ team.organization.id }}">
+                <a class="btn btn-primary btn-sm" href="/{{ lang }}/role/new?team={{ team.id }}&org_tier={{ team.organizationLevel.id }}&organization={{ team.organization.id }}">
                     <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-role", lang=lang) }}
                 </a>
-                <a class="btn btn-outline-info btn-sm" href="/{{ lang }}/team/{{ team.id }}/task/new">
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/team/{{ team.id }}/edit">
+                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-team", lang=lang) }}
+                </a>
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/team/{{ team.id }}/task/new">
                     <i class="bi bi-list-task" aria-hidden="true"></i> {{ fluent(key="add-task", lang=lang) }}
                 </a>
                 <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/team/{{ team.id }}/owner">
@@ -43,6 +43,30 @@
                 {% endif %}
             </div>
             {% endif %}
+        </div>
+
+        {# Identity facts up front — on mobile the sidebar Details card lands
+           below every list, so the owner and placement must not live only
+           there. #}
+        <div class="entity-header__meta">
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="owner", lang=lang) }}</span>
+                {% if team.owner.person %}
+                <a href="/{{ lang }}/person/{{ team.owner.person.id }}">{{ team.owner.person.givenName }} {{ team.owner.person.familyName }}</a>
+                {% elif role == "operator" or role == "admin" %}
+                <a href="/{{ lang }}/team/{{ team.id }}/owner" class="badge bg-warning text-dark text-decoration-none">{{ fluent(key="vacant-label", lang=lang) }} &mdash; {{ fluent(key="assign-owner", lang=lang) }}</a>
+                {% else %}
+                <span class="badge bg-warning text-dark">{{ fluent(key="vacant-label", lang=lang) }}</span>
+                {% endif %}
+            </span>
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="org-tier", lang=lang) }}</span>
+                <a href="/{{ lang }}/org_tier/{{ team.organizationLevel.id }}">{{ team.organizationLevel.nameEn }}</a>
+            </span>
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="team-members", lang=lang) }}</span>
+                <span>{{ team.occupiedRoles | length }} {{ fluent(key="filled-suffix", lang=lang) }} &middot; {{ team.vacantRoles | length }} {{ fluent(key="vacant-suffix", lang=lang) }}</span>
+            </span>
         </div>
     </div>
 

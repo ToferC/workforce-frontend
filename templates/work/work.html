@@ -10,7 +10,7 @@
     <div class="hero-section mb-4">
         <div class="entity-header__bar">
             <div class="entity-header__identity">
-                <h1 class="entity-header__title">
+                <h1 class="entity-header__title entity-header__title--clamp">
                     {{ work.workDescription | title }}
                     {{ viz::status_chip(status=work.workStatus) }}
                 </h1>
@@ -32,6 +32,35 @@
                 {% endif %}
             </div>
             {% endif %}
+        </div>
+
+        {# Due date and owner up front — on mobile the sidebar Details card
+           (the only place the due date lived) lands below every list. #}
+        <div class="entity-header__meta">
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="due-date", lang=lang) }}</span>
+                {% if work.dueDate %}
+                <span>{{ work.dueDate | truncate(length=10, end="") }}
+                    {% if work_overdue %}<span class="badge bg-danger ms-1">{{ fluent(key="overdue", lang=lang) }}</span>{% endif %}
+                </span>
+                {% else %}<span class="text-muted">&mdash;</span>{% endif %}
+            </span>
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="assigned-to", lang=lang) }}</span>
+                {% if work.role and work.role.person %}
+                <a href="/{{ lang }}/person/{{ work.role.person.id }}">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
+                {% else %}
+                <span class="badge bg-warning text-dark">{{ fluent(key="unassigned", lang=lang) }}</span>
+                {% endif %}
+            </span>
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="task", lang=lang) }}</span>
+                <a href="/{{ lang }}/task/{{ work.task.id }}">{{ work.task.title }}</a>
+            </span>
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="effort", lang=lang) }}</span>
+                {{ viz::effort_meter(value=work.effort) }}
+            </span>
         </div>
     </div>
 
@@ -71,6 +100,43 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Assigned To -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h2 class="h4 mb-0"><i class="bi bi-person-check" aria-hidden="true"></i> {{ fluent(key="assigned-to", lang=lang) }}</h2>
+                    {% if work.role and work.role.person %}
+                        {% if assignee_qualified %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle" aria-hidden="true"></i> {{ fluent(key="meets-required-level", lang=lang) }}</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="below-required-level", lang=lang) }}</span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if work.role and work.role.person %}
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <a href="/{{lang}}/person/{{work.role.person.id}}" class="fw-semibold">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
+                        </li>
+                        <li class="list-group-item">
+                            <span class="text-muted">{{ fluent(key="role", lang=lang) }}:</span>
+                            <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }}</a>
+                            <span class="text-muted small">{{ viz::classification(mo=work.role.militaryOccupation, rank=work.role.rank, group=work.role.occupationalGroup, level=work.role.occupationalLevel) }}</span>
+                        </li>
+                        <li class="list-group-item"><span class="text-muted">{{ fluent(key="address-label", lang=lang) }}:</span> {{ work.role.person.workAddress }}</li>
+                        <li class="list-group-item">
+                            <span class="text-muted">{{ fluent(key="organization", lang=lang) }}:</span>
+                            <a href="/{{ lang }}/organization/{{ work.role.person.organization.id }}">{{ work.role.person.organization.nameEn }}</a>
+                        </li>
+                        <li class="list-group-item"><span class="text-muted">{{ fluent(key="email", lang=lang) }}:</span> {{ work.role.person.email }}</li>
+                        <li class="list-group-item"><span class="text-muted">{{ fluent(key="phone", lang=lang) }}:</span> {{ work.role.person.phone }}</li>
+                    </ul>
+                    {% else %}
+                    <div class="p-4 text-muted">{{ fluent(key="not-assigned", lang=lang) }}</div>
+                    {% endif %}
+                </div>
+            </div>
 
             <!-- Dependencies (Proposal 7a) -->
             <div class="card shadow-lg mb-4">
@@ -131,43 +197,6 @@
                         </li>
                         {% endfor %}
                     </ul>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Assigned To -->
-            <div class="card shadow-lg mb-4">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h2 class="h4 mb-0"><i class="bi bi-person-check" aria-hidden="true"></i> {{ fluent(key="assigned-to", lang=lang) }}</h2>
-                    {% if work.role and work.role.person %}
-                        {% if assignee_qualified %}
-                        <span class="badge bg-success"><i class="bi bi-check-circle" aria-hidden="true"></i> {{ fluent(key="meets-required-level", lang=lang) }}</span>
-                        {% else %}
-                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="below-required-level", lang=lang) }}</span>
-                        {% endif %}
-                    {% endif %}
-                </div>
-                <div class="card-body p-0">
-                    {% if work.role and work.role.person %}
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item">
-                            <a href="/{{lang}}/person/{{work.role.person.id}}" class="fw-semibold">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
-                        </li>
-                        <li class="list-group-item">
-                            <span class="text-muted">{{ fluent(key="role", lang=lang) }}:</span>
-                            <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }}</a>
-                            <span class="text-muted small">{{ viz::classification(mo=work.role.militaryOccupation, rank=work.role.rank, group=work.role.occupationalGroup, level=work.role.occupationalLevel) }}</span>
-                        </li>
-                        <li class="list-group-item"><span class="text-muted">{{ fluent(key="address-label", lang=lang) }}:</span> {{ work.role.person.workAddress }}</li>
-                        <li class="list-group-item">
-                            <span class="text-muted">{{ fluent(key="organization", lang=lang) }}:</span>
-                            <a href="/{{ lang }}/organization/{{ work.role.person.organization.id }}">{{ work.role.person.organization.nameEn }}</a>
-                        </li>
-                        <li class="list-group-item"><span class="text-muted">{{ fluent(key="email", lang=lang) }}:</span> {{ work.role.person.email }}</li>
-                        <li class="list-group-item"><span class="text-muted">{{ fluent(key="phone", lang=lang) }}:</span> {{ work.role.person.phone }}</li>
-                    </ul>
-                    {% else %}
-                    <div class="p-4 text-muted">{{ fluent(key="not-assigned", lang=lang) }}</div>
                     {% endif %}
                 </div>
             </div>

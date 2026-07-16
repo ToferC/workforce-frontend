@@ -27,9 +27,6 @@
                 <a class="btn btn-primary btn-sm" href="/{{ lang }}/organization/{{ organization.id }}/edit">
                     <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-organization", lang=lang) }}
                 </a>
-                <a class="btn btn-outline-primary btn-sm" href="/{{ lang }}/org_tier/new?organization={{ organization.id }}">
-                    <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-top-tier", lang=lang) }}
-                </a>
                 {% if organization.retiredAt %}
                 <form method="post" action="/{{ lang }}/organization/{{ organization.id }}/restore">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -43,15 +40,71 @@
                 {% endif %}
             </div>
         </div>
+
+        <div class="entity-header__meta">
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="org-type", lang=lang) }}</span>
+                <span>{{ organization.orgType }}</span>
+            </span>
+            {% if organization.url %}
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="website", lang=lang) }}</span>
+                <a href="{{ organization.url }}">{{ organization.url }}</a>
+            </span>
+            {% endif %}
+        </div>
     </div>
 
     <div class="detail-layout">
         <!-- Main pane: structure & outputs -->
         <div class="detail-main">
+            <!-- At-a-glance -->
+            {% if org_finances %}
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-primary">{{ org_finances.tiers }}</div>
+                            <div class="small text-muted">{{ fluent(key="org-tiers", lang=lang) }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-4 fw-bold">{{ org_finances.budgetedCents | money(lang=lang) }}</div>
+                            <div class="small text-muted">{{ fluent(key="fy-budget", lang=lang) }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-4 fw-bold text-info">{{ org_finances.projectedCents | money(lang=lang) }}</div>
+                            <div class="small text-muted">{{ fluent(key="fy-projected", lang=lang) }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-4 fw-bold {% if org_finances.lapseCents > 0 %}text-warning{% else %}text-success{% endif %}">{{ org_finances.lapseCents | money(lang=lang) }}</div>
+                            <div class="small text-muted">{{ fluent(key="fy-lapse", lang=lang) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Organizational Tiers -->
             <div class="card shadow-lg mb-4">
-                <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-diagram-3" aria-hidden="true"></i> Organizational Tiers</h2>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h4 mb-0"><i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="org-tiers", lang=lang) }}</h2>
+                    {% if role == "operator" or role == "admin" %}
+                    <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ organization.id }}">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-top-tier", lang=lang) }}
+                    </a>
+                    {% endif %}
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
@@ -60,18 +113,18 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <a href="/{{lang}}/org_tier/{{ot.id}}" class="fw-semibold">{{ ot.nameEn }}</a>
-                                    <div class="small text-muted mt-1">Primary Domain: {{ ot.primaryDomain }}</div>
+                                    <div class="small text-muted mt-1">{{ fluent(key="primary-domain", lang=lang) }}: {{ ot.primaryDomain }}</div>
                                 </div>
                                 <span class="text-muted small">
-                                    Owner:
+                                    {{ fluent(key="owner", lang=lang) }}:
                                     {% if ot.owner.person %}
                                     <a href="/{{lang}}/person/{{ot.owner.person.id}}">{{ ot.owner.person.givenName }} {{ ot.owner.person.familyName }}</a>
-                                    {% else %}Vacant{% endif %}
+                                    {% else %}{{ fluent(key="vacant-label", lang=lang) }}{% endif %}
                                 </span>
                             </div>
                         </li>
                         {% else %}
-                        <li class="list-group-item text-muted">No organizational tiers.</li>
+                        <li class="list-group-item text-muted">{{ fluent(key="no-org-tiers", lang=lang) }}</li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -81,7 +134,7 @@
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
                     <button class="btn btn-link p-0 text-decoration-none h4 mb-0" type="button" data-toggle="collapse" data-target="#capabilitySummary" aria-expanded="false" aria-controls="capabilitySummary">
-                        <i class="bi bi-chevron-down me-1" aria-hidden="true"></i><i class="bi bi-bar-chart" aria-hidden="true"></i> Organizational Capabilities
+                        <i class="bi bi-chevron-down me-1" aria-hidden="true"></i><i class="bi bi-bar-chart" aria-hidden="true"></i> {{ fluent(key="org-capabilities", lang=lang) }}
                     </button>
                 </div>
                 <div class="collapse" id="capabilitySummary">
@@ -90,10 +143,10 @@
                         <table class="table table-sm mb-0">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Domain</th>
-                                    <th>Level</th>
-                                    <th>Count</th>
+                                    <th>{{ fluent(key="name", lang=lang) }}</th>
+                                    <th>{{ fluent(key="domain", lang=lang) }}</th>
+                                    <th>{{ fluent(key="level", lang=lang) }}</th>
+                                    <th>{{ fluent(key="count-label", lang=lang) }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -108,35 +161,12 @@
                             </tbody>
                         </table>
                         {% else %}
-                        <div class="p-4 text-muted">No capability data available.</div>
+                        <div class="p-4 text-muted">{{ fluent(key="no-capability-data", lang=lang) }}</div>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Publications -->
-            <div class="card shadow-lg mb-4">
-                <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-journal-richtext" aria-hidden="true"></i> Publications</h2>
-                </div>
-                <div class="card-body p-0">
-                    {% if organization.publications %}
-                    <ul class="list-group list-group-flush">
-                        {% for pub in organization.publications %}
-                        <li class="list-group-item">
-                            <a href="/{{lang}}/publication/{{pub.id}}" class="fw-semibold">{{ pub.title }}</a>
-                            <div class="small text-muted mt-1">
-                                Status: {{ pub.publicationStatus }} &mdash;
-                                Lead Author: <a href="/{{lang}}/person/{{pub.leadAuthor.id}}">{{ pub.leadAuthor.givenName }} {{ pub.leadAuthor.familyName }}</a>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <div class="p-4 text-muted">No publications.</div>
-                    {% endif %}
-                </div>
-            </div>
         </div>
 
         <!-- Sidebar pane: summary & relationships -->
@@ -145,12 +175,15 @@
                 <!-- Details -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> Details</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ fluent(key="details-heading", lang=lang) }}</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><span class="text-muted">Organization Type:</span> {{ organization.orgType }}</li>
-                            <li class="list-group-item"><span class="text-muted">Web Page:</span> <a href="{{ organization.url }}">{{ organization.url }}</a></li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="org-type", lang=lang) }}:</span> {{ organization.orgType }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="website", lang=lang) }}:</span> <a href="{{ organization.url }}">{{ organization.url }}</a></li>
+                            <li class="list-group-item">
+                                <a href="/{{ lang }}/publications"><i class="bi bi-journal-richtext" aria-hidden="true"></i> {{ fluent(key="view-all-publications", lang=lang) }}</a>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -158,7 +191,7 @@
                 <!-- Affiliations -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-link-45deg" aria-hidden="true"></i> Affiliations</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-link-45deg" aria-hidden="true"></i> {{ fluent(key="affiliation", lang=lang) }}</h2>
                     </div>
                     <div class="card-body p-0">
                         {% if organization.affiliations %}
@@ -173,7 +206,7 @@
                             {% endfor %}
                         </ul>
                         {% else %}
-                        <div class="p-4 text-muted">No affiliations.</div>
+                        <div class="p-4 text-muted">{{ fluent(key="no-affiliations", lang=lang) }}</div>
                         {% endif %}
                     </div>
                 </div>

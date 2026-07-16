@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_organization_by_id, all_organizations, create_organization, update_organization, restore_organization};
+use crate::graphql::{get_organization_by_id, all_organizations, create_organization, update_organization, restore_organization, org_tier_financials};
 use crate::security::{self, MinimumRole};
 use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
 
@@ -92,7 +92,7 @@ pub async fn organization_by_id(
 
     let bearer = session_bearer(&req.get_session());
 
-    let r = match get_organization_by_id(organization_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
+    let r = match get_organization_by_id(organization_id, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
             security::add_flash(&session, "danger", &e.to_string());
@@ -101,6 +101,35 @@ pub async fn organization_by_id(
     };
 
     ctx.insert("organization", &r.organization_by_id);
+
+    // At-a-glance tiles: tier count and fiscal-year money for the org,
+    // summed over its top tiers' subtrees. Best-effort — the page still
+    // renders without it.
+    let mut tier_count = 0usize;
+    let (mut budgeted, mut projected, mut lapse, mut allocation) = (0i64, 0i64, 0i64, 0i64);
+    let mut have_finances = false;
+    for root in &r.organization_by_id.top_org_tier {
+        if let Ok(fin) = org_tier_financials(9, Some(root.id.clone()), None, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+            let rows = fin.org_tier_financials;
+            tier_count += rows.len();
+            if let Some(own) = rows.iter().find(|row| row.org_tier_id == root.id) {
+                budgeted += own.budgeted_cents;
+                projected += own.projected_cents;
+                lapse += own.lapse_cents;
+                allocation += own.allocation_cents.unwrap_or(0);
+                have_finances = true;
+            }
+        }
+    }
+    if have_finances {
+        ctx.insert("org_finances", &serde_json::json!({
+            "tiers": tier_count,
+            "budgetedCents": budgeted,
+            "projectedCents": projected,
+            "lapseCents": lapse,
+            "allocationCents": allocation,
+        }));
+    }
 
     render_page(&data, "organization/organization.html", &ctx)
 }

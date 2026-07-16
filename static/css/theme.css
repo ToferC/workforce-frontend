@@ -664,6 +664,15 @@ footer hr,
     gap: var(--spacing-sm);
 }
 
+/* Long free-text titles (e.g. a work item's description) clamp to two lines
+   in the header; the full text remains available in the page body. */
+.entity-header__title--clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 /* The GCDS heading red rule reads as a stray dash on a flex title row; the
    header's own borders already provide separation. */
 .hero-section .entity-header__title::after {

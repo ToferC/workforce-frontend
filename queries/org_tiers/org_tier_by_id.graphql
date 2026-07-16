@@ -38,6 +38,7 @@ query OrgTierById($id:UUID!) {
     teams {
       nameEnglish
       id
+      headcount
       owner {
         id
         person {

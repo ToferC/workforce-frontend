@@ -23,21 +23,55 @@
                 </h1>
                 {% if task.product %}
                 <p class="entity-header__subtitle">
-                    <i class="bi bi-box-seam" aria-hidden="true"></i> Product: <a href="/{{ lang }}/product/{{ task.product.id }}">{% if lang == "fr" %}{{ task.product.nameFr }}{% else %}{{ task.product.nameEn }}{% endif %}</a>
+                    <i class="bi bi-box-seam" aria-hidden="true"></i> {{ fluent(key="product", lang=lang) }}: <a href="/{{ lang }}/product/{{ task.product.id }}">{% if lang == "fr" %}{{ task.product.nameFr }}{% else %}{{ task.product.nameEn }}{% endif %}</a>
                 </p>
                 {% endif %}
             </div>
 
             {% if role == "operator" or role == "admin" %}
             <div class="entity-header__actions">
-                <a class="btn btn-primary btn-sm" href="/{{ lang }}/task/{{ task.id }}/edit">
+                {# The approval step is the page's most consequential action, so
+                   its current move leads; the full approve/reject pair (with
+                   rejection reason) stays in the Approval card. #}
+                {% if task.approvalStatus == "DRAFT" or task.approvalStatus == "REJECTED" %}
+                <form method="post" action="/{{ lang }}/task/{{ task.id }}/submit_approval">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-send" aria-hidden="true"></i> {{ fluent(key="submit-for-approval", lang=lang) }}</button>
+                </form>
+                {% elif task.approvalStatus == "PENDING_APPROVAL" %}
+                <form method="post" action="/{{ lang }}/task/{{ task.id }}/approve">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check2" aria-hidden="true"></i> {{ fluent(key="approve", lang=lang) }}</button>
+                </form>
+                {% endif %}
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/task/{{ task.id }}/edit">
                     <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-task", lang=lang) }}
                 </a>
-                <a class="btn btn-outline-primary btn-sm" href="/{{ lang }}/task/{{ task.id }}/work/new">
-                    <i class="bi bi-plus-circle" aria-hidden="true"></i> Add Work Item
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/task/{{ task.id }}/work/new">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i> {{ fluent(key="add-work", lang=lang) }}
                 </a>
             </div>
             {% endif %}
+        </div>
+
+        {# Approval state and dates up front — on mobile the sidebar Approval
+           card lands below every list. #}
+        <div class="entity-header__meta">
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="approval", lang=lang) }}</span>
+                {{ viz::approval_chip(status=task.approvalStatus) }}
+            </span>
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="target-completion-date", lang=lang) }}</span>
+                <span>{{ task.targetCompletionDate | truncate(length=10, end="") }}</span>
+            </span>
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="created-by", lang=lang) }}</span>
+                <span>
+                    <a href="/{{ lang }}/person/{{ task.createdBy.person.id }}">{{ task.createdBy.person.givenName }} {{ task.createdBy.person.familyName }}</a>
+                    &middot; <a href="/{{ lang }}/team/{{ task.createdBy.team.id }}">{{ task.createdBy.team.nameEnglish }}</a>
+                </span>
+            </span>
         </div>
     </div>
 
@@ -50,7 +84,7 @@
                     <div class="card shadow-sm h-100 text-center">
                         <div class="card-body py-3">
                             <div class="fs-2 fw-bold text-primary">{{ task.work | length }}</div>
-                            <div class="small text-muted">Work Items</div>
+                            <div class="small text-muted">{{ fluent(key="work-items", lang=lang) }}</div>
                         </div>
                     </div>
                 </div>
@@ -58,7 +92,7 @@
                     <div class="card shadow-sm h-100 text-center">
                         <div class="card-body py-3">
                             <div class="fs-2 fw-bold text-info">{{ task.effort }}</div>
-                            <div class="small text-muted">Total Effort</div>
+                            <div class="small text-muted">{{ fluent(key="total-effort", lang=lang) }}</div>
                         </div>
                     </div>
                 </div>
@@ -68,70 +102,51 @@
                             {% set assigned_count = 0 %}
                             {% for work in task.work %}{% if work.role %}{% set_global assigned_count = assigned_count + 1 %}{% endif %}{% endfor %}
                             <div class="fs-2 fw-bold {% if assigned_count == task.work | length %}text-success{% else %}text-warning{% endif %}">{{ assigned_count }}/{{ task.work | length }}</div>
-                            <div class="small text-muted">Assigned</div>
+                            <div class="small text-muted">{{ fluent(key="assigned-count", lang=lang) }}</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Work Elements -->
+            <!-- Work elements: one line per item — description, chips, due
+                 date, and the assignee (or an Assign button). Detail lives on
+                 the work page itself. -->
             <div class="card shadow-lg mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-list-task" aria-hidden="true"></i> Work Elements</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-list-task" aria-hidden="true"></i> {{ fluent(key="work", lang=lang) }}</h2>
                 </div>
                 <div class="card-body p-0">
                     {% for work in task.work %}
-                    <div class="p-3 border-bottom">
-                        <div class="fw-semibold mb-1">
-                            <a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item px-0 small d-flex align-items-center gap-1 flex-wrap">
-                                <span class="text-muted">Domain:</span>
+                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                        <div class="me-auto">
+                            <a href="/{{ lang }}/work/{{ work.id }}" class="fw-semibold">{{ work.workDescription }}</a>
+                            <div class="d-flex flex-wrap gap-1 mt-1 align-items-center small">
                                 {{ viz::domain_chip(domain=work.domain) }}
                                 {{ viz::level_chip(level=work.capabilityLevel) }}
                                 {{ viz::effort_meter(value=work.effort) }}
                                 {% if work.priority %}{{ viz::priority_chip(priority=work.priority) }}{% endif %}
                                 {% if work.priorityBelowParent %}<span class="badge bg-warning text-dark" title="{{ fluent(key='priority-below-task', lang=lang) }}"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>{% endif %}
                                 {% if work.workStatus == "BLOCKED" %}<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="blocked-label", lang=lang) }}</span>{% endif %}
-                            </li>
-                            {% if work.dueDate %}
-                            <li class="list-group-item px-0 small"><span class="text-muted">{{ fluent(key="due-date", lang=lang) }}:</span> {{ work.dueDate | truncate(length=10, end="") }}</li>
-                            {% endif %}
-                            {% if work.url %}
-                            <li class="list-group-item px-0 small"><span class="text-muted">Website:</span> <a href="{{ work.url }}">{{ work.url }}</a></li>
-                            {% endif %}
-                        </ul>
-                        {% if work.role.person %}
-                        <h3 class="h6 text-muted mt-2 mb-1">Assigned To</h3>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item px-0 small">
-                                <a href="/{{lang}}/person/{{work.role.person.id}}">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
-                            </li>
-                            <li class="list-group-item px-0 small">
-                                <span class="text-muted">Role:</span>
-                                <a href="/{{ lang }}/role/{{ work.role.id }}">{{ work.role.titleEnglish }} &mdash; {{ work.role.militaryOccupation }}-{{ work.role.rank }}</a>
-                            </li>
-                            <li class="list-group-item px-0 small">
-                                <span class="text-muted">Organization:</span>
-                                <a href="/{{ lang }}/organization/{{ work.role.person.organization.id }}">{{ work.role.person.organization.nameEn }}</a>
-                            </li>
-                            <li class="list-group-item px-0 small"><span class="text-muted">Email:</span> {{ work.role.person.email }}</li>
-                            <li class="list-group-item px-0 small"><span class="text-muted">Phone:</span> {{ work.role.person.phone }}</li>
-                        </ul>
-                        {% else %}
-                        <p class="text-muted small mt-2 mb-0">
-                            Not assigned.
-                            {% if role == "operator" or role == "admin" %}
-                            <a href="/{{ lang }}/work/{{ work.id }}/assign" class="ms-2 btn btn-sm btn-outline-success">
-                                <i class="bi bi-person-plus" aria-hidden="true"></i> Assign
+                                {% if work.dueDate %}
+                                <span class="text-muted">{{ fluent(key="due-short", lang=lang) }} {{ work.dueDate | truncate(length=10, end="") }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            {% if work.role.person %}
+                            <a href="/{{ lang }}/person/{{ work.role.person.id }}">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>
+                            <div class="small"><a href="/{{ lang }}/role/{{ work.role.id }}" class="text-muted">{{ work.role.titleEnglish }}</a></div>
+                            {% elif role == "operator" or role == "admin" %}
+                            <a href="/{{ lang }}/work/{{ work.id }}/assign" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-person-plus" aria-hidden="true"></i> {{ fluent(key="assign-button", lang=lang) }}
                             </a>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">{{ fluent(key="unassigned", lang=lang) }}</span>
                             {% endif %}
-                        </p>
-                        {% endif %}
+                        </div>
                     </div>
                     {% else %}
-                    <div class="p-4 text-muted">No work elements.</div>
+                    <div class="p-4 text-muted">{{ fluent(key="no-work-assigned", lang=lang) }}</div>
                     {% endfor %}
                 </div>
             </div>
@@ -243,33 +258,33 @@
                 <!-- Details -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> Details</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ fluent(key="details-heading", lang=lang) }}</h2>
                     </div>
                     <div class="card-body">
                         <p>{{ task.intendedOutcome }}</p>
                         {% if task.finalOutcome %}
-                        <h3 class="h6 text-muted mb-1">Final Outcome</h3>
+                        <h3 class="h6 text-muted mb-1">{{ fluent(key="final-outcome", lang=lang) }}</h3>
                         <p>{{ task.finalOutcome }}</p>
                         {% endif %}
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ task.url }}">{{ task.url }}</a></li>
-                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=task.domain) }}</li>
-                            <li class="list-group-item"><span class="text-muted">Approval Tier:</span> {{ task.approvalTier }}</li>
-                            <li class="list-group-item"><span class="text-muted">Start Date:</span> {{ task.startDatestamp }}</li>
-                            <li class="list-group-item"><span class="text-muted">Target Completion:</span> {{ task.targetCompletionDate }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="website", lang=lang) }}:</span> <a href="{{ task.url }}">{{ task.url }}</a></li>
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">{{ fluent(key="domain", lang=lang) }}:</span> {{ viz::domain_chip(domain=task.domain) }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="approval-tier", lang=lang) }}:</span> {{ task.approvalTier }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="start-date", lang=lang) }}:</span> {{ task.startDatestamp }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="target-completion-date", lang=lang) }}:</span> {{ task.targetCompletionDate }}</li>
                             {% if task.completedDate %}
-                            <li class="list-group-item"><span class="text-muted">Completed:</span> {{ task.completedDate }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="completed", lang=lang) }}:</span> {{ task.completedDate }}</li>
                             {% endif %}
                             {% if task.product %}
                             <li class="list-group-item">
-                                <span class="text-muted">Product:</span>
+                                <span class="text-muted">{{ fluent(key="product", lang=lang) }}:</span>
                                 <a href="/{{ lang }}/product/{{ task.product.id }}">{% if lang == "fr" %}{{ task.product.nameFr }}{% else %}{{ task.product.nameEn }}{% endif %}</a>
                             </li>
                             {% endif %}
                             <li class="list-group-item">
-                                <span class="text-muted">Assigned by:</span>
+                                <span class="text-muted">{{ fluent(key="created-by", lang=lang) }}:</span>
                                 <a href="/{{lang}}/person/{{task.createdBy.person.id}}">{{ task.createdBy.person.givenName }} {{ task.createdBy.person.familyName }}</a>
                                 &mdash;
                                 <a href="/{{lang}}/team/{{task.createdBy.team.id}}">{{ task.createdBy.team.nameEnglish }}</a>
