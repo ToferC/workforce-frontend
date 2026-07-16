@@ -47,55 +47,73 @@
                 {% endif %}
             </div>
         </div>
+
+        {# Identity facts up front — the sidebar Details card stacks below the
+           lists on mobile. #}
+        <div class="entity-header__meta">
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="owner", lang=lang) }}</span>
+                {% if org_tier.owner.person %}
+                <a href="/{{ lang }}/person/{{ org_tier.owner.person.id }}">{{ org_tier.owner.person.givenName }} {{ org_tier.owner.person.familyName }}</a>
+                {% elif role == "operator" or role == "admin" %}
+                <a href="/{{ lang }}/org_tier/{{ org_tier.id }}/owner" class="badge bg-warning text-dark text-decoration-none">{{ fluent(key="vacant-label", lang=lang) }} &mdash; {{ fluent(key="assign-owner", lang=lang) }}</a>
+                {% else %}
+                <span class="badge bg-warning text-dark">{{ fluent(key="vacant-label", lang=lang) }}</span>
+                {% endif %}
+            </span>
+            {% if org_tier.parentOrganizationTier %}
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="parent-tier", lang=lang) }}</span>
+                <a href="/{{ lang }}/org_tier/{{ org_tier.parentOrganizationTier.id }}">{{ org_tier.parentOrganizationTier.nameEn }}</a>
+            </span>
+            {% endif %}
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="tier-level", lang=lang) }}</span>
+                <span>{{ org_tier.tierLevel }}</span>
+            </span>
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="headcount", lang=lang) }}</span>
+                <span>{{ org_tier.headcount }}</span>
+            </span>
+        </div>
     </div>
 
     <div class="detail-layout">
         <!-- Main pane: teams & sub-structure -->
         <div class="detail-main">
-            <!-- Teams -->
-            <div class="card shadow-lg mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> Teams</h2>
-                    {% if role == "operator" or role == "admin" %}
-                    <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/team/new?organization={{ org_tier.organization.id }}&org_tier={{ org_tier.id }}">
-                        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-team", lang=lang) }}
-                    </a>
-                    {% endif %}
+            <!-- Analytics Summary -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-primary">{{ org_tier.headcount }}</div>
+                            <div class="small text-muted">{{ fluent(key="headcount", lang=lang) }}</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush">
-                        {% for team in org_tier.teams %}
-                        <li class="list-group-item">
-                            <a href="/{{lang}}/team/{{team.id}}" class="fw-semibold">{{ team.nameEnglish }}</a>
-                            <span class="small text-muted ms-2">
-                                Owner:
-                                {% if team.owner.person %}
-                                <a href="/{{lang}}/person/{{team.owner.person.id}}">{{ team.owner.person.givenName }} {{ team.owner.person.familyName }}</a>
-                                {% else %}Vacant{% endif %}
-                            </span>
-                        </li>
-                        {% else %}
-                        <li class="list-group-item text-muted">No teams.</li>
-                        {% endfor %}
-                    </ul>
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-info">{{ org_tier.totalEffort }}</div>
+                            <div class="small text-muted">{{ fluent(key="total-effort", lang=lang) }}</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Child Organization Tiers -->
-            <div class="card shadow-lg mb-4">
-                <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-diagram-2" aria-hidden="true"></i> Child Organization Tiers</h2>
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-secondary">{{ org_tier.teams | length }}</div>
+                            <div class="small text-muted">{{ fluent(key="teams", lang=lang) }}</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush">
-                        {% for child in org_tier.childOrganizationTier %}
-                        <li class="list-group-item">
-                            <a href="/{{lang}}/org_tier/{{child.id}}">{{ child.nameEn }}</a>
-                        </li>
-                        {% else %}
-                        <li class="list-group-item text-muted">No child tiers.</li>
-                        {% endfor %}
-                    </ul>
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm h-100 text-center">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-secondary">{{ org_tier.capabilityCounts | length }}</div>
+                            <div class="small text-muted">{{ fluent(key="capability-types", lang=lang) }}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -178,41 +196,61 @@
             </div>
             {% endif %}
 
-            <!-- Analytics Summary -->
-            <div class="row g-3 mb-4">
-                <div class="col-6 col-md-3">
-                    <div class="card shadow-sm h-100 text-center">
-                        <div class="card-body py-3">
-                            <div class="fs-2 fw-bold text-primary">{{ org_tier.headcount }}</div>
-                            <div class="small text-muted">Headcount</div>
-                        </div>
-                    </div>
+            <!-- Teams -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="teams", lang=lang) }}</h2>
+                    {% if role == "operator" or role == "admin" %}
+                    <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/team/new?organization={{ org_tier.organization.id }}&org_tier={{ org_tier.id }}">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-team", lang=lang) }}
+                    </a>
+                    {% endif %}
                 </div>
-                <div class="col-6 col-md-3">
-                    <div class="card shadow-sm h-100 text-center">
-                        <div class="card-body py-3">
-                            <div class="fs-2 fw-bold text-info">{{ org_tier.totalEffort }}</div>
-                            <div class="small text-muted">Total Effort</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card shadow-sm h-100 text-center">
-                        <div class="card-body py-3">
-                            <div class="fs-2 fw-bold text-secondary">{{ org_tier.teams | length }}</div>
-                            <div class="small text-muted">Teams</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card shadow-sm h-100 text-center">
-                        <div class="card-body py-3">
-                            <div class="fs-2 fw-bold text-secondary">{{ org_tier.capabilityCounts | length }}</div>
-                            <div class="small text-muted">Capability Types</div>
-                        </div>
-                    </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for team in org_tier.teams %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                            <span>
+                                <a href="/{{lang}}/team/{{team.id}}" class="fw-semibold">{{ team.nameEnglish }}</a>
+                                <span class="small text-muted ms-2">
+                                    {{ fluent(key="owner", lang=lang) }}:
+                                    {% if team.owner.person %}
+                                    <a href="/{{lang}}/person/{{team.owner.person.id}}">{{ team.owner.person.givenName }} {{ team.owner.person.familyName }}</a>
+                                    {% else %}{{ fluent(key="vacant-label", lang=lang) }}{% endif %}
+                                </span>
+                            </span>
+                            {% if team.headcount is defined %}
+                            <span class="small text-muted">{{ team.headcount }} <i class="bi bi-person" aria-hidden="true"></i></span>
+                            {% endif %}
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">{{ fluent(key="no-teams", lang=lang) }}</li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
+
+            {% if not budget %}
+            <!-- Child Organization Tiers -->
+            {# Fallback child list: when financial data is available, the
+               Budget card above lists the children with their figures. #}
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0"><i class="bi bi-diagram-2" aria-hidden="true"></i> {{ fluent(key="child-org-tiers", lang=lang) }}</h2>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for child in org_tier.childOrganizationTier %}
+                        <li class="list-group-item">
+                            <a href="/{{lang}}/org_tier/{{child.id}}">{{ child.nameEn }}</a>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">{{ fluent(key="no-child-tiers", lang=lang) }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Capabilities by Domain -->
             {% if domain_summary %}
@@ -248,28 +286,28 @@
                 <!-- Details -->
                 <div class="card shadow-lg mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> Details</h2>
+                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ fluent(key="details-heading", lang=lang) }}</h2>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><span class="text-muted">Tier Level:</span> {{ org_tier.tierLevel }}</li>
-                            <li class="list-group-item"><span class="text-muted">Primary Domain:</span> {{ org_tier.primaryDomain }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="tier-level", lang=lang) }}:</span> {{ org_tier.tierLevel }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="primary-domain", lang=lang) }}:</span> {{ org_tier.primaryDomain }}</li>
                             <li class="list-group-item">
-                                <span class="text-muted">Parent Organization Tier:</span>
+                                <span class="text-muted">{{ fluent(key="parent-tier", lang=lang) }}:</span>
                                 {% if org_tier.parentOrganizationTier %}
                                     <a href="/{{ lang }}/org_tier/{{ org_tier.parentOrganizationTier.id }}">{{ org_tier.parentOrganizationTier.nameEn }}</a>
                                 {% else %}
-                                    None
+                                    {{ fluent(key="none-label", lang=lang) }}
                                 {% endif %}
                             </li>
                             <li class="list-group-item">
-                                <span class="text-muted">Owner:</span>
+                                <span class="text-muted">{{ fluent(key="owner", lang=lang) }}:</span>
                                 {% if org_tier.owner.person %}
                                 <a href="/{{lang}}/person/{{org_tier.owner.person.id}}">{{ org_tier.owner.person.givenName }} {{ org_tier.owner.person.familyName }}</a>
-                                {% else %}<span class="text-muted">Vacant</span>{% endif %}
+                                {% else %}<span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>{% endif %}
                             </li>
                             {% if org_tier.owner.person %}
-                            <li class="list-group-item"><span class="text-muted">Owner Email:</span> {{ org_tier.owner.person.email }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="owner-email", lang=lang) }}:</span> {{ org_tier.owner.person.email }}</li>
                             {% endif %}
                         </ul>
                     </div>

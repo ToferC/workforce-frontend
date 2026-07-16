@@ -25,6 +25,11 @@
                 <a class="btn btn-primary btn-sm" href="/{{ lang }}/role/{{ role_record.id }}/edit">
                     <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-role-status", lang=lang) }}
                 </a>
+                {% if not role_record.person %}
+                <a class="btn btn-success btn-sm" href="#matches">
+                    <i class="bi bi-bullseye" aria-hidden="true"></i> {{ fluent(key="find-candidates", lang=lang) }}
+                </a>
+                {% endif %}
                 <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/role/{{ role_record.id }}/task/new">
                     <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-task", lang=lang) }}
                 </a>
@@ -45,6 +50,32 @@
                 </a>
                 {% endif %}
             </div>
+            {% endif %}
+        </div>
+
+        {# Identity facts up front — the sidebar stacks below the main lists on
+           mobile, so who holds the role / which team / what it costs must not
+           live only there. #}
+        <div class="entity-header__meta">
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="incumbent", lang=lang) }}</span>
+                {% if role_record.person %}
+                <a href="/{{ lang }}/person/{{ role_record.person.id }}">{{ role_record.person.givenName }} {{ role_record.person.familyName }}</a>
+                {% else %}
+                <span class="badge bg-warning text-dark">{{ fluent(key="vacant-label", lang=lang) }}</span>
+                {% endif %}
+            </span>
+            {% if role_record.team %}
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="team", lang=lang) }}</span>
+                <a href="/{{ lang }}/team/{{ role_record.team.id }}">{{ role_record.team.nameEnglish }}</a>
+            </span>
+            {% endif %}
+            {% if role_record.annualSalary %}
+            <span class="meta-item">
+                <span class="meta-item__label">{{ fluent(key="annual-salary", lang=lang) }}</span>
+                <span>{{ role_record.annualSalary | money(lang=lang) }}</span>
+            </span>
             {% endif %}
         </div>
     </div>
@@ -136,7 +167,7 @@
             </div>
             {% else %}
             <!-- Potential Matches -->
-            <div class="card shadow-lg mb-4">
+            <div class="card shadow-lg mb-4" id="matches">
                 <div class="card-header">
                     <h2 class="h4 mb-0"><i class="bi bi-bullseye" aria-hidden="true"></i> {{ fluent(key="potential-matches", lang=lang) }}</h2>
                 </div>
@@ -227,29 +258,6 @@
                     </div>
                 </div>
 
-                <!-- Team -->
-                <div class="card shadow-lg mb-4">
-                    <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="team", lang=lang) }}</h2>
-                    </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item">
-                                <span class="text-muted">{{ fluent(key="name", lang=lang) }}:</span>
-                                <a href="/{{lang}}/team/{{role_record.team.id}}">{{ role_record.team.nameEnglish }}</a>
-                            </li>
-                            <li class="list-group-item">
-                                <span class="text-muted">{{ fluent(key="owner", lang=lang) }}:</span>
-                                {% if role_record.team.owner.person %}
-                                <a href="/{{lang}}/person/{{role_record.team.owner.person.id}}">{{ role_record.team.owner.person.givenName }} {{ role_record.team.owner.person.familyName }}</a>
-                                &mdash; {{ role_record.team.owner.person.email }}
-                                {% else %}
-                                <span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>
-                                {% endif %}
-                            </li>
-                        </ul>
-                    </div>
-                </div>
                 {% else %}
                 <!-- Vacant Role -->
                 <div class="card shadow-lg mb-4 border-warning">
@@ -292,30 +300,6 @@
                     {% endif %}
                 </div>
 
-                <!-- Team -->
-                {% if role_record.team %}
-                <div class="card shadow-lg mb-4">
-                    <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="team", lang=lang) }}</h2>
-                    </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item">
-                                <span class="text-muted">{{ fluent(key="name", lang=lang) }}:</span>
-                                <a href="/{{lang}}/team/{{role_record.team.id}}">{{ role_record.team.nameEnglish }}</a>
-                            </li>
-                            <li class="list-group-item">
-                                <span class="text-muted">{{ fluent(key="owner", lang=lang) }}:</span>
-                                {% if role_record.team.owner.person %}
-                                <a href="/{{lang}}/person/{{role_record.team.owner.person.id}}">{{ role_record.team.owner.person.givenName }} {{ role_record.team.owner.person.familyName }}</a>
-                                {% else %}
-                                <span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>
-                                {% endif %}
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
                 {% endif %}
 
                 <!-- Cost: salary rate and fiscal-year projection -->
@@ -346,6 +330,31 @@
                                 <span class="text-warning fw-semibold">{{ role_record.finances.lapseCents | money(lang=lang) }}</span>
                             </li>
                             {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Team -->
+                {% if role_record.team %}
+                <div class="card shadow-lg mb-4">
+                    <div class="card-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="team", lang=lang) }}</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <span class="text-muted">{{ fluent(key="name", lang=lang) }}:</span>
+                                <a href="/{{lang}}/team/{{role_record.team.id}}">{{ role_record.team.nameEnglish }}</a>
+                            </li>
+                            <li class="list-group-item">
+                                <span class="text-muted">{{ fluent(key="owner", lang=lang) }}:</span>
+                                {% if role_record.team.owner.person %}
+                                <a href="/{{lang}}/person/{{role_record.team.owner.person.id}}">{{ role_record.team.owner.person.givenName }} {{ role_record.team.owner.person.familyName }}</a>
+                                {% else %}
+                                <span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>
+                                {% endif %}
+                            </li>
                         </ul>
                     </div>
                 </div>

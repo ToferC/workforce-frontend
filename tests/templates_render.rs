@@ -116,6 +116,88 @@ fn organization_detail_shows_actions_for_operator_only() {
 }
 
 #[test]
+fn organization_detail_tiles_and_publications_link() {
+    let tera = tera();
+    let mut ctx = base_context("en", "user");
+    ctx.insert("organization", &sample_organization());
+    ctx.insert("org_finances", &json!({
+        "tiers": 42, "budgetedCents": 66_344_153_951_i64,
+        "projectedCents": 63_000_000_000_i64, "lapseCents": 3_344_153_951_i64,
+        "allocationCents": 69_670_000_000_i64
+    }));
+    let html = tera.render("organization/organization.html", &ctx).unwrap();
+    // At-a-glance tiles lead the page
+    assert!(html.contains("$663,441,539"));
+    assert!(html.contains(">42<"));
+    // Publications moved to their own view — no card, just the index link
+    assert!(!html.contains("bi-journal-richtext\" aria-hidden=\"true\"></i> Publications"));
+    assert!(html.contains("/en/publications"));
+    // Meta strip carries the identity facts
+    assert!(html.contains("Organization type"));
+}
+
+#[test]
+fn detail_pages_have_meta_strips() {
+    let tera = tera();
+
+    // Role: incumbent fact + vacant badge and find-candidates CTA
+    let mut ctx = base_context("en", "operator");
+    let mut role = sample_role_record();
+    role["person"] = json!(null);
+    ctx.insert("role_record", &role);
+    let html = tera.render("role/role.html", &ctx).unwrap();
+    assert!(html.contains("entity-header__meta"));
+    assert!(html.contains("href=\"#matches\""));
+    assert!(html.contains("id=\"matches\""));
+
+    // Team: owner + member counts in the meta strip; Add role is primary
+    let mut ctx = base_context("en", "operator");
+    let mut team = sample_team();
+    team["headcount"] = json!(5);
+    team["totalEffort"] = json!(20);
+    ctx.insert("team", &team);
+    team_page_extras(&mut ctx);
+    let html = tera.render("team/team.html", &ctx).unwrap();
+    assert!(html.contains("entity-header__meta"));
+    assert!(html.contains("btn btn-primary btn-sm\" href=\"/en/role/new?team="));
+}
+
+#[test]
+fn work_page_meta_and_order() {
+    let tera = tera();
+    let mut ctx = base_context("en", "user");
+    ctx.insert("work", &json!({
+        "id": "w0000000-0000-0000-0000-000000000001",
+        "workDescription": "prepare readiness assessment",
+        "workStatus": "IN_PROGRESS", "isBlocked": false,
+        "domain": "COMBAT", "capabilityLevel": "EXPERIENCED", "effort": 3,
+        "priority": "HIGH", "priorityBelowParent": false,
+        "dueDate": "2026-08-01T00:00:00", "url": "",
+        "skill": {"id": "s1", "nameEn": "Armoured Operations"},
+        "role": null, "dependsOn": [], "blocks": [], "updates": [],
+        "capabilityMatches": [],
+        "task": {"id": "t1", "title": "Readiness push", "work": [],
+                 "targetCompletionDate": "2026-12-01",
+                 "product": null,
+                 "createdBy": {"id": "r1", "titleEnglish": "Director",
+                     "militaryOccupation": null, "rank": null,
+                     "occupationalGroup": null, "occupationalLevel": null,
+                     "person": {"id": "p1", "givenName": "Sam", "familyName": "Lee"},
+                     "team": {"id": "tm1", "nameEnglish": "Cyber Team"}}}
+    }));
+    ctx.insert("work_overdue", &false);
+    let html = tera.render("work/work.html", &ctx).unwrap();
+    // Meta strip: due date + unassigned badge + task link
+    assert!(html.contains("entity-header__meta"));
+    assert!(html.contains("2026-08-01"));
+    assert!(html.contains("Unassigned"));
+    // Assigned To renders before Dependencies in the main pane
+    let assigned = html.find("Assigned To").or(html.find("assigned-to")).unwrap_or(usize::MAX);
+    let deps = html.find("Dependencies").unwrap_or(0);
+    assert!(assigned < deps, "Assigned To should precede Dependencies");
+}
+
+#[test]
 fn organization_detail_hides_retire_when_already_retired() {
     let tera = tera();
     let mut ctx = base_context("en", "admin");

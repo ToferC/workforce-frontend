@@ -851,3 +851,18 @@ fiscal-year = Exercice financier
 current-fiscal-year = Exercice financier en cours
 previous-fiscal-year = Exercice financier précédent
 next-fiscal-year = Exercice financier suivant
+
+# Passe de lisibilité des pages de détail
+capability-types = Types de capacités
+created-by = Créé par
+website = Site Web
+assigned-count = Attribué
+no-teams = Aucune équipe.
+child-org-tiers = Niveaux organisationnels enfants
+no-child-tiers = Aucun niveau enfant.
+owner-email = Courriel du responsable
+org-capabilities = Capacités organisationnelles
+no-capability-data = Aucune donnée sur les capacités.
+org-type = Type d'organisation
+no-affiliations = Aucune affiliation.
+view-all-publications = Voir toutes les publications

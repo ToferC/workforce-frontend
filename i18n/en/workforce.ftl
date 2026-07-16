@@ -851,3 +851,18 @@ fiscal-year = Fiscal year
 current-fiscal-year = Current fiscal year
 previous-fiscal-year = Previous fiscal year
 next-fiscal-year = Next fiscal year
+
+# Detail-page readability pass
+capability-types = Capability Types
+created-by = Created by
+website = Website
+assigned-count = Assigned
+no-teams = No teams.
+child-org-tiers = Child Organization Tiers
+no-child-tiers = No child tiers.
+owner-email = Owner email
+org-capabilities = Organizational Capabilities
+no-capability-data = No capability data available.
+org-type = Organization type
+no-affiliations = No affiliations.
+view-all-publications = View all publications
