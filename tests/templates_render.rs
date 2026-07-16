@@ -1178,7 +1178,28 @@ fn pay_rates_page_renders_tables_and_form() {
     assert!(html.contains("$86,500"));
     assert!(html.contains("Colonel"));
     assert!(html.contains("$192,000"));
-    assert!(html.contains("/en/admin/pay_rates/new"));
+
+    // Civilian and military rates are entered through separate forms, each
+    // with only its own classification fields, all required.
+    assert!(html.contains("/en/admin/pay_rates/civilian"));
+    assert!(html.contains("/en/admin/pay_rates/military"));
+    assert!(!html.contains("/en/admin/pay_rates/new"));
+    let civilian_form = html
+        .split("/en/admin/pay_rates/civilian").nth(1).unwrap()
+        .split("</form>").next().unwrap();
+    assert!(civilian_form.contains("name=\"occupational_group\""));
+    assert!(civilian_form.contains("required=\"true\""));
+    assert!(!civilian_form.contains("name=\"rank\""));
+    let military_form = html
+        .split("/en/admin/pay_rates/military").nth(1).unwrap()
+        .split("</form>").next().unwrap();
+    assert!(military_form.contains("name=\"rank\""));
+    assert!(!military_form.contains("name=\"occupational_group\""));
+    // Repeated field names get unique element ids across the two forms.
+    assert!(military_form.contains("input-id=\"mil_annual_rate\""));
+    assert!(military_form.contains("id=\"mil_effective_date\""));
+    // Every fluent key resolves.
+    assert!(!html.contains("Unknown localization key"));
 }
 
 #[test]
