@@ -153,6 +153,34 @@ pub fn level_weight(level: &str) -> i64 {
     }
 }
 
+/// How well a set of capabilities covers a role's requirements, matched by
+/// skill name. The held level is the validated level when there is one,
+/// otherwise the self-identified level. Shared by the person page's current
+/// roles and job matches so both read the same way:
+/// `{rows: [{name, domain, required, held, validated, met}], met, total, pct}`.
+pub fn requirement_fit(requirements: &serde_json::Value, capabilities: &serde_json::Value) -> serde_json::Value {
+    let caps = capabilities.as_array().map(Vec::as_slice).unwrap_or_default();
+    let rows: Vec<serde_json::Value> = requirements.as_array().into_iter().flatten().map(|req| {
+        let name = req["nameEn"].as_str().unwrap_or("");
+        let required = req["requiredLevel"].as_str().unwrap_or("");
+        let cap = caps.iter().find(|c| c["nameEn"].as_str() == Some(name));
+        let validated = cap.and_then(|c| c["validatedLevel"].as_str());
+        let held = validated.or_else(|| cap.and_then(|c| c["selfIdentifiedLevel"].as_str()));
+        serde_json::json!({
+            "name": name,
+            "domain": req["domain"],
+            "required": required,
+            "held": held,
+            "validated": validated.is_some(),
+            "met": held.map_or(false, |h| level_weight(h) >= level_weight(required)),
+        })
+    }).collect();
+    let total = rows.len();
+    let met = rows.iter().filter(|r| r["met"] == true).count();
+    let pct = if total == 0 { 100 } else { met * 100 / total };
+    serde_json::json!({"rows": rows, "met": met, "total": total, "pct": pct})
+}
+
 /// Short, localized label for an API enum value — the Rust twin of
 /// `labels::enum_label` in templates/macros/labels.html, reading the same
 /// `enum-<kind>-<value>` Fluent keys (value lower-cased, `_` → `-`). Used where

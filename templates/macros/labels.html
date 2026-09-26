@@ -15,7 +15,7 @@
       To add an enum: add one `enum-<kind>-<value>` line per value to both
       i18n/en/workforce.ftl and i18n/fr/workforce.ftl, then render with
       {{ labels::enum_label(kind="<kind>", value=x, lang=lang) }}, or wrap it
-      in a colored chip in macros/viz.html. tests/enum_labels.rs checks that
+      in a colored chip in macros/viz.html. tests/labels_and_fit.rs checks that
       both languages have a key for every value of the enums it lists.
 
   name(obj, lang)

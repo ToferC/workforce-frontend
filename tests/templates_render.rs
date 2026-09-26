@@ -1963,3 +1963,46 @@ fn org_tier_page_compares_sub_units_and_links_up_the_hierarchy() {
         assert!(menu.find("/edit").unwrap() < menu.find("/retire").unwrap());
     }
 }
+
+#[test]
+fn person_page_shows_role_fit_and_ranked_job_matches() {
+    let tera = tera();
+    let mut person = sample_person();
+    person["activeRoles"] = json!([{
+        "id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "titleFrench": "Analyste",
+        "militaryOccupation": null, "rank": null, "occupationalGroup": "EC", "occupationalLevel": 5, "effort": 6, "work": [],
+        "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team", "nameFrench": "Équipe test",
+                 "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization", "nameFr": "Organisation test"},
+                 "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Test Tier", "nameFr": "Niveau test"},
+                 "owner": {"id": "o1", "person": null}},
+    }]);
+    let fit = json!({"met": 1, "total": 2, "pct": 50, "rows": [
+        {"name": "Threat Analysis", "domain": "CYBER_SECURITY", "required": "EXPERT", "held": "EXPERT", "validated": true, "met": true},
+        {"name": "Forecasting", "domain": "DATA_ANALYTICS_AND_AI", "required": "EXPERT", "held": null, "validated": false, "met": false},
+    ]});
+    let matches = json!([{"role": {"id": "dddddddd-dddd-dddd-dddd-dddddddddddd", "titleEnglish": "Senior Analyst", "titleFrench": "Analyste principal",
+        "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null, "requirements": []}, "fit": fit}]);
+
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &person);
+    ctx.insert("role_fit", &json!({"77777777-7777-7777-7777-777777777777": fit}));
+    ctx.insert("job_matches", &matches);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(html.contains("1 of 2 requirements met"));
+    assert!(html.contains("none held"));
+    assert!(html.contains("50% match"));
+    assert!(html.contains("Senior Analyst"));
+    // Breadcrumb climbs through the current role: org › tier › team › role
+    let crumbs = &html[html.find("<gcds-breadcrumbs").unwrap()..html.find("</gcds-breadcrumbs>").unwrap()];
+    for path in ["/en/organization/1111", "/en/org_tier/2222", "/en/team/6666", "/en/role/7777"] {
+        assert!(crumbs.contains(path), "breadcrumb {}", path);
+    }
+
+    // Job matches are for operators and the person themself only
+    let mut ctx = base_context("fr", "user");
+    ctx.insert("person", &person);
+    ctx.insert("job_matches", &matches);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(!html.contains("Analyste principal"));
+    assert!(html.contains("Équipe test"));
+}

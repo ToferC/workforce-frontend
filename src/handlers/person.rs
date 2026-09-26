@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use crate::{AppData, generate_basic_context, by_lang, level_weight, enum_label, chart_json};
+use crate::{AppData, generate_basic_context, by_lang, level_weight, enum_label, chart_json, requirement_fit};
 use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, get_me, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data, restore_person};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
@@ -217,6 +217,20 @@ pub async fn person_by_id(
     }
 
     ctx.insert("person", &r.person_by_id);
+
+    // Requirement fit for each current role, and job matches ranked by fit —
+    // one computation so both read the same way.
+    let person_json = serde_json::to_value(&r.person_by_id).unwrap_or_default();
+    let capabilities = &person_json["capabilities"];
+    let role_fit: serde_json::Map<String, serde_json::Value> = person_json["activeRoles"].as_array().into_iter().flatten()
+        .map(|role| (role["id"].as_str().unwrap_or("").to_string(), requirement_fit(&role["requirements"], capabilities)))
+        .collect();
+    ctx.insert("role_fit", &role_fit);
+    let mut job_matches: Vec<serde_json::Value> = person_json["findMatches"].as_array().into_iter().flatten()
+        .map(|role| json!({"role": role, "fit": requirement_fit(&role["requirements"], capabilities)}))
+        .collect();
+    job_matches.sort_by_key(|m| std::cmp::Reverse(m["fit"]["pct"].as_u64().unwrap_or(0)));
+    ctx.insert("job_matches", &job_matches);
 
     // Overdue work ids for the badge: due before today and not finished.
     // (Tera can't compare date strings, so membership is computed here.)

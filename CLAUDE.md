@@ -121,7 +121,7 @@ Required `.env` variables:
   which reads the Fluent key `enum-<kind>-<value lower, "_"→"-">`. Enum selects
   pass `label_kind="<kind>", lang=lang` to `forms::select`; Rust-built labels
   (charts) use `frontend::enum_label(kind, value, lang)`. To add an enum, add
-  its keys to both `.ftl` files and to `KINDS` in `tests/enum_labels.rs`.
+  its keys to both `.ftl` files and to `KINDS` in `tests/labels_and_fit.rs`.
 - Entity names: `labels::name(obj=x, lang=lang)` picks the FR/EN field
   (`nameEn/nameFr`, `nameEnglish/nameFrench`, `titleEnglish/titleFrench`).
 - Tera ignores imports inside included partials: a page must import every macro

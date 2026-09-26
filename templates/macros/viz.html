@@ -11,6 +11,8 @@
   vacancy_chip / retired_chip       — distinct state chips (never the same color)
   stat_tile(value, label, …)        — at-a-glance number with optional status
   utilization(effort, headcount)    — % of capacity in use, with status icon
+  fit_list(fit, lang)               — requirement-by-requirement fit
+                                      (from frontend::requirement_fit)
 
   Every chip takes `lang` and renders its value through
   labels::enum_label, so ALL_CAPS API values show as short localized text.
@@ -199,3 +201,30 @@
 {%- endif -%}
 {%- else -%}&mdash;{%- endif -%}
 {% endmacro utilization %}
+
+
+{# ── fit_list ────────────────────────────────────────────────────────────────
+   fit : {rows: [{name, domain, required, held, validated, met}], met, total,
+          pct} as built by frontend::requirement_fit
+   One line per requirement: met/gap icon, skill, domain, needed vs held.
+   Renders nothing when the role has no requirements.
+#}
+{% macro fit_list(fit, lang) %}
+{%- if fit and fit.total > 0 -%}
+<div class="fit">
+  <div class="small fw-semibold mb-1">{{ fluent(key="fit-summary", met=fit.met, total=fit.total, lang=lang) }}</div>
+  <ul class="list-unstyled mb-0 small">
+    {% for r in fit.rows %}
+    <li class="d-flex align-items-center gap-2 flex-wrap">
+      {% if r.met %}<i class="bi bi-check-circle" aria-hidden="true"></i><span class="visually-hidden">{{ fluent(key="requirement-met", lang=lang) }}</span>
+      {% else %}<i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span class="visually-hidden">{{ fluent(key="requirement-gap", lang=lang) }}</span>{% endif %}
+      <span>{{ r.name }}</span>
+      {{ self::domain_chip(domain=r.domain, lang=lang) }}
+      <span class="text-muted">{{ fluent(key="needs-label", lang=lang) }} {{ labels::enum_label(kind="level", value=r.required, lang=lang) }} &middot;
+        {% if r.held %}{{ fluent(key="has-label", lang=lang) }} {{ labels::enum_label(kind="level", value=r.held, lang=lang) }}{% if r.validated %} <i class="bi bi-patch-check" aria-hidden="true"></i>{% endif %}{% else %}{{ fluent(key="none-held", lang=lang) }}{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{%- endif -%}
+{% endmacro fit_list %}
