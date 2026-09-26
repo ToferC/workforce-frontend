@@ -576,7 +576,8 @@ fn sample_role_record() -> serde_json::Value {
         "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "phone": "555", "email": "s@e.com"},
         "team": {
             "id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team",
-            "organizationLevel": {"nameEn": "Tier", "primaryDomain": "CYBER_SECURITY"},
+            "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization", "nameFr": "Organisation test"},
+            "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Tier", "nameFr": "Niveau", "primaryDomain": "CYBER_SECURITY"},
             "owner": {"id": "44444444-4444-4444-4444-444444444444", "givenName": "Jane", "familyName": "Doe", "email": "j@e.com"},
         },
         "work": [],
@@ -689,11 +690,16 @@ fn role_detail_shows_assignment_history() {
     ctx.insert("role_record", &role);
     let html = tera.render("role/role.html", &ctx).unwrap();
     assert!(html.contains("Assignment History"));
-    // both occupants and the current badge appear
-    assert!(html.contains("Sam Lee"));
-    assert!(html.contains("Pat Kim"));
-    assert!(html.contains("Current"));
+    // The current holder leads the meta strip with their start date; the
+    // history lists only previous holders.
+    assert!(html.contains("since 2026-01-01"));
+    let history = &html[html.find("Assignment History").unwrap()..];
+    assert!(history.contains("Pat Kim"));
+    assert!(!history.contains("Sam Lee"));
     assert!(html.contains("/person/99999999-9999-9999-9999-999999999999"));
+    // Breadcrumb: organization › tier › team
+    assert!(html.contains("gcds-breadcrumbs-item href=\"/en/team/66666666-6666-6666-6666-666666666666\""));
+    assert!(html.contains("gcds-breadcrumbs-item href=\"/en/org_tier/22222222-2222-2222-2222-222222222222\""));
 }
 
 #[test]

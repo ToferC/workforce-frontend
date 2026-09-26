@@ -932,3 +932,7 @@ sub-units = Sub-units
 no-sub-units = No child tiers or teams yet.
 in-direct-teams = In teams directly under this tier
 high-load = High load
+edit-role = Edit role
+fill-this-role = Fill this role
+assign-directly = Or assign someone directly
+since-date = since { $date }

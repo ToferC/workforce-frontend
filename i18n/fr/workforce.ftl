@@ -932,3 +932,7 @@ sub-units = Sous-unités
 no-sub-units = Aucun niveau enfant ni équipe pour l'instant.
 in-direct-teams = Dans les équipes relevant directement de ce niveau
 high-load = Charge élevée
+edit-role = Modifier le rôle
+fill-this-role = Pourvoir ce rôle
+assign-directly = Ou affecter directement une personne
+since-date = depuis le { $date }

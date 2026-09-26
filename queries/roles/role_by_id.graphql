@@ -26,8 +26,16 @@ query RoleById($id:UUID!) {
     team {
       id
       nameEnglish
-      organizationLevel {
+      nameFrench
+      organization {
+        id
         nameEn
+        nameFr
+      }
+      organizationLevel {
+        id
+        nameEn
+        nameFr
         primaryDomain
       }
       owner {
