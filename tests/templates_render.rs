@@ -432,7 +432,7 @@ fn sample_team_stats() -> serde_json::Value {
 fn team_page_extras(ctx: &mut Context) {
     ctx.insert("products", &json!([]));
     ctx.insert("tasks", &json!([]));
-    ctx.insert("active_work", &json!([]));
+    ctx.insert("members", &json!([]));
     ctx.insert("work_count", &0);
 }
 
@@ -1801,18 +1801,44 @@ fn role_work_rows_show_due_dates_and_overdue() {
 }
 
 #[test]
-fn team_page_lists_vacant_roles_with_find_candidates() {
+fn team_page_lists_members_by_reporting_line_with_vacancies() {
     let tera = tera();
     let mut team = sample_team();
     team["vacantRoles"] = json!([{"id": "99999999-9999-9999-9999-999999999999", "titleEnglish": "Advisor", "titleFrench": "Conseiller"}]);
+    let members = json!([
+        {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Lead", "titleFrench": "Chef", "depth": 0, "vacant": false, "effort": 9,
+         "militaryOccupation": null, "rank": null, "occupationalGroup": "EC", "occupationalLevel": 6,
+         "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee"}},
+        {"id": "99999999-9999-9999-9999-999999999999", "titleEnglish": "Advisor", "titleFrench": "Conseiller", "depth": 1, "vacant": true, "effort": 0,
+         "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null},
+    ]);
     let mut ctx = base_context("en", "operator");
     ctx.insert("team", &team);
     team_page_extras(&mut ctx);
+    ctx.insert("members", &members);
+    ctx.insert("tasks", &json!([{"id": "t1", "title": "Readiness push", "status": "IN_PROGRESS", "due": "2020-01-01", "overdue": true,
+        "activeWork": [{"id": "w1", "description": "Draft plan", "effort": 3, "person": "Sam Lee"}]}]));
     let html = tera.render("team/team.html", &ctx).unwrap();
-    assert!(html.contains("Find candidates"));
-    assert!(html.contains("/role/99999999-9999-9999-9999-999999999999"));
-    // Team page title carries the team name
+    // One table: lead first, vacant report indented under it with a matcher link
+    assert!(html.find("Lead").unwrap() < html.find("Advisor").unwrap());
+    assert!(html.contains("member-report"));
+    assert!(html.contains("/role/99999999-9999-9999-9999-999999999999#matches"));
+    assert!(html.contains("High load"));
+    // Tasks carry due dates, overdue flags and their active work
+    assert!(html.contains("Overdue"));
+    assert!(html.contains("Draft plan"));
+    // Breadcrumb up to the tier; title carries the team name
+    assert!(html.contains("/en/org_tier/22222222-2222-2222-2222-222222222222"));
     assert!(html.contains("<title>Test Team"));
+
+    let mut ctx = base_context("fr", "user");
+    ctx.insert("team", &team);
+    team_page_extras(&mut ctx);
+    ctx.insert("members", &members);
+    let html = tera.render("team/team.html", &ctx).unwrap();
+    assert!(html.contains("Chef"));
+    assert!(html.contains("Équipe test"));
+    assert!(!html.contains("#matches"), "matcher link is operator-only");
 }
 
 #[test]

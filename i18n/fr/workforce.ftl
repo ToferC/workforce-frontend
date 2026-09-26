@@ -931,3 +931,4 @@ show-by-skill = Afficher par compétence
 sub-units = Sous-unités
 no-sub-units = Aucun niveau enfant ni équipe pour l'instant.
 in-direct-teams = Dans les équipes relevant directement de ce niveau
+high-load = Charge élevée

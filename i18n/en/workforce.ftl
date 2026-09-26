@@ -931,3 +931,4 @@ show-by-skill = Show counts by skill
 sub-units = Sub-units
 no-sub-units = No child tiers or teams yet.
 in-direct-teams = In teams directly under this tier
+high-load = High load
