@@ -8,7 +8,7 @@
         </a>
         <span>
             {{ viz::domain_chip(domain=skill.domain, lang=lang) }}
-            {% if skill.retiredAt %}<span class="badge bg-warning text-dark ms-1">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+            {% if skill.retiredAt %}{{ viz::retired_chip(lang=lang) }}{% endif %}
         </span>
     </li>
     {% else %}

@@ -16,7 +16,7 @@
         <span>
             <span class="badge bg-secondary me-1">{{ fluent(key="tier-level", lang=lang) }} {{ tier.tierLevel }}</span>
             {{ viz::domain_chip(domain=tier.primaryDomain, lang=lang) }}
-            {% if tier.retiredAt %}<span class="badge bg-warning text-dark ms-1">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+            {% if tier.retiredAt %}{{ viz::retired_chip(lang=lang) }}{% endif %}
         </span>
     </li>
     {% else %}

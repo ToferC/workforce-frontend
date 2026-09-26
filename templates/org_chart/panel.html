@@ -6,7 +6,7 @@
             <i class="bi bi-diagram-3" aria-hidden="true"></i>
             {% if lang == "fr" %}{{ org_tier.nameFr }}{% else %}{{ org_tier.nameEn }}{% endif %}
         </h2>
-        {% if org_tier.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+        {% if org_tier.retiredAt %}{{ viz::retired_chip(lang=lang) }}{% endif %}
     </div>
     <div class="card-body p-0">
         <ul class="list-group list-group-flush">

@@ -1,26 +1,34 @@
 {# Role list + pagination — standalone for HTMX filtering, and included by
    the full role_index page. The wrapper carries id="role-list" so an HTMX
    filter swap replaces both the rows and the page controls. #}
+{% import "macros/viz.html" as viz %}
+{% import "macros/labels.html" as labels %}
 <div id="role-list">
-    <ul class="list-group list-group-flush">
-        {% for r in roles %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <a href="/{{ lang }}/role/{{ r.id }}">
-                {% if lang == "fr" %}{{ r.titleFrench }}{% else %}{{ r.titleEnglish }}{% endif %}
-            </a>
-            <span>
-                {% if r.person %}
-                <span class="text-muted small">{{ r.person.givenName }} {{ r.person.familyName }}</span>
-                {% else %}
-                <span class="badge bg-danger">{{ fluent(key="vacant", lang=lang) }}</span>
-                {% endif %}
-                <span class="text-muted small ms-1">{{ r.team.nameEnglish }}</span>
-            </span>
-        </li>
-        {% else %}
-        <li class="list-group-item text-muted">{{ fluent(key="no-results", lang=lang) }}</li>
-        {% endfor %}
-    </ul>
+    <div class="table-responsive">
+    <table class="table table-sm table-hover table-compare mb-0 align-middle">
+        <thead>
+            <tr>
+                <th scope="col">{{ fluent(key="role", lang=lang) }}</th>
+                <th scope="col">{{ fluent(key="incumbent", lang=lang) }}</th>
+                <th scope="col">{{ fluent(key="team", lang=lang) }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in roles %}
+            <tr>
+                <td>
+                    <a href="/{{ lang }}/role/{{ r.id }}" class="fw-semibold">{{ labels::name(obj=r, lang=lang) }}</a>
+                    <div class="small text-muted">{{ viz::classification(mo=r.militaryOccupation, rank=r.rank, group=r.occupationalGroup, level=r.occupationalLevel) }}</div>
+                </td>
+                <td>{% if r.person %}<a href="/{{ lang }}/person/{{ r.person.id }}">{{ r.person.givenName }} {{ r.person.familyName }}</a>{% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}</td>
+                <td>{% if r.team %}<a href="/{{ lang }}/team/{{ r.team.id }}">{{ labels::name(obj=r.team, lang=lang) }}</a>{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-muted">{{ fluent(key="no-results", lang=lang) }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
 
     {% if total_pages > 1 %}
     {% set q_enc = q | urlencode %}

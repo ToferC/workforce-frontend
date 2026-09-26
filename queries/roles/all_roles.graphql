@@ -8,7 +8,7 @@ query AllRoles($search: String, $organizationId: UUID, $status: String, $limit: 
     occupationalGroup
     occupationalLevel
     person { id givenName familyName }
-    team { id nameEnglish organization { id nameEn } }
+    team { id nameEnglish nameFrench organization { id nameEn nameFr } }
   }
   rolesCount(search: $search, organizationId: $organizationId, status: $status)
 }

@@ -1,7 +1,7 @@
 // Tera ignores macro imports inside an included partial: the including page
 // must import every macro namespace the partial uses, or the page fails at
-// render time. This checks every template statically — including pages no
-// render test covers.
+// render time. Macro files likewise need their own imports. This checks every
+// template statically — including pages no render test covers.
 
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -41,12 +41,12 @@ fn templates_import_every_macro_namespace_they_use() {
 
     let mut missing = Vec::new();
     for (name, text) in &src {
-        // Macro files are only ever imported, never rendered on their own.
-        if name.starts_with("macros/") || name.ends_with("chart_macros.html") {
-            continue;
-        }
         let imported: HashSet<String> = import.captures_iter(text).map(|c| c[1].to_string()).collect();
-        let mut gaps: Vec<String> = used(name, &src, &call, &include).difference(&imported).cloned().collect();
+        let mut gaps: Vec<String> = used(name, &src, &call, &include)
+            .difference(&imported)
+            .filter(|ns| *ns != "self") // a macro file calling its own macros
+            .cloned()
+            .collect();
         if !gaps.is_empty() {
             gaps.sort();
             missing.push(format!("{} needs {:?}", name, gaps));

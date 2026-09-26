@@ -13,7 +13,7 @@
                 <h1 class="entity-header__title">
                     {% if lang == "fr" %}{{ product.nameFr }}{% else %}{{ product.nameEn }}{% endif %}
                     {{ viz::status_chip(status=product.productStatus, lang=lang) }}
-                    {% if product.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+                    {% if product.retiredAt %}{{ viz::retired_chip(lang=lang) }}{% endif %}
                     {% if product.priorityMismatchCount > 0 %}
                     <a href="/{{ lang }}/analytics/consistency" class="badge bg-warning text-dark text-decoration-none" title="{{ fluent(key='priority-consistency', lang=lang) }}"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ product.priorityMismatchCount }} {{ fluent(key="priority-mismatches", lang=lang) }}</a>
                     {% endif %}
