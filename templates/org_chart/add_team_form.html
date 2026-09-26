@@ -38,7 +38,7 @@
             {{ forms::textarea(name="description_fr", label=label_desc_fr, value=team.descriptionFrench, rows=2) }}
         </div>
     </div>
-    {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains) }}
+    {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, label_kind="domain", lang=lang) }}
 
     <div>
         <button type="submit" class="btn btn-sm btn-success">{{ fluent(key="save-button", lang=lang) }}</button>

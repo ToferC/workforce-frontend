@@ -1,4 +1,5 @@
 {# HTMX partial: tier details for the builder's left-hand info panel #}
+{% import "macros/viz.html" as viz %}
 <div class="card shadow-lg">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h2 class="h5 mb-0">
@@ -10,7 +11,7 @@
     <div class="card-body p-0">
         <ul class="list-group list-group-flush">
             <li class="list-group-item"><span class="text-muted">{{ fluent(key="tier-level", lang=lang) }}:</span> {{ org_tier.tierLevel }}</li>
-            <li class="list-group-item"><span class="text-muted">{{ fluent(key="primary-domain", lang=lang) }}:</span> {{ org_tier.primaryDomain }}</li>
+            <li class="list-group-item"><span class="text-muted">{{ fluent(key="primary-domain", lang=lang) }}:</span> {{ viz::domain_chip(domain=org_tier.primaryDomain, lang=lang) }}</li>
             <li class="list-group-item">
                 <span class="text-muted">{{ fluent(key="parent-tier", lang=lang) }}:</span>
                 {% if org_tier.parentOrganizationTier %}

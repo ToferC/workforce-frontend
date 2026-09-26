@@ -53,7 +53,7 @@
                     <div class="col-md-6">{{ forms::textarea(name="description_en", label=label_desc_en, value=skill.descriptionEn) }}</div>
                     <div class="col-md-6">{{ forms::textarea(name="description_fr", label=label_desc_fr, value=skill.descriptionFr) }}</div>
                 </div>
-                {{ forms::select(name="domain", label=label_domain, options=skill_domains, selected=skill.domain) }}
+                {{ forms::select(name="domain", label=label_domain, options=skill_domains, selected=skill.domain, label_kind="domain", lang=lang) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>
         </div>

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
+{% import "macros/labels.html" as labels %}
 
 {% block title %}
     <title>{{ fluent(key="add-my-capability", lang=lang) }}</title>
@@ -22,7 +23,7 @@
                 {{ forms::csrf(token=csrf_token) }}
                 {{ forms::error_summary() }}
                 {% include "skill/skill_picker.html" %}
-                {{ forms::select(name="self_identified_level", label=label_level, options=capability_levels) }}
+                {{ forms::select(name="self_identified_level", label=label_level, options=capability_levels, label_kind="level", lang=lang) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>
         </div>

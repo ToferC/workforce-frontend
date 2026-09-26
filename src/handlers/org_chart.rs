@@ -10,7 +10,7 @@ use serde_json::json;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use crate::{AppData, generate_basic_context, domain_group, domain_short_label, level_weight};
+use crate::{AppData, generate_basic_context, domain_group, enum_label, level_weight};
 use crate::graphql::{get_organization_by_id, get_org_tiers_by_org_id, get_org_tier_by_id, get_org_tier_node, get_team_by_id};
 use crate::security::{self, MinimumRole};
 use super::utility::{render_page, session_bearer};
@@ -183,7 +183,7 @@ async fn render_node(
 
             let top_domains: Vec<serde_json::Value> = sorted.into_iter().take(3)
                 .map(|(d, _)| json!({
-                    "label": domain_short_label(&d),
+                    "label": enum_label("domain", &d, &lang),
                     "group": domain_group(&d),
                 }))
                 .collect();
@@ -399,7 +399,7 @@ pub async fn org_chart_explore(
         tier_level: t.tier_level,
         retired: t.retired_at.is_some(),
         parent_id: t.parent_organization_tier.as_ref().map(|p| p.id.to_string()),
-        primary_label: domain_short_label(&primary).to_string(),
+        primary_label: enum_label("domain", &primary, &lang),
         primary_group: domain_group(&primary).to_string(),
         teams: t.teams.iter().map(|tm| TeamLite {
             id: tm.id.to_string(),

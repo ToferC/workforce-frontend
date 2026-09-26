@@ -12,7 +12,7 @@
             <div class="entity-header__identity">
                 <h1 class="entity-header__title entity-header__title--clamp">
                     {{ work.workDescription | title }}
-                    {{ viz::status_chip(status=work.workStatus) }}
+                    {{ viz::status_chip(status=work.workStatus, lang=lang) }}
                 </h1>
             </div>
 
@@ -154,7 +154,7 @@
                         <li class="list-group-item px-0 d-flex align-items-center justify-content-between gap-2">
                             <span class="d-flex align-items-center gap-2 flex-wrap">
                                 <a href="/{{ lang }}/work/{{ d.id }}">{{ d.workDescription }}</a>
-                                {{ viz::status_chip(status=d.workStatus) }}
+                                {{ viz::status_chip(status=d.workStatus, lang=lang) }}
                             </span>
                             {% if role == "operator" or role == "admin" %}
                             <form method="post" action="/{{ lang }}/work/{{ work.id }}/dependency/{{ d.id }}/remove">
@@ -193,7 +193,7 @@
                         {% for b in work.blocks %}
                         <li class="list-group-item px-0 d-flex align-items-center gap-2 flex-wrap">
                             <a href="/{{ lang }}/work/{{ b.id }}">{{ b.workDescription }}</a>
-                            {{ viz::status_chip(status=b.workStatus) }}
+                            {{ viz::status_chip(status=b.workStatus, lang=lang) }}
                         </li>
                         {% endfor %}
                     </ul>
@@ -217,9 +217,9 @@
                                 <div>
                                     <a href="/{{ lang }}/person/{{ match.person.id }}" class="fw-semibold">{{ match.person.givenName }} {{ match.person.familyName }}</a>
                                     {% if match.validatedLevel %}
-                                    {{ viz::level_chip(level=match.validatedLevel, source="validated") }}
+                                    {{ viz::level_chip(level=match.validatedLevel, source="validated", lang=lang) }}
                                     {% else %}
-                                    {{ viz::level_chip(level=match.selfIdentifiedLevel, source="self") }}
+                                    {{ viz::level_chip(level=match.selfIdentifiedLevel, source="self", lang=lang) }}
                                     {% endif %}
                                     {{ viz::effort_meter(value=match.person.activeEffort) }}
                                 </div>
@@ -328,8 +328,8 @@
                             <li class="list-group-item"><span class="text-muted">{{ fluent(key="website-label", lang=lang) }}:</span> <a href="{{ work.url }}">{{ work.url }}</a></li>
                             <li class="list-group-item d-flex align-items-center gap-2">
                                 <span class="text-muted">{{ fluent(key="domain-level-label", lang=lang) }}:</span>
-                                {{ viz::domain_chip(domain=work.domain) }}
-                                {{ viz::level_chip(level=work.capabilityLevel) }}
+                                {{ viz::domain_chip(domain=work.domain, lang=lang) }}
+                                {{ viz::level_chip(level=work.capabilityLevel, lang=lang) }}
                             </li>
                             <li class="list-group-item d-flex align-items-center gap-2">
                                 <span class="text-muted">{{ fluent(key="effort", lang=lang) }}:</span>
@@ -337,7 +337,7 @@
                             </li>
                             <li class="list-group-item d-flex align-items-center gap-2">
                                 <span class="text-muted">{{ fluent(key="priority-label", lang=lang) }}:</span>
-                                {{ viz::priority_chip(priority=work.priority) }}
+                                {{ viz::priority_chip(priority=work.priority, lang=lang) }}
                                 {% if work.priorityBelowParent %}
                                 <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="priority-below-task", lang=lang) }}</span>
                                 {% endif %}
@@ -389,8 +389,8 @@
                             {% for h in work.statusHistory %}
                             <li class="list-group-item small">
                                 <div class="d-flex align-items-center gap-1 flex-wrap">
-                                    {% if h.fromStatus %}{{ viz::status_chip(status=h.fromStatus) }} <i class="bi bi-arrow-right" aria-hidden="true"></i> {% endif %}
-                                    {{ viz::status_chip(status=h.toStatus) }}
+                                    {% if h.fromStatus %}{{ viz::status_chip(status=h.fromStatus, lang=lang) }} <i class="bi bi-arrow-right" aria-hidden="true"></i> {% endif %}
+                                    {{ viz::status_chip(status=h.toStatus, lang=lang) }}
                                 </div>
                                 <div class="text-muted">
                                     {{ h.changedAt | truncate(length=16, end="") | replace(from="T", to=" ") }}

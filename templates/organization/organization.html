@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
 
 {% block title %}
     <title>{{ fluent(key="organization-mm", lang=lang )}}</title>
@@ -113,7 +114,7 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <a href="/{{lang}}/org_tier/{{ot.id}}" class="fw-semibold">{{ ot.nameEn }}</a>
-                                    <div class="small text-muted mt-1">{{ fluent(key="primary-domain", lang=lang) }}: {{ ot.primaryDomain }}</div>
+                                    <div class="small text-muted mt-1">{{ fluent(key="primary-domain", lang=lang) }}: {{ viz::domain_chip(domain=ot.primaryDomain, lang=lang) }}</div>
                                 </div>
                                 <span class="text-muted small">
                                     {{ fluent(key="owner", lang=lang) }}:
@@ -153,7 +154,7 @@
                                 {% for count in organization.capabilityCounts %}
                                 <tr>
                                     <td>{{ count.name }}</td>
-                                    <td>{{ count.domain }}</td>
+                                    <td>{{ viz::domain_chip(domain=count.domain, lang=lang) }}</td>
                                     <td>{{ count.level }}</td>
                                     <td>{{ count.counts }}</td>
                                 </tr>

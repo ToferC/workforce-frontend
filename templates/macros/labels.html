@@ -1,0 +1,46 @@
+{#
+  Human-readable labels for API values.
+  Import with: {% import "macros/labels.html" as labels %}
+
+  enum_label(kind, value, lang)
+      Short, localized label for an API enum value (SkillDomain,
+      CapabilityLevel, WorkStatus, Priority, PersonnelType, …). Looks up the
+      Fluent key `enum-<kind>-<value>`, with the value lower-cased and `_`
+      turned into `-`:
+          kind="domain", value="DATA_ANALYTICS_AND_AI"
+              → enum-domain-data-analytics-and-ai = Data & AI
+      A missing key falls back to sentence case ("Joint operations"), so an
+      unmapped value never shows as ALL_CAPS.
+
+      To add an enum: add one `enum-<kind>-<value>` line per value to both
+      i18n/en/workforce.ftl and i18n/fr/workforce.ftl, then render with
+      {{ labels::enum_label(kind="<kind>", value=x, lang=lang) }}, or wrap it
+      in a colored chip in macros/viz.html. tests/enum_labels.rs checks that
+      both languages have a key for every value of the enums it lists.
+
+  name(obj, lang)
+      Localized display name of an entity, whichever naming convention its
+      GraphQL type uses (nameEn/nameFr, nameEnglish/nameFrench,
+      titleEnglish/titleFrench). Falls back to English when the French field
+      isn't fetched or is empty.
+#}
+
+{% macro enum_label(kind, value, lang) %}
+{%- if value -%}
+{%- set slug = value | lower | replace(from="_", to="-") -%}
+{%- set label = fluent(key="enum-" ~ kind ~ "-" ~ slug, lang=lang) -%}
+{%- if label is starting_with("Unknown localization") -%}
+{{ value | replace(from="_", to=" ") | lower | capitalize }}
+{%- else -%}
+{{ label }}
+{%- endif -%}
+{%- endif -%}
+{% endmacro enum_label %}
+
+{% macro name(obj, lang) %}
+{%- if obj.nameEn is defined -%}{%- set en = obj.nameEn -%}{%- set fr = obj.nameFr | default(value="") -%}
+{%- elif obj.nameEnglish is defined -%}{%- set en = obj.nameEnglish -%}{%- set fr = obj.nameFrench | default(value="") -%}
+{%- else -%}{%- set en = obj.titleEnglish | default(value="") -%}{%- set fr = obj.titleFrench | default(value="") -%}
+{%- endif -%}
+{%- if lang == "fr" and fr -%}{{ fr }}{%- else -%}{{ en }}{%- endif -%}
+{% endmacro name %}

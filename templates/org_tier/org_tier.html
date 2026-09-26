@@ -269,7 +269,7 @@
                         <tbody>
                             {% for item in domain_summary %}
                             <tr>
-                                <td>{{ viz::domain_chip(domain=item.domain) }}</td>
+                                <td>{{ viz::domain_chip(domain=item.domain, lang=lang) }}</td>
                                 <td class="text-end fw-bold">{{ item.count }}</td>
                             </tr>
                             {% endfor %}
@@ -291,7 +291,7 @@
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item"><span class="text-muted">{{ fluent(key="tier-level", lang=lang) }}:</span> {{ org_tier.tierLevel }}</li>
-                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="primary-domain", lang=lang) }}:</span> {{ org_tier.primaryDomain }}</li>
+                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="primary-domain", lang=lang) }}:</span> {{ viz::domain_chip(domain=org_tier.primaryDomain, lang=lang) }}</li>
                             <li class="list-group-item">
                                 <span class="text-muted">{{ fluent(key="parent-tier", lang=lang) }}:</span>
                                 {% if org_tier.parentOrganizationTier %}

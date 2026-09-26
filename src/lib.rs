@@ -18,6 +18,18 @@ extern crate strum_macros;
 
 const APP_NAME: &str = "Workforce-frontend";
 
+use fluent_templates::{langid, static_loader, LanguageIdentifier, Loader};
+
+// Fluent bundles for EN/FR, shared by the Tera `fluent` function and
+// server-side label lookups.
+static_loader! {
+    pub static LOCALES = {
+        locales: "./i18n/",
+        fallback_language: "en",
+        customise: |bundle| bundle.set_use_isolating(false),
+    };
+}
+
 #[derive(Clone, Debug)]
 pub struct AppData {
     pub tmpl: Tera,
@@ -120,27 +132,21 @@ pub fn level_weight(level: &str) -> i64 {
     }
 }
 
-/// Short display label for a SkillDomain key.
-pub fn domain_short_label(key: &str) -> &'static str {
-    match key {
-        "COMBAT"                                => "Combat",
-        "INTELLIGENCE"                          => "Intelligence",
-        "STRATEGY"                              => "Strategy",
-        "ENGINEERING"                           => "Engineering",
-        "MEDICAL"                               => "Medical",
-        "JOINT_OPERATIONS"                      => "Joint Ops",
-        "SOFTWARE_ENGINEERING"                  => "Software Eng",
-        "CLOUD_PLATFORM_DEV_OPS"               => "Cloud/DevOps",
-        "DATA_ANALYTICS_AND_AI"                => "Data & AI",
-        "CYBER_SECURITY"                        => "Cyber",
-        "PRODUCT_AGILE_AND_DELIVERY"           => "Product/Agile",
-        "USER_EXPERIENCE"                       => "UX",
-        "PROCUREMENT_AND_VENDOR_MANAGEMENT"    => "Procurement",
-        "PEOPLE_AND_ORGANISATIONAL_LEADERSHIP" => "People & Org",
-        "GOVERNANCE"                            => "Governance",
-        "CORPORATE_SERVICES"                    => "Corporate",
-        _                                       => "—",
-    }
+/// Short, localized label for an API enum value — the Rust twin of
+/// `labels::enum_label` in templates/macros/labels.html, reading the same
+/// `enum-<kind>-<value>` Fluent keys (value lower-cased, `_` → `-`). Used where
+/// labels are built server-side (chart series, org-chart chips). A missing key
+/// falls back to sentence case, never ALL_CAPS.
+pub fn enum_label(kind: &str, value: &str, lang: &str) -> String {
+    let key = format!("enum-{}-{}", kind, value.to_lowercase().replace('_', "-"));
+    let lang_id: LanguageIdentifier = lang.parse().unwrap_or_else(|_| langid!("en"));
+    LOCALES.try_lookup(&lang_id, &key).unwrap_or_else(|| {
+        let mut words = value.replace('_', " ").to_lowercase();
+        if let Some(first) = words.get_mut(0..1) {
+            first.make_ascii_uppercase();
+        }
+        words
+    })
 }
 
 /// Hex colour for a WorkStatus, used for chart fills.

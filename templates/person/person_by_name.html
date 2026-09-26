@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
 
 {% block title %}
     <title>{{ fluent(key="person-by-name", lang=lang )}}</title>
@@ -34,7 +35,7 @@
                 <ul class="list-group list-group-flush">
                     {% for cap in person.capabilities %}
                     <li class="list-group-item px-0">
-                        {{ cap.nameEn }} <span class="text-muted">({{ cap.domain }})</span> &mdash; {{ cap.validatedLevel }}
+                        {{ cap.nameEn }} {{ viz::domain_chip(domain=cap.domain, lang=lang) }} {{ viz::level_chip(level=cap.validatedLevel, source="validated", lang=lang) }}
                     </li>
                     {% endfor %}
                 </ul>

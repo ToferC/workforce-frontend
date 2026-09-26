@@ -7,7 +7,13 @@
   status_chip(status)               — color-coded WorkStatus/TaskStatus badge
   domain_chip(domain)               — color-coded SkillDomain badge
   level_chip(level, source)         — capability level badge (validated vs self)
+  priority_chip(priority)           — color-coded Priority badge
+
+  Every chip takes `lang` and renders its value through
+  labels::enum_label, so ALL_CAPS API values show as short localized text.
+  Always pass lang=lang.
 #}
+{% import "macros/labels.html" as labels %}
 
 {# ── effort_meter ────────────────────────────────────────────────────────────
    value   : numeric effort (0–ceiling)
@@ -57,90 +63,68 @@
 
 {# ── status_chip ─────────────────────────────────────────────────────────────
    status : WorkStatus / TaskStatus / ProductStatus / PublicationStatus string
-   Renders a color-coded Bootstrap badge.
+   Renders a color-coded badge with a short localized label.
 #}
-{% macro status_chip(status) %}
-{%- if status == "IN_PROGRESS" -%}
-<span class="badge bg-success">{{ status | replace(from="_", to=" ") }}</span>
-{%- elif status == "PLANNING" -%}
-<span class="badge bg-info text-dark">{{ status }}</span>
-{%- elif status == "BLOCKED" -%}
-<span class="badge bg-danger">{{ status }}</span>
-{%- elif status == "COMPLETED" or status == "PUBLISHED" -%}
-<span class="badge bg-secondary">{{ status }}</span>
-{%- elif status == "CANCELLED" or status == "REJECTED" -%}
-<span class="badge bg-dark">{{ status }}</span>
-{%- elif status == "SUBMITTED" -%}
-<span class="badge bg-primary">{{ status }}</span>
-{%- elif status == "DRAFT" -%}
-<span class="badge bg-light text-dark border">{{ status }}</span>
-{%- else -%}
-<span class="badge bg-light text-dark border">{{ status }}</span>
+{% macro status_chip(status, lang="en") %}
+{%- if status == "IN_PROGRESS" -%}{%- set cls = "bg-success" -%}
+{%- elif status == "PLANNING" -%}{%- set cls = "bg-info text-dark" -%}
+{%- elif status == "BLOCKED" -%}{%- set cls = "bg-danger" -%}
+{%- elif status in ["COMPLETED", "PUBLISHED"] -%}{%- set cls = "bg-secondary" -%}
+{%- elif status in ["CANCELLED", "REJECTED"] -%}{%- set cls = "bg-dark" -%}
+{%- elif status == "SUBMITTED" -%}{%- set cls = "bg-primary" -%}
+{%- else -%}{%- set cls = "bg-light text-dark border" -%}
 {%- endif -%}
+<span class="badge {{ cls }}">{{ labels::enum_label(kind="status", value=status, lang=lang) }}</span>
 {% endmacro status_chip %}
 
 {# Contract lifecycle: PLANNED | ACTIVE | CLOSED #}
-{% macro contract_status_chip(status) %}
-{%- if status == "ACTIVE" -%}
-<span class="badge bg-success">{{ status }}</span>
-{%- elif status == "PLANNED" -%}
-<span class="badge bg-info text-dark">{{ status }}</span>
-{%- else -%}
-<span class="badge bg-secondary">{{ status }}</span>
+{% macro contract_status_chip(status, lang="en") %}
+{%- if status == "ACTIVE" -%}{%- set cls = "bg-success" -%}
+{%- elif status == "PLANNED" -%}{%- set cls = "bg-info text-dark" -%}
+{%- else -%}{%- set cls = "bg-secondary" -%}
 {%- endif -%}
+<span class="badge {{ cls }}">{{ labels::enum_label(kind="status", value=status, lang=lang) }}</span>
 {% endmacro contract_status_chip %}
 
 {# Approval workflow state (Proposal 7b): DRAFT | PENDING_APPROVAL | APPROVED | REJECTED #}
-{% macro approval_chip(status) %}
-{%- if status == "APPROVED" -%}
-<span class="badge bg-success"><i class="bi bi-check-circle" aria-hidden="true"></i> {{ status }}</span>
-{%- elif status == "PENDING_APPROVAL" -%}
-<span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split" aria-hidden="true"></i> {{ status | replace(from="_", to=" ") }}</span>
-{%- elif status == "REJECTED" -%}
-<span class="badge bg-danger"><i class="bi bi-x-circle" aria-hidden="true"></i> {{ status }}</span>
-{%- else -%}
-<span class="badge bg-light text-dark border"><i class="bi bi-pencil" aria-hidden="true"></i> {{ status }}</span>
+{% macro approval_chip(status, lang="en") %}
+{%- if status == "APPROVED" -%}{%- set cls = "bg-success" -%}{%- set icon = "check-circle" -%}
+{%- elif status == "PENDING_APPROVAL" -%}{%- set cls = "bg-warning text-dark" -%}{%- set icon = "hourglass-split" -%}
+{%- elif status == "REJECTED" -%}{%- set cls = "bg-danger" -%}{%- set icon = "x-circle" -%}
+{%- else -%}{%- set cls = "bg-light text-dark border" -%}{%- set icon = "pencil" -%}
 {%- endif -%}
+<span class="badge {{ cls }}"><i class="bi bi-{{ icon }}" aria-hidden="true"></i> {{ labels::enum_label(kind="status", value=status, lang=lang) }}</span>
 {% endmacro approval_chip %}
 
 
 {# ── domain_chip ─────────────────────────────────────────────────────────────
    domain : SkillDomain string (16 values)
-   Renders a color-coded Bootstrap badge grouped by domain family.
+   Renders a badge colored by domain family, with the short localized label
+   from labels::enum_label (e.g. DATA_ANALYTICS_AND_AI → "Data & AI").
 #}
-{% macro domain_chip(domain) %}
-{%- if domain == "COMBAT" or domain == "INTELLIGENCE" or domain == "STRATEGY" or domain == "JOINT_OPERATIONS" -%}
-<span class="badge domain-chip domain-ops" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
-{%- elif domain == "ENGINEERING" or domain == "MEDICAL" -%}
-<span class="badge domain-chip domain-science" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
-{%- elif domain == "SOFTWARE_ENGINEERING" or domain == "CLOUD_PLATFORM_DEV_OPS" or domain == "DATA_ANALYTICS_AND_AI" or domain == "CYBER_SECURITY" or domain == "USER_EXPERIENCE" -%}
-<span class="badge domain-chip domain-digital" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
-{%- elif domain == "PRODUCT_AGILE_AND_DELIVERY" or domain == "PROCUREMENT_AND_VENDOR_MANAGEMENT" -%}
-<span class="badge domain-chip domain-delivery" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
-{%- elif domain == "PEOPLE_AND_ORGANISATIONAL_LEADERSHIP" or domain == "GOVERNANCE" or domain == "CORPORATE_SERVICES" -%}
-<span class="badge domain-chip domain-corp" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
-{%- else -%}
-<span class="badge bg-secondary" title="{{ domain }}">{{ domain | replace(from="_", to=" ") }}</span>
+{% macro domain_chip(domain, lang="en") %}
+{%- if domain in ["COMBAT", "INTELLIGENCE", "STRATEGY", "JOINT_OPERATIONS"] -%}{%- set cls = "domain-chip domain-ops" -%}
+{%- elif domain in ["ENGINEERING", "MEDICAL"] -%}{%- set cls = "domain-chip domain-science" -%}
+{%- elif domain in ["SOFTWARE_ENGINEERING", "CLOUD_PLATFORM_DEV_OPS", "DATA_ANALYTICS_AND_AI", "CYBER_SECURITY", "USER_EXPERIENCE"] -%}{%- set cls = "domain-chip domain-digital" -%}
+{%- elif domain in ["PRODUCT_AGILE_AND_DELIVERY", "PROCUREMENT_AND_VENDOR_MANAGEMENT"] -%}{%- set cls = "domain-chip domain-delivery" -%}
+{%- elif domain in ["PEOPLE_AND_ORGANISATIONAL_LEADERSHIP", "GOVERNANCE", "CORPORATE_SERVICES"] -%}{%- set cls = "domain-chip domain-corp" -%}
+{%- else -%}{%- set cls = "bg-secondary" -%}
 {%- endif -%}
+<span class="badge {{ cls }}">{{ labels::enum_label(kind="domain", value=domain, lang=lang) }}</span>
 {% endmacro domain_chip %}
 
 
 {# ── priority_chip ────────────────────────────────────────────────────────────
    priority : Priority string (LOW | MEDIUM | HIGH | CRITICAL)
-   Renders a color-coded Bootstrap badge.
 #}
-{% macro priority_chip(priority) %}
-{%- if priority == "CRITICAL" -%}
-<span class="badge bg-danger">{{ priority }}</span>
-{%- elif priority == "HIGH" -%}
-<span class="badge bg-warning text-dark">{{ priority }}</span>
-{%- elif priority == "MEDIUM" -%}
-<span class="badge bg-info text-dark">{{ priority }}</span>
-{%- elif priority == "LOW" -%}
-<span class="badge bg-secondary">{{ priority }}</span>
-{%- else -%}
-<span class="badge bg-light text-dark border">{{ priority }}</span>
+{% macro priority_chip(priority, lang="en") %}
+{%- if priority == "CRITICAL" -%}{%- set cls = "bg-danger" -%}
+{%- elif priority == "HIGH" -%}{%- set cls = "bg-warning text-dark" -%}
+{%- elif priority == "MEDIUM" -%}{%- set cls = "bg-info text-dark" -%}
+{%- elif priority == "LOW" -%}{%- set cls = "bg-secondary" -%}
+{%- else -%}{%- set cls = "bg-light text-dark border" -%}
 {%- endif -%}
+<span class="badge {{ cls }}">{{ labels::enum_label(kind="priority", value=priority, lang=lang) }}</span>
 {% endmacro priority_chip %}
 
 
@@ -148,12 +132,9 @@
    level  : CapabilityLevel string
    source : "validated" | "self" (controls badge color)
 #}
-{% macro level_chip(level, source="self") %}
-{%- if source == "validated" -%}
-<span class="badge bg-success" title="Validated level">{{ level }}</span>
-{%- else -%}
-<span class="badge bg-info text-dark" title="Self-identified level">{{ level }}</span>
-{%- endif -%}
+{% macro level_chip(level, source="self", lang="en") %}
+{%- if source == "validated" -%}{%- set cls = "bg-success" -%}{%- else -%}{%- set cls = "bg-info text-dark" -%}{%- endif -%}
+<span class="badge {{ cls }}">{{ labels::enum_label(kind="level", value=level, lang=lang) }}</span>
 {% endmacro level_chip %}
 
 {% macro classification(mo="", rank="", group="", level="") %}

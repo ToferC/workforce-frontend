@@ -23,7 +23,7 @@
             <form method="post" action="/{{ lang }}/person/{{ person_id }}/capability/{{ capability_id }}/validate">
                 {{ forms::csrf(token=csrf_token) }}
                 {{ forms::error_summary() }}
-                {{ forms::select(name="validated_level", label=label_level, options=capability_levels) }}
+                {{ forms::select(name="validated_level", label=label_level, options=capability_levels, label_kind="level", lang=lang) }}
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>
         </div>

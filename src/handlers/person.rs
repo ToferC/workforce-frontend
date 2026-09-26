@@ -6,7 +6,7 @@ use serde_json::json;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use crate::{AppData, generate_basic_context, by_lang, level_weight, domain_short_label, chart_json};
+use crate::{AppData, generate_basic_context, by_lang, level_weight, enum_label, chart_json};
 use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, get_me, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data, restore_person};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
@@ -195,7 +195,7 @@ pub async fn person_by_id(
     let domains: Vec<String> = dom_self.keys().cloned().collect();
     if domains.len() >= 3 {
         let indicators: Vec<serde_json::Value> = domains.iter()
-            .map(|d| json!({"name": domain_short_label(d), "max": 5}))
+            .map(|d| json!({"name": enum_label("domain", d, &lang), "max": 5}))
             .collect();
         let val_series: Vec<i64> = domains.iter().map(|d| *dom_validated.get(d).unwrap_or(&0)).collect();
         let self_series: Vec<i64> = domains.iter().map(|d| *dom_self.get(d).unwrap_or(&0)).collect();

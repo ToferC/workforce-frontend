@@ -78,9 +78,9 @@
                 </div>
 
                 {% if edit %}
-                {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, required=false, blank_label=keep_current) }}
+                {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, required=false, blank_label=keep_current, label_kind="domain", lang=lang) }}
                 {% else %}
-                {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains) }}
+                {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, label_kind="domain", lang=lang) }}
                 {% endif %}
 
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}

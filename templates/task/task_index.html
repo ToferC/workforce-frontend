@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
 
 {% block title %}<title>{{ fluent(key="tasks", lang=lang) }}</title>{% endblock title %}
 
@@ -13,7 +14,7 @@
                 {% for task in tasks %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <a href="/{{ lang }}/task/{{ task.id }}">{{ task.title }}</a>
-                    <span><span class="badge bg-secondary">{{ task.domain }}</span> <span class="badge bg-info text-dark">{{ task.taskStatus }}</span></span>
+                    <span>{{ viz::domain_chip(domain=task.domain, lang=lang) }} {{ viz::status_chip(status=task.taskStatus, lang=lang) }}</span>
                 </li>
                 {% else %}
                 <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>

@@ -65,8 +65,8 @@
                             <td>
                                 <a href="/{{ lang }}/work/{{ w.id }}">{{ w.workDescription }}</a>
                                 <div class="d-flex align-items-center gap-1 flex-wrap mt-1">
-                                    {{ viz::domain_chip(domain=w.domain) }}
-                                    {{ viz::priority_chip(priority=w.priority) }}
+                                    {{ viz::domain_chip(domain=w.domain, lang=lang) }}
+                                    {{ viz::priority_chip(priority=w.priority, lang=lang) }}
                                 </div>
                             </td>
                             <td class="small">
@@ -87,7 +87,7 @@
                             </td>
                             <td class="text-center">{{ viz::effort_meter(value=w.effort) }}</td>
                             <td>
-                                {{ viz::status_chip(status=w.workStatus) }}
+                                {{ viz::status_chip(status=w.workStatus, lang=lang) }}
                                 {% if w.workStatus == "BLOCKED" and w.blockedReason %}
                                 <div class="text-muted small mt-1"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ w.blockedReason }}</div>
                                 {% endif %}

@@ -3,18 +3,12 @@
 // at startup does not.
 
 use tera::{Tera, Context};
-use fluent_templates::{FluentLoader, static_loader};
+use fluent_templates::FluentLoader;
 use serde_json::json;
 
 use frontend::security::FlashMessage;
 
-static_loader! {
-    static LOCALES = {
-        locales: "./i18n/",
-        fallback_language: "en",
-        customise: |bundle| bundle.set_use_isolating(false),
-    };
-}
+use frontend::LOCALES;
 
 fn tera() -> Tera {
     let mut tera = Tera::new("templates/**/*").unwrap();
@@ -1815,4 +1809,21 @@ fn index_shows_new_organization_button_for_operator_only() {
     ctx.insert("organizations", &json!([]));
     let html = tera.render("index.html", &ctx).unwrap();
     assert!(!html.contains("/en/organization/new"));
+}
+
+#[test]
+fn domain_chips_render_short_localized_labels() {
+    let tera = tera();
+    let mut role = sample_role_record();
+    role["requirements"] = json!([
+        {"id": "r0000000-0000-0000-0000-000000000009", "nameEn": "Modelling", "domain": "DATA_ANALYTICS_AND_AI", "requiredLevel": "EXPERT"},
+    ]);
+    for (lang, domain, level) in [("en", "Data &amp; AI", "Expert"), ("fr", "Données et IA", "Expert")] {
+        let mut ctx = base_context(lang, "user");
+        ctx.insert("role_record", &role);
+        let html = tera.render("role/role.html", &ctx).unwrap();
+        assert!(html.contains(domain), "{} domain label", lang);
+        assert!(html.contains(level), "{} level label", lang);
+        assert!(!html.contains("DATA_ANALYTICS") && !html.contains("DATA ANALYTICS"), "no ALL_CAPS domain");
+    }
 }

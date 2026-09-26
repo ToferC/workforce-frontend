@@ -22,7 +22,7 @@
                 {% for item in work_status_counts %}
                 {% set pct = (item.count * 100 / total_work) | int %}
                 <tr>
-                    <td>{{ viz::status_chip(status=item.status) }}</td>
+                    <td>{{ viz::status_chip(status=item.status, lang=lang) }}</td>
                     <td class="text-end fw-bold">{{ item.count }}</td>
                     <td style="min-width:100px">
                         <div class="progress" style="height:8px">
@@ -52,7 +52,7 @@
                 {% if work_by_domain %}
                 {% for item in work_by_domain %}
                 <tr>
-                    <td>{{ viz::domain_chip(domain=item.domain) }}</td>
+                    <td>{{ viz::domain_chip(domain=item.domain, lang=lang) }}</td>
                     <td class="text-end fw-bold">{{ item.effort }}</td>
                 </tr>
                 {% endfor %}

@@ -12,7 +12,7 @@
             <div class="entity-header__identity">
                 <h1 class="entity-header__title">
                     {% if lang == "fr" %}{{ product.nameFr }}{% else %}{{ product.nameEn }}{% endif %}
-                    {{ viz::status_chip(status=product.productStatus) }}
+                    {{ viz::status_chip(status=product.productStatus, lang=lang) }}
                     {% if product.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
                     {% if product.priorityMismatchCount > 0 %}
                     <a href="/{{ lang }}/analytics/consistency" class="badge bg-warning text-dark text-decoration-none" title="{{ fluent(key='priority-consistency', lang=lang) }}"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ product.priorityMismatchCount }} {{ fluent(key="priority-mismatches", lang=lang) }}</a>
@@ -20,7 +20,7 @@
                 </h1>
                 <p class="entity-header__subtitle">
                     <a href="/{{ lang }}/organization/{{ product.organization.id }}">{{ product.organization.nameEn }}</a>
-                    <span class="entity-header__sep" aria-hidden="true">&middot;</span> {{ viz::domain_chip(domain=product.primaryDomain) }}
+                    <span class="entity-header__sep" aria-hidden="true">&middot;</span> {{ viz::domain_chip(domain=product.primaryDomain, lang=lang) }}
                 </p>
             </div>
 
@@ -53,9 +53,9 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <a href="/{{ lang }}/task/{{ task.id }}">{{ task.title }}</a>
                             <div class="d-flex align-items-center gap-1 flex-wrap">
-                                {{ viz::domain_chip(domain=task.domain) }}
-                                {{ viz::status_chip(status=task.taskStatus) }}
-                                {% if task.priority %}{{ viz::priority_chip(priority=task.priority) }}{% endif %}
+                                {{ viz::domain_chip(domain=task.domain, lang=lang) }}
+                                {{ viz::status_chip(status=task.taskStatus, lang=lang) }}
+                                {% if task.priority %}{{ viz::priority_chip(priority=task.priority, lang=lang) }}{% endif %}
                                 {% if task.priorityBelowParent %}<span class="badge bg-warning text-dark" title="{{ fluent(key='priority-below-product', lang=lang) }}"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>{% endif %}
                                 {% if task.workPriorityMismatchCount > 0 %}<span class="badge bg-secondary" title="{{ fluent(key='lower-priority-work', lang=lang) }}">{{ task.workPriorityMismatchCount }}</span>{% endif %}
                                 {{ viz::effort_meter(value=task.effort) }}
@@ -80,8 +80,8 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a>
                             <div class="d-flex align-items-center gap-1 flex-wrap">
-                                {{ viz::domain_chip(domain=work.domain) }}
-                                {{ viz::level_chip(level=work.capabilityLevel) }}
+                                {{ viz::domain_chip(domain=work.domain, lang=lang) }}
+                                {{ viz::level_chip(level=work.capabilityLevel, lang=lang) }}
                                 {{ viz::effort_meter(value=work.effort) }}
                             </div>
                         </li>
@@ -112,8 +112,8 @@
                             {% for sd in product.skillDemand %}
                             <tr>
                                 <td>{% if sd.skillName %}{{ sd.skillName }}{% else %}{{ sd.name }}{% endif %}</td>
-                                <td>{{ viz::domain_chip(domain=sd.domain) }}</td>
-                                <td>{{ viz::level_chip(level=sd.level) }}</td>
+                                <td>{{ viz::domain_chip(domain=sd.domain, lang=lang) }}</td>
+                                <td>{{ viz::level_chip(level=sd.level, lang=lang) }}</td>
                                 <td class="text-end fw-bold">{{ sd.workCount }}</td>
                                 <td class="text-end">{{ sd.totalEffort }}</td>
                             </tr>
@@ -141,9 +141,9 @@
                             {% if product.url %}
                             <li class="list-group-item"><span class="text-muted">Website:</span> <a href="{{ product.url }}">{{ product.url }}</a></li>
                             {% endif %}
-                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=product.primaryDomain) }}</li>
-                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Status:</span> {{ viz::status_chip(status=product.productStatus) }}</li>
-                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Priority:</span> {{ viz::priority_chip(priority=product.priority) }}</li>
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=product.primaryDomain, lang=lang) }}</li>
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Status:</span> {{ viz::status_chip(status=product.productStatus, lang=lang) }}</li>
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">Priority:</span> {{ viz::priority_chip(priority=product.priority, lang=lang) }}</li>
                             <li class="list-group-item d-flex align-items-center gap-2">
                                 <span class="text-muted">Total Effort:</span>
                                 {{ viz::effort_meter(value=product.effort) }}

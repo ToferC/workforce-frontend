@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
 
 {% block title %}
     <title>{% if lang == "fr" %}{{ skill.nameFr }}{% else %}{{ skill.nameEn }}{% endif %}</title>
@@ -11,7 +12,7 @@
             <div class="entity-header__identity">
                 <h1 class="entity-header__title">
                     {% if lang == "fr" %}{{ skill.nameFr }}{% else %}{{ skill.nameEn }}{% endif %}
-                    <span class="badge bg-secondary">{{ skill.domain }}</span>
+                    {{ viz::domain_chip(domain=skill.domain, lang=lang) }}
                 </h1>
             </div>
 
@@ -40,8 +41,8 @@
                 <li class="list-group-item d-flex justify-content-between">
                     <a href="/{{ lang }}/person/{{ cap.person.id }}">{{ cap.person.givenName }} {{ cap.person.familyName }}</a>
                     <span>
-                        <span class="badge bg-info text-dark">{{ cap.selfIdentifiedLevel }}</span>
-                        {% if cap.validatedLevel %}<span class="badge bg-success">{{ cap.validatedLevel }}</span>{% endif %}
+                        {{ viz::level_chip(level=cap.selfIdentifiedLevel, source="self", lang=lang) }}
+                        {% if cap.validatedLevel %}{{ viz::level_chip(level=cap.validatedLevel, source="validated", lang=lang) }}{% endif %}
                     </span>
                 </li>
                 {% else %}

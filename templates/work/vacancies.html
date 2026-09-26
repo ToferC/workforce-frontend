@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% import "macros/labels.html" as labels %}
+{% import "macros/viz.html" as viz %}
 
 {% block title %}<title>Vacancies</title>{% endblock title %}
 
@@ -34,7 +36,7 @@
                             <td class="small"><a href="/{{ lang }}/team/{{ role_record.team.id }}" class="text-muted">{{ role_record.team.nameEnglish }}</a></td>
                             <td class="small">
                                 {% for req in role_record.requirements %}
-                                <span class="badge bg-light text-dark border">{{ req.nameEn }} &middot; {{ req.requiredLevel }}</span>
+                                <span class="badge bg-light text-dark border">{{ req.nameEn }} &middot; {{ labels::enum_label(kind="level", value=req.requiredLevel, lang=lang) }}</span>
                                 {% else %}
                                 <span class="text-muted">None specified</span>
                                 {% endfor %}
@@ -78,7 +80,7 @@
                         <tr>
                             <td><a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a></td>
                             <td class="small"><a href="/{{ lang }}/task/{{ work.task.id }}" class="text-muted">{{ work.task.title }}</a></td>
-                            <td class="small">{{ work.domain }} &rarr; {{ work.capabilityLevel }}</td>
+                            <td class="small">{{ viz::domain_chip(domain=work.domain, lang=lang) }} &rarr; {{ viz::level_chip(level=work.capabilityLevel, source="self", lang=lang) }}</td>
                             <td class="text-center">{{ work.effort }}</td>
                             <td class="text-end">
                                 {% if role == "operator" or role == "admin" %}

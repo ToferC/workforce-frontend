@@ -40,8 +40,8 @@
                 <li class="list-group-item">
                     <span class="font-weight-bold">{{ w.workDescription }}</span>
                     <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
-                        {{ viz::domain_chip(domain=w.domain) }}
-                        {{ viz::status_chip(status=w.workStatus) }}
+                        {{ viz::domain_chip(domain=w.domain, lang=lang) }}
+                        {{ viz::status_chip(status=w.workStatus, lang=lang) }}
                         {{ viz::effort_meter(value=w.effort) }}
                     </div>
                 </li>

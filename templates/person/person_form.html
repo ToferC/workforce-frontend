@@ -105,7 +105,7 @@
                         {{ forms::select(name="organization_id", label=label_org, options=organization_options, selected=person.organization.id, blank_label=blank_org) }}
                     </div>
                     <div class="col-12 col-sm-6">
-                        {{ forms::select(name="personnel_type", label=label_personnel_type, options=personnel_types, selected=person.personnelType, blank_label=blank_personnel) }}
+                        {{ forms::select(name="personnel_type", label=label_personnel_type, options=personnel_types, selected=person.personnelType, blank_label=blank_personnel, label_kind="personnel", lang=lang) }}
                     </div>
                 </div>
 

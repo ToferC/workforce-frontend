@@ -39,9 +39,9 @@
                         <tr>
                             <td>
                                 <a href="/{{ lang }}/task/{{ t.id }}">{{ t.title }}</a>
-                                <div class="mt-1">{{ viz::priority_chip(priority=t.priority) }}</div>
+                                <div class="mt-1">{{ viz::priority_chip(priority=t.priority, lang=lang) }}</div>
                             </td>
-                            <td>{{ viz::domain_chip(domain=t.domain) }}</td>
+                            <td>{{ viz::domain_chip(domain=t.domain, lang=lang) }}</td>
                             <td class="text-center">{{ t.approvalTier }}</td>
                             <td class="small">{{ t.targetCompletionDate | truncate(length=10, end="") }}</td>
                             <td class="small">

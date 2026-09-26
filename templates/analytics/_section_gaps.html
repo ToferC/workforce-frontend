@@ -21,7 +21,7 @@
                 {% if domain_gaps %}
                 {% for d in domain_gaps %}
                 <tr>
-                    <td>{{ viz::domain_chip(domain=d.domain) }}</td>
+                    <td>{{ viz::domain_chip(domain=d.domain, lang=lang) }}</td>
                     <td class="text-center">{{ d.total_required }}</td>
                     <td class="text-center">{{ d.total_available }}</td>
                     <td class="text-center">

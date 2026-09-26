@@ -60,7 +60,7 @@
                 {{ forms::select(name="product_id", label=label_product, options=product_options, selected=task.productId | default(value=""), required=false, blank_label=blank_product) }}
                 {{ forms::text_input(name="title", label=label_title, value=task.title) }}
                 <div class="row">
-                    <div class="col-md-8">{{ forms::select(name="domain", label=label_domain, options=skill_domains, selected=task.domain) }}</div>
+                    <div class="col-md-8">{{ forms::select(name="domain", label=label_domain, options=skill_domains, selected=task.domain, label_kind="domain", lang=lang) }}</div>
                     <div class="col-md-4">{{ forms::text_input(name="approval_tier", label=label_tier, value=task.approvalTier, type="number") }}</div>
                 </div>
                 {{ forms::textarea(name="intended_outcome", label=label_intended, value=task.intendedOutcome) }}
@@ -72,8 +72,8 @@
                     {% if edit %}<div class="col-md-4">{{ forms::date_input(name="completed_date", label=label_completed, value=task.completedDate) }}</div>{% endif %}
                 </div>
                 <div class="row">
-                    <div class="col-md-6">{{ forms::select(name="task_status", label=label_status, options=work_statuses, selected=task.taskStatus) }}</div>
-                    <div class="col-md-6">{{ forms::select(name="priority", label="Priority", options=priorities, selected=task.priority) }}</div>
+                    <div class="col-md-6">{{ forms::select(name="task_status", label=label_status, options=work_statuses, selected=task.taskStatus, label_kind="status", lang=lang) }}</div>
+                    <div class="col-md-6">{{ forms::select(name="priority", label="Priority", options=priorities, selected=task.priority, label_kind="priority", lang=lang) }}</div>
                 </div>
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>

@@ -1,6 +1,7 @@
 {# Transfer-confirmation modal fragment, returned to HTMX requests and swapped
    into #transfer-modal-container. The trailing script shows the modal; on a
    non-JS request the handler returns transfer_confirm.html (full page) instead. #}
+{% import "macros/viz.html" as viz %}
 <div class="modal fade" id="transferModal" tabindex="-1" role="dialog" aria-labelledby="transferModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">

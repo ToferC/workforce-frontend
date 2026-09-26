@@ -34,7 +34,7 @@
             {{ forms::text_input(name="tier_level", label=label_tier_level, value=org_tier.tierLevel, type="number") }}
         </div>
         <div class="col-md-8">
-            {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, selected=org_tier.primaryDomain) }}
+            {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, selected=org_tier.primaryDomain, label_kind="domain", lang=lang) }}
         </div>
     </div>
 

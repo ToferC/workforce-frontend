@@ -101,8 +101,8 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span class="d-flex align-items-center gap-2 flex-wrap">
                                 {{ req.nameEn }}
-                                {{ viz::domain_chip(domain=req.domain) }}
-                                {{ viz::level_chip(level=req.requiredLevel, source="validated") }}
+                                {{ viz::domain_chip(domain=req.domain, lang=lang) }}
+                                {{ viz::level_chip(level=req.requiredLevel, source="validated", lang=lang) }}
                             </span>
                             {% if role == "operator" or role == "admin" %}
                             <div class="d-flex gap-1">
@@ -146,9 +146,9 @@
                         <li class="list-group-item">
                             <a href="/{{lang}}/work/{{work.id}}" class="fw-semibold">{{ work.workDescription }}</a>
                             <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
-                                {{ viz::domain_chip(domain=work.domain) }}
-                                {{ viz::level_chip(level=work.capabilityLevel) }}
-                                {{ viz::status_chip(status=work.workStatus) }}
+                                {{ viz::domain_chip(domain=work.domain, lang=lang) }}
+                                {{ viz::level_chip(level=work.capabilityLevel, lang=lang) }}
+                                {{ viz::status_chip(status=work.workStatus, lang=lang) }}
                                 {{ viz::effort_meter(value=work.effort) }}
                                 {% if work.dueDate %}
                                 <span class="text-muted small">{{ fluent(key="due-short", lang=lang) }} {{ work.dueDate | truncate(length=10, end="") }}</span>
@@ -276,8 +276,8 @@
                             {% for req in role_record.requirements %}
                             <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
                                 {{ req.nameEn }}
-                                {{ viz::domain_chip(domain=req.domain) }}
-                                {{ viz::level_chip(level=req.requiredLevel, source="validated") }}
+                                {{ viz::domain_chip(domain=req.domain, lang=lang) }}
+                                {{ viz::level_chip(level=req.requiredLevel, source="validated", lang=lang) }}
                             </li>
                             {% endfor %}
                         </ul>

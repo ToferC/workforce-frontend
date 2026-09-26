@@ -57,7 +57,7 @@
                         <tr>
                             <td><a href="/{{ lang }}/work/{{ work.id }}">{{ work.workDescription }}</a></td>
                             <td><a href="/{{ lang }}/task/{{ work.task.id }}" class="text-muted small">{{ work.task.title }}</a></td>
-                            <td class="small">{{ viz::domain_chip(domain=work.domain) }} {{ viz::level_chip(level=work.capabilityLevel) }}</td>
+                            <td class="small">{{ viz::domain_chip(domain=work.domain, lang=lang) }} {{ viz::level_chip(level=work.capabilityLevel, lang=lang) }}</td>
                             <td class="text-center">{{ viz::effort_meter(value=work.effort) }}</td>
                             <td class="small">
                                 {% if work.dueDate %}
@@ -65,7 +65,7 @@
                                 {% if work.overdue %}<span class="badge bg-danger ms-1">{{ fluent(key="overdue", lang=lang) }}</span>{% endif %}
                                 {% else %}<span class="text-muted">&mdash;</span>{% endif %}
                             </td>
-                            <td>{{ viz::status_chip(status=work.workStatus) }}</td>
+                            <td>{{ viz::status_chip(status=work.workStatus, lang=lang) }}</td>
                             <td>
                                 {% if work.role and work.role.person %}
                                 <a href="/{{ lang }}/person/{{ work.role.person.id }}">{{ work.role.person.givenName }} {{ work.role.person.familyName }}</a>

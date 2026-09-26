@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/labels.html" as labels %}
 {% import "macros/viz.html" as viz %}
 {% import "macros/charts.html" as charts %}
 
@@ -13,7 +14,7 @@
             <div class="entity-header__identity">
                 <h1 class="entity-header__title">
                     {{ person.givenName }} {{ person.familyName }}
-                    {% if person.personnelType %}<span class="badge bg-secondary">{{ person.personnelType }}</span>{% endif %}
+                    {% if person.personnelType %}<span class="badge bg-secondary">{{ labels::enum_label(kind="personnel", value=person.personnelType, lang=lang) }}</span>{% endif %}
                     {% if person.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
                 </h1>
                 <p class="entity-header__subtitle">
@@ -141,9 +142,9 @@
                             <li class="list-group-item px-0">
                                 <a href="/{{lang}}/work/{{work.id}}" class="fw-semibold">{{ work.workDescription | title }}</a>
                                 <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
-                                    {{ viz::domain_chip(domain=work.domain) }}
-                                    {{ viz::level_chip(level=work.capabilityLevel) }}
-                                    {{ viz::status_chip(status=work.workStatus) }}
+                                    {{ viz::domain_chip(domain=work.domain, lang=lang) }}
+                                    {{ viz::level_chip(level=work.capabilityLevel, lang=lang) }}
+                                    {{ viz::status_chip(status=work.workStatus, lang=lang) }}
                                     {{ viz::effort_meter(value=work.effort) }}
                                     {% if work.dueDate %}
                                     <span class="text-muted small">{{ fluent(key="due-short", lang=lang) }} {{ work.dueDate | truncate(length=10, end="") }}</span>
@@ -179,7 +180,7 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span class="d-flex flex-column">
                                 <span class="d-flex align-items-center gap-2 flex-wrap">
-                                    <span>{{ cap.nameEn }} {{ viz::domain_chip(domain=cap.domain) }}</span>
+                                    <span>{{ cap.nameEn }} {{ viz::domain_chip(domain=cap.domain, lang=lang) }}</span>
                                     {{ viz::capability_scale(self_level=cap.selfIdentifiedLevel, validated_level=cap.validatedLevel) }}
                                 </span>
                                 <small class="text-muted">
@@ -251,7 +252,7 @@
                         </div>
                         <ul class="list-group list-group-flush mt-2">
                             {% for req in match.requirements %}
-                            <li class="list-group-item px-0 small">{{ req.nameEn }} <span class="text-muted">({{ req.domain }})</span> &mdash; {{ req.requiredLevel }}</li>
+                            <li class="list-group-item px-0 small">{{ req.nameEn }} {{ viz::domain_chip(domain=req.domain, lang=lang) }} {{ viz::level_chip(level=req.requiredLevel, source="validated", lang=lang) }}</li>
                             {% endfor %}
                         </ul>
                     </div>

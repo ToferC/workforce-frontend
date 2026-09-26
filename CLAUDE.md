@@ -114,6 +114,18 @@ Required `.env` variables:
   (`{% import "macros/viz.html" as viz %}`). Use `viz::effort_meter`,
   `viz::status_chip`, `viz::domain_chip`, `viz::capability_scale`, and
   `viz::level_chip` instead of hand-rolled Bootstrap badges for these values.
+  Every chip takes `lang=lang`.
+- **Never render an API enum raw** (no `{{ x.domain }}` ALL_CAPS). Use a
+  `viz::*_chip`, or `labels::enum_label(kind=..., value=..., lang=lang)` from
+  `templates/macros/labels.html` (`{% import "macros/labels.html" as labels %}`),
+  which reads the Fluent key `enum-<kind>-<value lower, "_"→"-">`. Enum selects
+  pass `label_kind="<kind>", lang=lang` to `forms::select`; Rust-built labels
+  (charts) use `frontend::enum_label(kind, value, lang)`. To add an enum, add
+  its keys to both `.ftl` files and to `KINDS` in `tests/enum_labels.rs`.
+- Entity names: `labels::name(obj=x, lang=lang)` picks the FR/EN field
+  (`nameEn/nameFr`, `nameEnglish/nameFrench`, `titleEnglish/titleFrench`).
+- Tera ignores imports inside included partials: a page must import every macro
+  namespace its includes use (`tests/template_imports.rs` enforces this).
 - **ECharts** is vendored at `static/echarts/echarts.min.js` and loaded in
   `base.html` (no CDN). Chart macros are in
   `templates/macros/charts.html` (`{% import "macros/charts.html" as charts %}`).

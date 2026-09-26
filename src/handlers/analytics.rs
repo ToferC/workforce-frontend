@@ -5,7 +5,7 @@ use serde_json::json;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
-use crate::{AppData, by_lang, generate_basic_context, status_color, chart_json, domain_short_label};
+use crate::{AppData, by_lang, generate_basic_context, status_color, chart_json, enum_label};
 use crate::graphql::{org_tier_financials, all_work, vacant_roles, analytics_people, analytics_roles, delivery_treemap,
     team_capability_matrix, org_tier_capability_matrix, talent_movements, capability_growth,
     capability_supply_demand, all_teams, all_org_tiers, priority_mismatches};
@@ -909,7 +909,7 @@ pub async fn analytics_growth(
     let mut legend_data: Vec<String> = Vec::new();
 
     for (i, s) in series.iter().enumerate() {
-        let label = domain_short_label(&s.key);
+        let label = enum_label("domain", &s.key, &lang);
         legend_data.push(label.to_string());
 
         let data_points: Vec<serde_json::Value> = s.points.iter()
@@ -978,7 +978,7 @@ pub async fn analytics_supply_demand(
     let mut domain_charts: Vec<serde_json::Value> = Vec::new();
 
     for s in &series {
-        let label = domain_short_label(&s.domain);
+        let label = enum_label("domain", &s.domain, &lang);
 
         let supply_data: Vec<serde_json::Value> = s.points.iter()
             .map(|p| json!([&p.period_start, p.supply]))
