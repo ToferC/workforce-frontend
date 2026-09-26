@@ -95,91 +95,91 @@
         {% endif %}
     </div>
 
+    {# The decision table: every direct sub-unit — child tiers, then
+       teams — compared on the same columns. #}
+    <div class="card card--primary mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="h4 mb-0">{{ fluent(key="sub-units", lang=lang) }}</h2>
+            {% if is_operator %}
+            <span class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/team/new?organization={{ org_tier.organization.id }}&org_tier={{ org_tier.id }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-team", lang=lang) }}</a>
+                <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ org_tier.organization.id }}&parent={{ org_tier.id }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-child-tier", lang=lang) }}</a>
+            </span>
+            {% endif %}
+        </div>
+        {% if org_tier.childOrganizationTier or org_tier.teams %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-compare mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ fluent(key="name", lang=lang) }}</th>
+                        <th scope="col">{{ fluent(key="owner", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="headcount", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="vacant", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="utilization", lang=lang) }}</th>
+                        {% if child_finances %}
+                        <th scope="col" class="num">{{ fluent(key="allocation", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="fy-projected", lang=lang) }}</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for child in org_tier.childOrganizationTier %}
+                    <tr>
+                        <td>
+                            <i class="bi bi-diagram-2 text-muted" aria-hidden="true"></i>
+                            <a href="/{{ lang }}/org_tier/{{ child.id }}" class="fw-semibold">{{ labels::name(obj=child, lang=lang) }}</a>
+                            <span class="visually-hidden">({{ fluent(key="org-tier", lang=lang) }})</span>
+                            {% if child.retiredAt %}{{ viz::retired_chip(lang=lang) }}{% endif %}
+                        </td>
+                        <td>
+                            {% if child.owner and child.owner.person %}
+                            <a href="/{{ lang }}/person/{{ child.owner.person.id }}">{{ child.owner.person.givenName }} {{ child.owner.person.familyName }}</a>
+                            {% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}
+                        </td>
+                        <td class="num">{{ child.headcount | default(value="—") }}</td>
+                        <td class="num">&mdash;</td>
+                        <td class="num">{% if child.headcount is defined %}{{ viz::utilization(effort=child.totalEffort, headcount=child.headcount) }}{% else %}&mdash;{% endif %}</td>
+                        {% if child_finances %}
+                        {% if child.id in child_finances %}
+                        {% set fin = child_finances[child.id] %}
+                        <td class="num">{% if fin.allocationCents %}{{ fin.allocationCents | money(lang=lang, compact=true) }}{% else %}<span class="text-muted">{{ fluent(key="no-allocation", lang=lang) }}</span>{% endif %}</td>
+                        <td class="num">{{ fin.projectedCents | money(lang=lang, compact=true) }}</td>
+                        {% else %}
+                        <td class="num">&mdash;</td><td class="num">&mdash;</td>
+                        {% endif %}
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    {% for team in org_tier.teams %}
+                    {% set team_vacant = team.vacantRoles | default(value=[]) | length %}
+                    <tr>
+                        <td>
+                            <i class="bi bi-people text-muted" aria-hidden="true"></i>
+                            <a href="/{{ lang }}/team/{{ team.id }}" class="fw-semibold">{{ labels::name(obj=team, lang=lang) }}</a>
+                            <span class="visually-hidden">({{ fluent(key="team", lang=lang) }})</span>
+                        </td>
+                        <td>
+                            {% if team.owner and team.owner.person %}
+                            <a href="/{{ lang }}/person/{{ team.owner.person.id }}">{{ team.owner.person.givenName }} {{ team.owner.person.familyName }}</a>
+                            {% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}
+                        </td>
+                        <td class="num">{{ team.headcount | default(value="—") }}</td>
+                        <td class="num">{% if team_vacant > 0 %}<a href="/{{ lang }}/team/{{ team.id }}#members">{{ team_vacant }}</a>{% else %}0{% endif %}</td>
+                        <td class="num">{% if team.headcount is defined %}{{ viz::utilization(effort=team.totalEffort | default(value=0), headcount=team.headcount) }}{% else %}&mdash;{% endif %}</td>
+                        {% if child_finances %}<td class="num">&mdash;</td><td class="num">&mdash;</td>{% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-body text-muted">{{ fluent(key="no-sub-units", lang=lang) }}</div>
+        {% endif %}
+    </div>
+
     <div class="detail-layout">
         <div class="detail-main">
-            {# The decision table: every direct sub-unit — child tiers, then
-               teams — compared on the same columns. #}
-            <div class="card card--primary mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <h2 class="h4 mb-0">{{ fluent(key="sub-units", lang=lang) }}</h2>
-                    {% if is_operator %}
-                    <span class="d-flex gap-2">
-                        <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/team/new?organization={{ org_tier.organization.id }}&org_tier={{ org_tier.id }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-team", lang=lang) }}</a>
-                        <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ org_tier.organization.id }}&parent={{ org_tier.id }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-child-tier", lang=lang) }}</a>
-                    </span>
-                    {% endif %}
-                </div>
-                {% if org_tier.childOrganizationTier or org_tier.teams %}
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover table-compare mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th scope="col">{{ fluent(key="name", lang=lang) }}</th>
-                                <th scope="col">{{ fluent(key="owner", lang=lang) }}</th>
-                                <th scope="col" class="num">{{ fluent(key="headcount", lang=lang) }}</th>
-                                <th scope="col" class="num">{{ fluent(key="vacant", lang=lang) }}</th>
-                                <th scope="col" class="num">{{ fluent(key="utilization", lang=lang) }}</th>
-                                {% if child_finances %}
-                                <th scope="col" class="num">{{ fluent(key="allocation", lang=lang) }}</th>
-                                <th scope="col" class="num">{{ fluent(key="fy-projected", lang=lang) }}</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for child in org_tier.childOrganizationTier %}
-                            <tr>
-                                <td>
-                                    <i class="bi bi-diagram-2 text-muted" aria-hidden="true"></i>
-                                    <a href="/{{ lang }}/org_tier/{{ child.id }}" class="fw-semibold">{{ labels::name(obj=child, lang=lang) }}</a>
-                                    <span class="visually-hidden">({{ fluent(key="org-tier", lang=lang) }})</span>
-                                    {% if child.retiredAt %}{{ viz::retired_chip(lang=lang) }}{% endif %}
-                                </td>
-                                <td>
-                                    {% if child.owner and child.owner.person %}
-                                    <a href="/{{ lang }}/person/{{ child.owner.person.id }}">{{ child.owner.person.givenName }} {{ child.owner.person.familyName }}</a>
-                                    {% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}
-                                </td>
-                                <td class="num">{{ child.headcount | default(value="—") }}</td>
-                                <td class="num">&mdash;</td>
-                                <td class="num">{% if child.headcount is defined %}{{ viz::utilization(effort=child.totalEffort, headcount=child.headcount) }}{% else %}&mdash;{% endif %}</td>
-                                {% if child_finances %}
-                                {% if child.id in child_finances %}
-                                {% set fin = child_finances[child.id] %}
-                                <td class="num">{% if fin.allocationCents %}{{ fin.allocationCents | money(lang=lang, compact=true) }}{% else %}<span class="text-muted">{{ fluent(key="no-allocation", lang=lang) }}</span>{% endif %}</td>
-                                <td class="num">{{ fin.projectedCents | money(lang=lang, compact=true) }}</td>
-                                {% else %}
-                                <td class="num">&mdash;</td><td class="num">&mdash;</td>
-                                {% endif %}
-                                {% endif %}
-                            </tr>
-                            {% endfor %}
-                            {% for team in org_tier.teams %}
-                            {% set team_vacant = team.vacantRoles | default(value=[]) | length %}
-                            <tr>
-                                <td>
-                                    <i class="bi bi-people text-muted" aria-hidden="true"></i>
-                                    <a href="/{{ lang }}/team/{{ team.id }}" class="fw-semibold">{{ labels::name(obj=team, lang=lang) }}</a>
-                                    <span class="visually-hidden">({{ fluent(key="team", lang=lang) }})</span>
-                                </td>
-                                <td>
-                                    {% if team.owner and team.owner.person %}
-                                    <a href="/{{ lang }}/person/{{ team.owner.person.id }}">{{ team.owner.person.givenName }} {{ team.owner.person.familyName }}</a>
-                                    {% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}
-                                </td>
-                                <td class="num">{{ team.headcount | default(value="—") }}</td>
-                                <td class="num">{% if team_vacant > 0 %}<a href="/{{ lang }}/team/{{ team.id }}#members">{{ team_vacant }}</a>{% else %}0{% endif %}</td>
-                                <td class="num">{% if team.headcount is defined %}{{ viz::utilization(effort=team.totalEffort | default(value=0), headcount=team.headcount) }}{% else %}&mdash;{% endif %}</td>
-                                {% if child_finances %}<td class="num">&mdash;</td><td class="num">&mdash;</td>{% endif %}
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="card-body text-muted">{{ fluent(key="no-sub-units", lang=lang) }}</div>
-                {% endif %}
-            </div>
-
             {% if budget %}
             <div class="card mb-4">
                 <div class="card-header">

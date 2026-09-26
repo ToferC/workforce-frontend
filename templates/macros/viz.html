@@ -48,20 +48,19 @@
    validated_level : optional CapabilityLevel string; if truthy, overrides self display
    Renders 5 small pips: validated (green-filled) > self-identified (blue-filled) > empty (outline)
 #}
-{% macro capability_scale(self_level, validated_level="") %}
-<span class="cap-scale d-inline-flex align-items-center gap-1"
-      title="{% if validated_level %}Validated: {{ validated_level }}{% else %}Self-identified: {{ self_level }}{% endif %}">
-  {#— pip 1: filled at DESIRED or above —#}
-  <span class="cap-pip{% if validated_level and (validated_level == "DESIRED" or validated_level == "NOVICE" or validated_level == "EXPERIENCED" or validated_level == "EXPERT" or validated_level == "SPECIALIST") %} cap-pip--validated{% elif self_level == "DESIRED" or self_level == "NOVICE" or self_level == "EXPERIENCED" or self_level == "EXPERT" or self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
-  {#— pip 2: filled at NOVICE or above —#}
-  <span class="cap-pip{% if validated_level and (validated_level == "NOVICE" or validated_level == "EXPERIENCED" or validated_level == "EXPERT" or validated_level == "SPECIALIST") %} cap-pip--validated{% elif self_level == "NOVICE" or self_level == "EXPERIENCED" or self_level == "EXPERT" or self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
-  {#— pip 3: filled at EXPERIENCED or above —#}
-  <span class="cap-pip{% if validated_level and (validated_level == "EXPERIENCED" or validated_level == "EXPERT" or validated_level == "SPECIALIST") %} cap-pip--validated{% elif self_level == "EXPERIENCED" or self_level == "EXPERT" or self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
-  {#— pip 4: filled at EXPERT or above —#}
-  <span class="cap-pip{% if validated_level and (validated_level == "EXPERT" or validated_level == "SPECIALIST") %} cap-pip--validated{% elif self_level == "EXPERT" or self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
-  {#— pip 5: filled at SPECIALIST only —#}
-  <span class="cap-pip{% if validated_level and validated_level == "SPECIALIST" %} cap-pip--validated{% elif self_level == "SPECIALIST" %} cap-pip--self{% else %} cap-pip--empty{% endif %}"></span>
-  <small class="ms-1 text-muted">{% if validated_level %}{{ validated_level }}{% else %}{{ self_level }}{% endif %}</small>
+{% macro capability_scale(self_level, validated_level="", lang="en") %}
+{%- set levels = ["DESIRED", "NOVICE", "EXPERIENCED", "EXPERT", "SPECIALIST"] -%}
+{%- set_global n_valid = 0 -%}{%- set_global n_self = 0 -%}
+{%- for l in levels -%}
+  {%- if validated_level and l == validated_level %}{% set_global n_valid = loop.index %}{% endif -%}
+  {%- if l == self_level %}{% set_global n_self = loop.index %}{% endif -%}
+{%- endfor -%}
+{%- if validated_level %}{% set shown = validated_level %}{% else %}{% set shown = self_level %}{% endif -%}
+<span class="cap-scale d-inline-flex align-items-center gap-1">
+  {%- for i in range(start=1, end=6) %}
+  <span class="cap-pip{% if i <= n_valid %} cap-pip--validated{% elif i <= n_self %} cap-pip--self{% else %} cap-pip--empty{% endif %}" aria-hidden="true"></span>
+  {%- endfor %}
+  <small class="ms-1 text-muted">{{ labels::enum_label(kind="level", value=shown, lang=lang) }}</small>
 </span>
 {% endmacro capability_scale %}
 
@@ -168,7 +167,9 @@
 
 
 {# ── stat_tile ───────────────────────────────────────────────────────────────
-   value : pre-formatted value (number, money, or viz::utilization output)
+   value : pre-formatted value — a number, money, or viz::* macro output.
+           Rendered unescaped (macro output arrives as a string), so never
+           pass user-entered text.
    label : sentence-case label, no colon
    tone  : "" | "warning" | "danger" — adds an icon and accent rule, so the
            state never rests on color alone
@@ -181,7 +182,7 @@
   <div class="stat-tile__label">
     {%- if tone == "danger" %}<i class="bi bi-exclamation-octagon" aria-hidden="true"></i> {% elif tone == "warning" %}<i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {% endif -%}
     {{ label }}</div>
-  <div class="stat-tile__value">{% if href %}<a href="{{ href }}">{{ value }}</a>{% else %}{{ value }}{% endif %}</div>
+  <div class="stat-tile__value">{% if href %}<a href="{{ href }}">{{ value | safe }}</a>{% else %}{{ value | safe }}{% endif %}</div>
   {% if hint %}<div class="stat-tile__hint">{{ hint }}</div>{% endif %}
 </div>
 {% endmacro stat_tile %}

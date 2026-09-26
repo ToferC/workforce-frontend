@@ -97,6 +97,20 @@
 .badge.bg-light  { color: #000 !important; }
 .rounded-pill { border-radius: 50rem !important; }
 
+/* ── Progress bar (viz::effort_meter) ──────────────────────────────────── */
+.progress {
+    display: flex;
+    overflow: hidden;
+    background-color: var(--bg-tertiary);
+    border-radius: 999px;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 999px;
+    transition: width var(--transition-normal);
+}
+
 /* ── Button variants not covered by theme.css ──────────────────────────── */
 .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; border-radius: var(--radius-sm); }
 

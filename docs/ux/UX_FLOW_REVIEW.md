@@ -220,7 +220,24 @@ The findings below reorder the pages around the questions above.
   the email and phone from the meta strip.
 - `personnelType` is shown as a raw enum badge. Localize it.
 
-## 4. Suggested sequencing
+## 4. Implementation status
+
+All nine phases below are implemented on this branch, plus a reusable label template:
+
+- **Enum labels.** `templates/macros/labels.html` provides `enum_label(kind, value, lang)` and reads the Fluent keys `enum-<kind>-<value>`. It turns an ALL_CAPS value such as `DATA_ANALYTICS_AND_AI` into a short localized label: "Data & AI" in English, "Données et IA" in French.
+  - The following all go through it: every `viz::*_chip`, `viz::capability_scale`, enum `forms::select` options (via `label_kind`), and the chart labels built in Rust (`frontend::enum_label`).
+  - `tests/labels_and_fit.rs` fails if any schema enum value has no label in either language.
+- **Pre-existing fixes found along the way:**
+  - The transfer-confirmation modal and page used `viz::` without importing it. `tests/template_imports.rs` now guards against this.
+  - `.progress` was never re-implemented after the Bootstrap reduction, so every effort meter rendered as text only.
+
+Still open, because each needs the API:
+
+- An organization filter for `allTeams`, and a retired filter for `allRoles`.
+- A vacancy roll-up for a tier's whole subtree. Today the tier shows vacancies only for its direct teams.
+- Overload across a person's roles on the team table. It is flagged per role today.
+
+## 5. Suggested sequencing
 
 | # | Change | Size |
 |---|---|---|

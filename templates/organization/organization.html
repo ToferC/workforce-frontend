@@ -84,65 +84,65 @@
         {% endif %}
     </div>
 
+    {# The decision table: compare top-level tiers side by side. #}
+    <div class="card card--primary mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="h4 mb-0">{{ fluent(key="top-level-tiers", lang=lang) }}</h2>
+            {% if is_operator %}
+            <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ organization.id }}">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-top-tier", lang=lang) }}
+            </a>
+            {% endif %}
+        </div>
+        {% if tiers %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-compare mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ fluent(key="org-tier", lang=lang) }}</th>
+                        <th scope="col">{{ fluent(key="owner", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="headcount", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="utilization", lang=lang) }}</th>
+                        {% if tier_finances %}
+                        <th scope="col" class="num">{{ fluent(key="fy-projected", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="fy-lapse", lang=lang) }}</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ot in tiers %}
+                    <tr>
+                        <td>
+                            <a href="/{{ lang }}/org_tier/{{ ot.id }}" class="fw-semibold">{{ labels::name(obj=ot, lang=lang) }}</a>
+                            <div>{{ viz::domain_chip(domain=ot.primaryDomain, lang=lang) }}</div>
+                        </td>
+                        <td>
+                            {% if ot.owner.person %}
+                            <a href="/{{ lang }}/person/{{ ot.owner.person.id }}">{{ ot.owner.person.givenName }} {{ ot.owner.person.familyName }}</a>
+                            {% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}
+                        </td>
+                        <td class="num">{{ ot.headcount }}</td>
+                        <td class="num">{{ viz::utilization(effort=ot.totalEffort, headcount=ot.headcount) }}</td>
+                        {% if tier_finances %}
+                        {% if ot.id in tier_finances %}
+                        <td class="num">{{ tier_finances[ot.id].projectedCents | money(lang=lang, compact=true) }}</td>
+                        <td class="num">{{ tier_finances[ot.id].lapseCents | money(lang=lang, compact=true) }}</td>
+                        {% else %}
+                        <td class="num">&mdash;</td><td class="num">&mdash;</td>
+                        {% endif %}
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-body text-muted">{{ fluent(key="no-org-tiers", lang=lang) }}</div>
+        {% endif %}
+    </div>
+
     <div class="detail-layout">
         <div class="detail-main">
-            {# The decision table: compare top-level tiers side by side. #}
-            <div class="card card--primary mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h4 mb-0">{{ fluent(key="top-level-tiers", lang=lang) }}</h2>
-                    {% if is_operator %}
-                    <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ organization.id }}">
-                        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-top-tier", lang=lang) }}
-                    </a>
-                    {% endif %}
-                </div>
-                {% if tiers %}
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover table-compare mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th scope="col">{{ fluent(key="org-tier", lang=lang) }}</th>
-                                <th scope="col">{{ fluent(key="owner", lang=lang) }}</th>
-                                <th scope="col" class="num">{{ fluent(key="headcount", lang=lang) }}</th>
-                                <th scope="col" class="num">{{ fluent(key="utilization", lang=lang) }}</th>
-                                {% if tier_finances %}
-                                <th scope="col" class="num">{{ fluent(key="fy-projected", lang=lang) }}</th>
-                                <th scope="col" class="num">{{ fluent(key="fy-lapse", lang=lang) }}</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for ot in tiers %}
-                            <tr>
-                                <td>
-                                    <a href="/{{ lang }}/org_tier/{{ ot.id }}" class="fw-semibold">{{ labels::name(obj=ot, lang=lang) }}</a>
-                                    <div>{{ viz::domain_chip(domain=ot.primaryDomain, lang=lang) }}</div>
-                                </td>
-                                <td>
-                                    {% if ot.owner.person %}
-                                    <a href="/{{ lang }}/person/{{ ot.owner.person.id }}">{{ ot.owner.person.givenName }} {{ ot.owner.person.familyName }}</a>
-                                    {% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}
-                                </td>
-                                <td class="num">{{ ot.headcount }}</td>
-                                <td class="num">{{ viz::utilization(effort=ot.totalEffort, headcount=ot.headcount) }}</td>
-                                {% if tier_finances %}
-                                {% if ot.id in tier_finances %}
-                                <td class="num">{{ tier_finances[ot.id].projectedCents | money(lang=lang, compact=true) }}</td>
-                                <td class="num">{{ tier_finances[ot.id].lapseCents | money(lang=lang, compact=true) }}</td>
-                                {% else %}
-                                <td class="num">&mdash;</td><td class="num">&mdash;</td>
-                                {% endif %}
-                                {% endif %}
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="card-body text-muted">{{ fluent(key="no-org-tiers", lang=lang) }}</div>
-                {% endif %}
-            </div>
-
             <div class="card mb-4">
                 <div class="card-header">
                     <h2 class="h4 mb-0">{{ fluent(key="capabilities-by-domain", lang=lang) }}</h2>

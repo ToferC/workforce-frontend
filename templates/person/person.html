@@ -203,7 +203,7 @@
                             <span class="d-flex align-items-center gap-2 flex-wrap">
                                 <span>{{ cap.nameEn }}</span>
                                 {{ viz::domain_chip(domain=cap.domain, lang=lang) }}
-                                {{ viz::capability_scale(self_level=cap.selfIdentifiedLevel, validated_level=cap.validatedLevel) }}
+                                {{ viz::capability_scale(self_level=cap.selfIdentifiedLevel, validated_level=cap.validatedLevel, lang=lang) }}
                             </span>
                             <small class="text-muted">
                                 {% if cap.validatedBy %}

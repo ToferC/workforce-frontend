@@ -142,7 +142,7 @@ fn organization_detail_tiles_and_tier_comparison() {
         "allocationCents": null, "projectedCents": 63_000_000_000_i64, "lapseCents": 3_344_153_951_i64}}));
     let html = tera.render("organization/organization.html", &ctx).unwrap();
     // Stat tiles: compact money, utilization with a warning icon at 90 %
-    assert!(html.contains("$630.0M"));
+    assert!(html.contains("$630M"));
     assert!(html.contains("of $663.4M budget"));
     assert!(html.contains("stat-tile--warning"));
     assert!(html.contains("util--warning"));

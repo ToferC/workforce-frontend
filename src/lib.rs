@@ -107,8 +107,8 @@ pub fn format_cents(cents: i64, lang: &str) -> String {
     }
 }
 
-/// Compact money for at-a-glance tiles: "$663.4M" / "663,4 M$", "$12.9K",
-/// whole dollars below 1,000.
+/// Compact money for at-a-glance tiles: "$663.4M" / "663,4 M$", "$900K"
+/// (no trailing ".0"), whole dollars below 1,000.
 pub fn format_cents_compact(cents: i64, lang: &str) -> String {
     let dollars = cents as f64 / 100.0;
     let (scaled, suffix) = match dollars.abs() {
@@ -117,7 +117,7 @@ pub fn format_cents_compact(cents: i64, lang: &str) -> String {
         d if d >= 1e3 => (dollars / 1e3, if lang == "fr" { "\u{a0}k" } else { "K" }),
         _ => return format_cents(cents, lang),
     };
-    let number = format!("{:.1}", scaled);
+    let number = format!("{:.1}", scaled).trim_end_matches(".0").to_string();
     if lang == "fr" {
         format!("{}{}\u{a0}$", number.replace('.', ","), suffix)
     } else {

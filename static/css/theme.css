@@ -1155,7 +1155,45 @@ html {
     border-top: 1px solid var(--border-color-light);
 }
 
-/* Comparison tables (sub-units, members): numeric columns align. */
+/* Card headings carry no top margin (no Bootstrap reboot), so headers stay
+   one line tall next to their action buttons. */
+.card-header h2,
+.card-header h3,
+.card-body > h3:first-child,
+.card-footer > h3:first-child { margin-top: 0; }
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Comparison tables (sub-units, members, index lists): light horizontal
+   rules instead of the boxed global table style; numeric columns align. */
+.table-compare {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.table-compare th,
+.table-compare td {
+    border: 0;
+    border-bottom: 1px solid var(--border-color-light);
+    padding: var(--spacing-sm) var(--spacing-md);
+    vertical-align: middle;
+}
+
+.table-compare thead th {
+    background-color: transparent;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.table-compare tr:nth-child(even) { background-color: transparent; }
+.table-compare tbody tr:hover { background-color: var(--table-hover); }
+
 .table-compare td.num,
 .table-compare th.num {
     text-align: right;
@@ -1169,3 +1207,8 @@ html {
     content: "\21B3\00a0";
     color: var(--text-muted);
 }
+
+.stat-tile__value .bi { font-size: 0.7em; vertical-align: 0.1em; }
+
+/* State and type chips beside a page title keep chip size, not <h1> size. */
+.entity-header__title .badge { font-size: 0.875rem; font-weight: 600; }
