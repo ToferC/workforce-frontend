@@ -1,316 +1,252 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
 {% import "macros/viz.html" as viz %}
+{% import "macros/labels.html" as labels %}
+{% import "macros/page.html" as page %}
+
+{% block breadcrumb %}{{ page::trail(lang=lang, org=org_tier.organization, tier=org_tier.parentOrganizationTier) }}{% endblock breadcrumb %}
 
 {% block title %}
-    <title>{{ fluent(key="org_tier", lang=lang )}}</title>
+    <title>{{ labels::name(obj=org_tier, lang=lang) }} — {{ fluent(key="org-tier", lang=lang) }}</title>
 {% endblock title %}
 
 {% block content %}
+{% set is_operator = role == "operator" or role == "admin" %}
+{% set child_finances = child_finances | default(value=false) %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
         <div class="entity-header__bar">
             <div class="entity-header__identity">
                 <h1 class="entity-header__title">
-                    {% if lang == "fr" %}{{ org_tier.nameFr }}{% else %}{{ org_tier.nameEn }}{% endif %}
-                    {% if org_tier.retiredAt %}<span class="badge bg-warning text-dark">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+                    {{ labels::name(obj=org_tier, lang=lang) }}
+                    {% if org_tier.retiredAt %}{{ viz::retired_chip(lang=lang) }}{% endif %}
                 </h1>
+                <p class="entity-header__subtitle">{{ viz::domain_chip(domain=org_tier.primaryDomain, lang=lang) }}</p>
             </div>
 
             <div class="entity-header__actions">
                 <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/organization/{{ org_tier.organization.id }}/org_chart">
                     <i class="bi bi-diagram-3" aria-hidden="true"></i> {{ fluent(key="org-chart", lang=lang) }}
                 </a>
+                {% if is_operator %}
+                <a class="btn btn-primary btn-sm" href="/{{ lang }}/team/new?organization={{ org_tier.organization.id }}&org_tier={{ org_tier.id }}">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-team", lang=lang) }}
+                </a>
+                <details class="action-menu">
+                    <summary class="btn btn-outline-secondary btn-sm"><i class="bi bi-three-dots" aria-hidden="true"></i> {{ fluent(key="more-actions", lang=lang) }}</summary>
+                    <div class="action-menu__list">
+                        <a class="action-menu__item" href="/{{ lang }}/org_tier/{{ org_tier.id }}/edit"><i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-org-tier", lang=lang) }}</a>
+                        <a class="action-menu__item" href="/{{ lang }}/org_tier/new?organization={{ org_tier.organization.id }}&parent={{ org_tier.id }}"><i class="bi bi-diagram-2" aria-hidden="true"></i> {{ fluent(key="add-child-tier", lang=lang) }}</a>
+                        <a class="action-menu__item" href="/{{ lang }}/org_tier/{{ org_tier.id }}/owner"><i class="bi bi-person-gear" aria-hidden="true"></i> {{ fluent(key="assign-owner", lang=lang) }}</a>
+                        <a class="action-menu__item" href="/{{ lang }}/organization/{{ org_tier.organization.id }}/org_chart/explore"><i class="bi bi-diagram-3-fill" aria-hidden="true"></i> {{ fluent(key="visual-view", lang=lang) }}</a>
+                        <div class="action-menu__divider"></div>
+                        {% if org_tier.retiredAt %}
+                        <form method="post" action="/{{ lang }}/org_tier/{{ org_tier.id }}/restore">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="action-menu__item"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
+                        </form>
+                        {% else %}
+                        <a class="action-menu__item action-menu__item--danger" href="/{{ lang }}/org_tier/{{ org_tier.id }}/retire"><i class="bi bi-x-circle" aria-hidden="true"></i> {{ fluent(key="retire-org-tier", lang=lang) }}</a>
+                        {% endif %}
+                    </div>
+                </details>
+                {% else %}
                 <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/organization/{{ org_tier.organization.id }}/org_chart/explore">
                     <i class="bi bi-diagram-3-fill" aria-hidden="true"></i> {{ fluent(key="visual-view", lang=lang) }}
                 </a>
-                {% if role == "operator" or role == "admin" %}
-                <a class="btn btn-primary btn-sm" href="/{{ lang }}/org_tier/{{ org_tier.id }}/edit">
-                    <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-org-tier", lang=lang) }}
-                </a>
-                <a class="btn btn-outline-primary btn-sm" href="/{{ lang }}/org_tier/new?organization={{ org_tier.organization.id }}&parent={{ org_tier.id }}">
-                    <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-child-tier", lang=lang) }}
-                </a>
-                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/org_tier/{{ org_tier.id }}/owner">
-                    <i class="bi bi-person-gear" aria-hidden="true"></i> {{ fluent(key="assign-owner", lang=lang) }}
-                </a>
-                {% if org_tier.retiredAt %}
-                <form method="post" action="/{{ lang }}/org_tier/{{ org_tier.id }}/restore">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ fluent(key="restore-button", lang=lang) }}</button>
-                </form>
-                {% else %}
-                <a class="btn btn-outline-danger btn-sm" href="/{{ lang }}/org_tier/{{ org_tier.id }}/retire">
-                    <i class="bi bi-x-circle" aria-hidden="true"></i> {{ fluent(key="retire-org-tier", lang=lang) }}
-                </a>
-                {% endif %}
                 {% endif %}
             </div>
         </div>
 
-        {# Identity facts up front — the sidebar Details card stacks below the
-           lists on mobile. #}
         <div class="entity-header__meta">
             <span class="meta-item">
                 <span class="meta-item__label">{{ fluent(key="owner", lang=lang) }}</span>
                 {% if org_tier.owner.person %}
                 <a href="/{{ lang }}/person/{{ org_tier.owner.person.id }}">{{ org_tier.owner.person.givenName }} {{ org_tier.owner.person.familyName }}</a>
-                {% elif role == "operator" or role == "admin" %}
-                <a href="/{{ lang }}/org_tier/{{ org_tier.id }}/owner" class="badge bg-warning text-dark text-decoration-none">{{ fluent(key="vacant-label", lang=lang) }} &mdash; {{ fluent(key="assign-owner", lang=lang) }}</a>
+                <a href="mailto:{{ org_tier.owner.person.email }}" class="small">{{ org_tier.owner.person.email }}</a>
+                {% elif is_operator %}
+                <a href="/{{ lang }}/org_tier/{{ org_tier.id }}/owner">{{ viz::vacancy_chip(lang=lang) }} {{ fluent(key="assign-owner", lang=lang) }}</a>
                 {% else %}
-                <span class="badge bg-warning text-dark">{{ fluent(key="vacant-label", lang=lang) }}</span>
+                {{ viz::vacancy_chip(lang=lang) }}
                 {% endif %}
             </span>
-            {% if org_tier.parentOrganizationTier %}
             <span class="meta-item">
-                <span class="meta-item__label">{{ fluent(key="parent-tier", lang=lang) }}</span>
-                <a href="/{{ lang }}/org_tier/{{ org_tier.parentOrganizationTier.id }}">{{ org_tier.parentOrganizationTier.nameEn }}</a>
+                <span class="meta-item__label">{{ fluent(key="organization", lang=lang) }}</span>
+                <a href="/{{ lang }}/organization/{{ org_tier.organization.id }}">{{ labels::name(obj=org_tier.organization, lang=lang) }}</a>
             </span>
-            {% endif %}
             <span class="meta-item">
                 <span class="meta-item__label">{{ fluent(key="tier-level", lang=lang) }}</span>
                 <span>{{ org_tier.tierLevel }}</span>
             </span>
-            <span class="meta-item">
-                <span class="meta-item__label">{{ fluent(key="headcount", lang=lang) }}</span>
-                <span>{{ org_tier.headcount }}</span>
-            </span>
         </div>
     </div>
 
-    <div class="detail-layout">
-        <!-- Main pane: teams & sub-structure -->
-        <div class="detail-main">
-            <!-- Analytics Summary -->
-            <div class="row g-3 mb-4">
-                <div class="col-6 col-md-3">
-                    <div class="card shadow-sm h-100 text-center">
-                        <div class="card-body py-3">
-                            <div class="fs-2 fw-bold text-primary">{{ org_tier.headcount }}</div>
-                            <div class="small text-muted">{{ fluent(key="headcount", lang=lang) }}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card shadow-sm h-100 text-center">
-                        <div class="card-body py-3">
-                            <div class="fs-2 fw-bold text-info">{{ org_tier.totalEffort }}</div>
-                            <div class="small text-muted">{{ fluent(key="total-effort", lang=lang) }}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card shadow-sm h-100 text-center">
-                        <div class="card-body py-3">
-                            <div class="fs-2 fw-bold text-secondary">{{ org_tier.teams | length }}</div>
-                            <div class="small text-muted">{{ fluent(key="teams", lang=lang) }}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card shadow-sm h-100 text-center">
-                        <div class="card-body py-3">
-                            <div class="fs-2 fw-bold text-secondary">{{ org_tier.capabilityCounts | length }}</div>
-                            <div class="small text-muted">{{ fluent(key="capability-types", lang=lang) }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="stat-row">
+        {{ viz::stat_tile(value=org_tier.headcount, label=fluent(key="headcount", lang=lang)) }}
+        {% set util = viz::utilization(effort=org_tier.totalEffort, headcount=org_tier.headcount) %}
+        {{ viz::stat_tile(value=util, label=fluent(key="utilization", lang=lang), hint=fluent(key="utilization-hint", lang=lang)) }}
+        {% set vacancies = tier_vacancies | default(value=0) %}
+        {% if vacancies > 0 %}{% set vacancy_tone = "warning" %}{% else %}{% set vacancy_tone = "" %}{% endif %}
+        {{ viz::stat_tile(value=vacancies, label=fluent(key="vacant-roles", lang=lang), tone=vacancy_tone, hint=fluent(key="in-direct-teams", lang=lang)) }}
+        {% if budget %}
+        {% set lapse = budget.lapseCents | money(lang=lang, compact=true) %}
+        {% if budget.lapseCents > 0 %}{% set lapse_tone = "warning" %}{% else %}{% set lapse_tone = "" %}{% endif %}
+        {{ viz::stat_tile(value=lapse, label=fluent(key="fy-lapse", lang=lang), tone=lapse_tone) }}
+        {% endif %}
+    </div>
 
-            <!-- Budget (fiscal-year envelope + roll-down) -->
+    {# The decision table: every direct sub-unit — child tiers, then
+       teams — compared on the same columns. #}
+    <div class="card card--primary mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="h4 mb-0">{{ fluent(key="sub-units", lang=lang) }}</h2>
+            {% if is_operator %}
+            <span class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/team/new?organization={{ org_tier.organization.id }}&org_tier={{ org_tier.id }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-team", lang=lang) }}</a>
+                <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/org_tier/new?organization={{ org_tier.organization.id }}&parent={{ org_tier.id }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-child-tier", lang=lang) }}</a>
+            </span>
+            {% endif %}
+        </div>
+        {% if org_tier.childOrganizationTier or org_tier.teams %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-compare mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ fluent(key="name", lang=lang) }}</th>
+                        <th scope="col">{{ fluent(key="owner", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="headcount", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="vacant", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="utilization", lang=lang) }}</th>
+                        {% if child_finances %}
+                        <th scope="col" class="num">{{ fluent(key="allocation", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="fy-projected", lang=lang) }}</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for child in org_tier.childOrganizationTier %}
+                    <tr>
+                        <td>
+                            <i class="bi bi-diagram-2 text-muted" aria-hidden="true"></i>
+                            <a href="/{{ lang }}/org_tier/{{ child.id }}" class="fw-semibold">{{ labels::name(obj=child, lang=lang) }}</a>
+                            <span class="visually-hidden">({{ fluent(key="org-tier", lang=lang) }})</span>
+                            {% if child.retiredAt %}{{ viz::retired_chip(lang=lang) }}{% endif %}
+                        </td>
+                        <td>
+                            {% if child.owner and child.owner.person %}
+                            <a href="/{{ lang }}/person/{{ child.owner.person.id }}">{{ child.owner.person.givenName }} {{ child.owner.person.familyName }}</a>
+                            {% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}
+                        </td>
+                        <td class="num">{{ child.headcount | default(value="—") }}</td>
+                        <td class="num">&mdash;</td>
+                        <td class="num">{% if child.headcount is defined %}{{ viz::utilization(effort=child.totalEffort, headcount=child.headcount) }}{% else %}&mdash;{% endif %}</td>
+                        {% if child_finances %}
+                        {% if child.id in child_finances %}
+                        {% set fin = child_finances[child.id] %}
+                        <td class="num">{% if fin.allocationCents %}{{ fin.allocationCents | money(lang=lang, compact=true) }}{% else %}<span class="text-muted">{{ fluent(key="no-allocation", lang=lang) }}</span>{% endif %}</td>
+                        <td class="num">{{ fin.projectedCents | money(lang=lang, compact=true) }}</td>
+                        {% else %}
+                        <td class="num">&mdash;</td><td class="num">&mdash;</td>
+                        {% endif %}
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    {% for team in org_tier.teams %}
+                    {% set team_vacant = team.vacantRoles | default(value=[]) | length %}
+                    <tr>
+                        <td>
+                            <i class="bi bi-people text-muted" aria-hidden="true"></i>
+                            <a href="/{{ lang }}/team/{{ team.id }}" class="fw-semibold">{{ labels::name(obj=team, lang=lang) }}</a>
+                            <span class="visually-hidden">({{ fluent(key="team", lang=lang) }})</span>
+                        </td>
+                        <td>
+                            {% if team.owner and team.owner.person %}
+                            <a href="/{{ lang }}/person/{{ team.owner.person.id }}">{{ team.owner.person.givenName }} {{ team.owner.person.familyName }}</a>
+                            {% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}
+                        </td>
+                        <td class="num">{{ team.headcount | default(value="—") }}</td>
+                        <td class="num">{% if team_vacant > 0 %}<a href="/{{ lang }}/team/{{ team.id }}#members">{{ team_vacant }}</a>{% else %}0{% endif %}</td>
+                        <td class="num">{% if team.headcount is defined %}{{ viz::utilization(effort=team.totalEffort | default(value=0), headcount=team.headcount) }}{% else %}&mdash;{% endif %}</td>
+                        {% if child_finances %}<td class="num">&mdash;</td><td class="num">&mdash;</td>{% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-body text-muted">{{ fluent(key="no-sub-units", lang=lang) }}</div>
+        {% endif %}
+    </div>
+
+    <div class="detail-layout">
+        <div class="detail-main">
             {% if budget %}
-            <div class="card shadow-lg mb-4">
+            <div class="card mb-4">
                 <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-cash-stack" aria-hidden="true"></i> {{ fluent(key="budget-heading", lang=lang) }} ({{ budget.fiscalYear }})</h2>
+                    <h2 class="h4 mb-0">{{ fluent(key="budget-heading", lang=lang) }} ({{ budget.fiscalYear }})</h2>
                 </div>
                 <div class="card-body">
-                    <div class="row g-3 mb-3">
-                        <div class="col-6 col-md-3">
-                            <div class="fs-5 fw-bold text-primary">{% if budget.allocationCents %}{{ budget.allocationCents | money(lang=lang) }}{% else %}&mdash;{% endif %}</div>
-                            <div class="small text-muted">{{ fluent(key="allocation", lang=lang) }}</div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="fs-5 fw-bold text-info">{{ budget.projectedCents | money(lang=lang) }}</div>
-                            <div class="small text-muted">{{ fluent(key="fy-projected", lang=lang) }}</div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="fs-5 fw-bold">{{ budget.budgetedCents | money(lang=lang) }}</div>
-                            <div class="small text-muted">{{ fluent(key="fy-budget", lang=lang) }}</div>
-                        </div>
-                        <div class="col-6 col-md-3">
+                    <dl class="row mb-0">
+                        <dt class="col-6 col-md-3 fw-normal text-muted">{{ fluent(key="allocation", lang=lang) }}</dt>
+                        <dd class="col-6 col-md-3 fw-semibold">{% if budget.allocationCents %}{{ budget.allocationCents | money(lang=lang) }}{% else %}&mdash;{% endif %}</dd>
+                        <dt class="col-6 col-md-3 fw-normal text-muted">{{ fluent(key="fy-budget", lang=lang) }}</dt>
+                        <dd class="col-6 col-md-3">{{ budget.budgetedCents | money(lang=lang) }}</dd>
+                        <dt class="col-6 col-md-3 fw-normal text-muted">{{ fluent(key="fy-projected", lang=lang) }}</dt>
+                        <dd class="col-6 col-md-3">{{ budget.projectedCents | money(lang=lang) }}</dd>
+                        <dt class="col-6 col-md-3 fw-normal text-muted">{{ fluent(key="variance", lang=lang) }}</dt>
+                        <dd class="col-6 col-md-3">
                             {% if budget.varianceCents is number %}
-                            <div class="fs-5 fw-bold {% if budget.varianceCents < 0 %}text-danger{% else %}text-success{% endif %}">{{ budget.varianceCents | money(lang=lang) }}</div>
-                            {% else %}
-                            <div class="fs-5 fw-bold">&mdash;</div>
-                            {% endif %}
-                            <div class="small text-muted">{{ fluent(key="variance", lang=lang) }}</div>
-                        </div>
-                    </div>
-
-                    {% if budget_children and budget_children | length > 0 %}
-                    <h3 class="h6 text-muted">{{ fluent(key="rolled-down", lang=lang) }}
+                            {% if budget.varianceCents < 0 %}<i class="bi bi-exclamation-octagon text-danger" aria-hidden="true"></i> {% endif %}{{ budget.varianceCents | money(lang=lang) }}
+                            {% else %}&mdash;{% endif %}
+                        </dd>
                         {% if budget.allocationCents %}
-                        &mdash; {{ budget.childAllocatedCents | money(lang=lang) }}
-                        / {{ budget.allocationCents | money(lang=lang) }}
+                        <dt class="col-6 col-md-3 fw-normal text-muted">{{ fluent(key="rolled-down", lang=lang) }}</dt>
+                        <dd class="col-6 col-md-9">{{ budget.childAllocatedCents | money(lang=lang) }} / {{ budget.allocationCents | money(lang=lang) }}</dd>
                         {% endif %}
-                    </h3>
-                    <div class="table-responsive mb-3">
-                        <table class="table table-sm align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th scope="col">{{ fluent(key="org-tier", lang=lang) }}</th>
-                                    <th scope="col" class="text-end">{{ fluent(key="allocation", lang=lang) }}</th>
-                                    <th scope="col" class="text-end">{{ fluent(key="fy-projected", lang=lang) }}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for child in budget_children %}
-                                <tr>
-                                    <td><a href="/{{ lang }}/org_tier/{{ child.id }}">{{ child.name }}</a></td>
-                                    <td class="text-end">{% if child.allocationCents %}{{ child.allocationCents | money(lang=lang) }}{% else %}<span class="text-muted">{{ fluent(key="no-allocation", lang=lang) }}</span>{% endif %}</td>
-                                    <td class="text-end">{{ child.projectedCents | money(lang=lang) }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% endif %}
+                    </dl>
 
-                    {% if role == "operator" or role == "admin" %}
-                    <form method="post" action="/{{ lang }}/org_tier/{{ org_tier.id }}/budget" class="d-flex align-items-end gap-2 flex-wrap">
-                        {{ forms::csrf(token=csrf_token) }}
-                        {% set label_amount = fluent(key="allocation-amount", lang=lang) %}
-                        {% set label_fy = fluent(key="fiscal-year", lang=lang) %}
-                        <div class="flex-grow-1" style="max-width: 20rem">
-                            {{ forms::text_input(name="amount", label=label_amount, value=budget_amount_dollars | default(value=""), help=fluent(key="allocation-amount-help", lang=lang)) }}
-                        </div>
-                        {% if budget_fy_options %}
-                        <div style="max-width: 11rem">
-                            {{ forms::select(name="fiscal_year", label=label_fy, options=budget_fy_options, selected=budget_fy_options.0.value) }}
-                        </div>
-                        {% endif %}
-                        <button type="submit" class="btn btn-primary mb-3">{{ fluent(key="set-allocation", lang=lang) }}</button>
-                    </form>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Teams -->
-            <div class="card shadow-lg mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h4 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="teams", lang=lang) }}</h2>
-                    {% if role == "operator" or role == "admin" %}
-                    <a class="btn btn-sm btn-outline-primary" href="/{{ lang }}/team/new?organization={{ org_tier.organization.id }}&org_tier={{ org_tier.id }}">
-                        <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ fluent(key="add-team", lang=lang) }}
-                    </a>
-                    {% endif %}
-                </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush">
-                        {% for team in org_tier.teams %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap">
-                            <span>
-                                <a href="/{{lang}}/team/{{team.id}}" class="fw-semibold">{{ team.nameEnglish }}</a>
-                                <span class="small text-muted ms-2">
-                                    {{ fluent(key="owner", lang=lang) }}:
-                                    {% if team.owner.person %}
-                                    <a href="/{{lang}}/person/{{team.owner.person.id}}">{{ team.owner.person.givenName }} {{ team.owner.person.familyName }}</a>
-                                    {% else %}{{ fluent(key="vacant-label", lang=lang) }}{% endif %}
-                                </span>
-                            </span>
-                            {% if team.headcount is defined %}
-                            <span class="small text-muted">{{ team.headcount }} <i class="bi bi-person" aria-hidden="true"></i></span>
+                    {% if is_operator %}
+                    <details class="mt-3">
+                        <summary>{{ fluent(key="set-allocation", lang=lang) }}</summary>
+                        <form method="post" action="/{{ lang }}/org_tier/{{ org_tier.id }}/budget" class="d-flex align-items-end gap-2 flex-wrap mt-2">
+                            {{ forms::csrf(token=csrf_token) }}
+                            {% set label_amount = fluent(key="allocation-amount", lang=lang) %}
+                            {% set label_fy = fluent(key="fiscal-year", lang=lang) %}
+                            <div class="flex-grow-1" style="max-width: 20rem">
+                                {{ forms::text_input(name="amount", label=label_amount, value=budget_amount_dollars | default(value=""), help=fluent(key="allocation-amount-help", lang=lang)) }}
+                            </div>
+                            {% if budget_fy_options %}
+                            <div style="max-width: 11rem">
+                                {{ forms::select(name="fiscal_year", label=label_fy, options=budget_fy_options, selected=budget_fy_options.0.value) }}
+                            </div>
                             {% endif %}
-                        </li>
-                        {% else %}
-                        <li class="list-group-item text-muted">{{ fluent(key="no-teams", lang=lang) }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-
-            {% if not budget %}
-            <!-- Child Organization Tiers -->
-            {# Fallback child list: when financial data is available, the
-               Budget card above lists the children with their figures. #}
-            <div class="card shadow-lg mb-4">
-                <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-diagram-2" aria-hidden="true"></i> {{ fluent(key="child-org-tiers", lang=lang) }}</h2>
-                </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush">
-                        {% for child in org_tier.childOrganizationTier %}
-                        <li class="list-group-item">
-                            <a href="/{{lang}}/org_tier/{{child.id}}">{{ child.nameEn }}</a>
-                        </li>
-                        {% else %}
-                        <li class="list-group-item text-muted">{{ fluent(key="no-child-tiers", lang=lang) }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Capabilities by Domain -->
-            {% if domain_summary %}
-            <div class="card shadow-lg mb-4">
-                <div class="card-header">
-                    <h2 class="h4 mb-0"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> Capabilities by Domain</h2>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm table-hover mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th>Domain</th>
-                                <th class="text-end">Total Capabilities</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in domain_summary %}
-                            <tr>
-                                <td>{{ viz::domain_chip(domain=item.domain) }}</td>
-                                <td class="text-end fw-bold">{{ item.count }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                            <button type="submit" class="btn btn-primary mb-3">{{ fluent(key="set-allocation", lang=lang) }}</button>
+                        </form>
+                    </details>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
         </div>
 
-        <!-- Sidebar pane: summary -->
         <div class="detail-aside">
             <div class="detail-aside-sticky">
-                <!-- Details -->
-                <div class="card shadow-lg mb-4">
+                <div class="card mb-4">
                     <div class="card-header">
-                        <h2 class="h4 mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ fluent(key="details-heading", lang=lang) }}</h2>
+                        <h2 class="h4 mb-0">{{ fluent(key="capabilities-by-domain", lang=lang) }}</h2>
                     </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="tier-level", lang=lang) }}:</span> {{ org_tier.tierLevel }}</li>
-                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="primary-domain", lang=lang) }}:</span> {{ org_tier.primaryDomain }}</li>
-                            <li class="list-group-item">
-                                <span class="text-muted">{{ fluent(key="parent-tier", lang=lang) }}:</span>
-                                {% if org_tier.parentOrganizationTier %}
-                                    <a href="/{{ lang }}/org_tier/{{ org_tier.parentOrganizationTier.id }}">{{ org_tier.parentOrganizationTier.nameEn }}</a>
-                                {% else %}
-                                    {{ fluent(key="none-label", lang=lang) }}
-                                {% endif %}
-                            </li>
-                            <li class="list-group-item">
-                                <span class="text-muted">{{ fluent(key="owner", lang=lang) }}:</span>
-                                {% if org_tier.owner.person %}
-                                <a href="/{{lang}}/person/{{org_tier.owner.person.id}}">{{ org_tier.owner.person.givenName }} {{ org_tier.owner.person.familyName }}</a>
-                                {% else %}<span class="text-muted">{{ fluent(key="vacant-label", lang=lang) }}</span>{% endif %}
-                            </li>
-                            {% if org_tier.owner.person %}
-                            <li class="list-group-item"><span class="text-muted">{{ fluent(key="owner-email", lang=lang) }}:</span> {{ org_tier.owner.person.email }}</li>
-                            {% endif %}
-                        </ul>
-                    </div>
+                    {% if domain_summary %}
+                    <ul class="list-group list-group-flush">
+                        {% for item in domain_summary %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ viz::domain_chip(domain=item.domain, lang=lang) }}
+                            <span class="fw-semibold">{{ item.count }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="card-body text-muted">{{ fluent(key="no-capability-data", lang=lang) }}</div>
+                    {% endif %}
                 </div>
             </div>
         </div>

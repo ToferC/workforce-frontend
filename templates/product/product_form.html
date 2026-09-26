@@ -69,13 +69,13 @@
 
                 <div class="row">
                     <div class="col-md-6">
-                        {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, selected=product.primaryDomain) }}
+                        {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, selected=product.primaryDomain, label_kind="domain", lang=lang) }}
                     </div>
                     <div class="col-md-3">
-                        {{ forms::select(name="product_status", label=label_status, options=work_statuses, selected=product.productStatus) }}
+                        {{ forms::select(name="product_status", label=label_status, options=work_statuses, selected=product.productStatus, label_kind="status", lang=lang) }}
                     </div>
                     <div class="col-md-3">
-                        {{ forms::select(name="priority", label="Priority", options=priorities, selected=product.priority) }}
+                        {{ forms::select(name="priority", label="Priority", options=priorities, selected=product.priority, label_kind="priority", lang=lang) }}
                     </div>
                 </div>
 

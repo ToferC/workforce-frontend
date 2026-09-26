@@ -11,6 +11,7 @@
     `role`     : caller's access level string ("operator"/"admin"/…)
     `is_full`  : true for the full-match tier (100% coverage)
 #}
+{% import "macros/labels.html" as labels %}
 {% import "macros/viz.html" as viz %}
 
 {% macro candidate_card(c, lang, role, csrf_token, role_id, is_full) %}
@@ -61,7 +62,7 @@
         </span>
         {% else %}
         <span class="badge bg-danger" title="{{ fluent(key='short-by', gap=g.gap, lang=lang) }}">
-            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ g.skillName }}: {{ fluent(key="needs-label", lang=lang) }} {{ g.requiredLevel }}{% if g.actualLevel %}, {{ fluent(key="has-label", lang=lang) }} {{ g.actualLevel }}{% else %}, {{ fluent(key="none-held", lang=lang) }}{% endif %}
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ g.skillName }}: {{ fluent(key="needs-label", lang=lang) }} {{ labels::enum_label(kind="level", value=g.requiredLevel, lang=lang) }}{% if g.actualLevel %}, {{ fluent(key="has-label", lang=lang) }} {{ labels::enum_label(kind="level", value=g.actualLevel, lang=lang) }}{% else %}, {{ fluent(key="none-held", lang=lang) }}{% endif %}
         </span>
         {% endif %}
         {% endfor %}

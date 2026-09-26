@@ -5,6 +5,7 @@
    "intersect once" and lazy-loads the node content (children + teams)
    from /{lang}/org_tier/{id}/node.
 #}
+{% import "macros/viz.html" as viz %}
 
 {% macro tier_node(tier, lang, role) %}
 <details class="card mb-2 org-node" id="node-{{ tier.id }}">
@@ -13,7 +14,7 @@
             <i class="bi bi-diagram-3" aria-hidden="true"></i>
             <span class="fw-semibold">{% if lang == "fr" %}{{ tier.nameFr }}{% else %}{{ tier.nameEn }}{% endif %}</span>
             <span class="badge bg-secondary ms-1">L{{ tier.tierLevel }}</span>
-            {% if tier.retiredAt %}<span class="badge bg-warning text-dark ms-1">{{ fluent(key="retired", lang=lang) }}</span>{% endif %}
+            {% if tier.retiredAt %}{{ viz::retired_chip(lang=lang) }}{% endif %}
         </span>
         <button class="btn btn-sm btn-outline-secondary"
                 title="{{ fluent(key="tier-info", lang=lang) }}"
@@ -73,7 +74,7 @@
                 <i class="bi bi-person-badge" aria-hidden="true"></i>
                 <a href="/{{ lang }}/role/{{ r.id }}">{% if lang == "fr" %}{{ r.titleFrench }}{% else %}{{ r.titleEnglish }}{% endif %}</a>
             </span>
-            <span class="badge bg-danger">{{ fluent(key="vacant", lang=lang) }}</span>
+            {{ viz::vacancy_chip(lang=lang) }}
         </li>
         {% endfor %}
         {% if team.occupiedRoles | length == 0 and team.vacantRoles | length == 0 %}

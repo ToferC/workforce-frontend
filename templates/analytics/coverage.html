@@ -90,7 +90,7 @@
                             {% for d in domain_totals %}
                             <tr>
                                 <td class="text-muted small">{{ loop.index }}</td>
-                                <td>{{ viz::domain_chip(domain=d.key) }}</td>
+                                <td>{{ viz::domain_chip(domain=d.key, lang=lang) }}</td>
                                 <td class="text-end fw-bold">{{ d.total }}</td>
                             </tr>
                             {% endfor %}

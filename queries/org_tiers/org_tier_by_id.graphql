@@ -9,10 +9,12 @@ query OrgTierById($id:UUID!) {
     parentOrganizationTier {
       id
       nameEn
+      nameFr
     }
     organization {
       id
       nameEn
+      nameFr
     }
     owner {
       id
@@ -24,8 +26,20 @@ query OrgTierById($id:UUID!) {
       }
     }
     childOrganizationTier {
-      nameEn
       id
+      nameEn
+      nameFr
+      retiredAt
+      headcount
+      totalEffort
+      owner {
+        id
+        person {
+          id
+          givenName
+          familyName
+        }
+      }
     }
     headcount
     totalEffort
@@ -36,9 +50,14 @@ query OrgTierById($id:UUID!) {
       counts
     }
     teams {
-      nameEnglish
       id
+      nameEnglish
+      nameFrench
       headcount
+      totalEffort
+      vacantRoles {
+        id
+      }
       owner {
         id
         person {

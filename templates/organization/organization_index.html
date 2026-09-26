@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
+{% import "macros/labels.html" as labels %}
 
 {% block title %}<title>{{ fluent(key="organizations", lang=lang) }}</title>{% endblock title %}
 
@@ -19,7 +21,8 @@
             </span>
         </div>
         <div class="card-body">
-            <input type="search" class="form-control mb-3" name="q" value="{{ q }}"
+            <label class="form-label small mb-1" for="organizations-q">{{ fluent(key="search-placeholder", lang=lang) }}</label>
+            <input type="search" id="organizations-q" class="form-control mb-3" name="q" value="{{ q }}"
                 placeholder="{{ fluent(key="search-placeholder", lang=lang) }}"
                 hx-get="/{{ lang }}/organizations{% if show_retired %}?retired=1{% endif %}"
                 hx-trigger="keyup changed delay:300ms, search"

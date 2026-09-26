@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
 
 {% block title %}<title>{{ fluent(key="products", lang=lang) }}</title>{% endblock title %}
 
@@ -24,8 +25,8 @@
                         <span class="text-muted small ms-2">{{ product.organization.nameEn }}</span>
                     </div>
                     <div>
-                        <span class="badge bg-secondary me-1">{{ product.primaryDomain }}</span>
-                        <span class="badge bg-info text-dark me-1">{{ product.productStatus }}</span>
+                        {{ viz::domain_chip(domain=product.primaryDomain, lang=lang) }}
+                        {{ viz::status_chip(status=product.productStatus, lang=lang) }}
                         <span class="badge bg-light text-dark border">{{ fluent(key="effort", lang=lang) }}: {{ product.effort }}</span>
                     </div>
                 </li>

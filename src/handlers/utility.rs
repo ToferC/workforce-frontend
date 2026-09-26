@@ -113,3 +113,19 @@ pub async fn toggle_language(
         .append_header(("Location", location))
         .finish()
 }
+
+/// Capability counts rolled up per domain, largest first: the "Capabilities
+/// by domain" card on organization, tier and team pages. Takes any
+/// generated `capabilityCounts` row type (each query module has its own).
+pub fn domain_summary<T: serde::Serialize>(counts: &[T]) -> Vec<serde_json::Value> {
+    let mut totals: std::collections::BTreeMap<String, i64> = std::collections::BTreeMap::new();
+    for row in counts.iter().filter_map(|c| serde_json::to_value(c).ok()) {
+        let domain = row["domain"].as_str().unwrap_or_default().to_string();
+        *totals.entry(domain).or_insert(0) += row["counts"].as_i64().unwrap_or(0);
+    }
+    let mut summary: Vec<(String, i64)> = totals.into_iter().collect();
+    summary.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    summary.into_iter()
+        .map(|(domain, count)| serde_json::json!({"domain": domain, "count": count}))
+        .collect()
+}

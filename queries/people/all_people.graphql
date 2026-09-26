@@ -4,8 +4,8 @@ query AllPeople($search: String, $organizationId: UUID, $roleStatus: String, $in
     givenName
     familyName
     retiredAt
-    organization { id nameEn }
-    activeRoles { id }
+    organization { id nameEn nameFr }
+    activeRoles { id titleEnglish titleFrench team { id nameEnglish nameFrench } }
   }
   peopleCount(search: $search, organizationId: $organizationId, roleStatus: $roleStatus, includeRetired: $includeRetired)
 }

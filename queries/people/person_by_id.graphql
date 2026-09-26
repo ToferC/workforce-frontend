@@ -18,6 +18,7 @@ query PersonById($id:UUID!) {
     organization {
       id
       nameEn
+      nameFr
     }
     languageData {
       id
@@ -41,6 +42,7 @@ query PersonById($id:UUID!) {
     activeRoles {
       id
       titleEnglish
+      titleFrench
       startDate
       endDate
       militaryOccupation
@@ -48,11 +50,24 @@ query PersonById($id:UUID!) {
       occupationalGroup
       occupationalLevel
       effort
+      requirements {
+        nameEn
+        domain
+        requiredLevel
+      }
       team {
         id
         nameEnglish
-        organizationLevel {
+        nameFrench
+        organization {
+          id
           nameEn
+          nameFr
+        }
+        organizationLevel {
+          id
+          nameEn
+          nameFr
           primaryDomain
         }
         owner {
@@ -93,6 +108,7 @@ query PersonById($id:UUID!) {
       role {
         id
         titleEnglish
+        titleFrench
         militaryOccupation
         rank
         occupationalGroup
@@ -100,16 +116,23 @@ query PersonById($id:UUID!) {
         team {
           id
           nameEnglish
+          nameFrench
         }
       }
     }
     findMatches {
       id
       titleEnglish
+      titleFrench
       militaryOccupation
       rank
       occupationalGroup
       occupationalLevel
+      team {
+        id
+        nameEnglish
+        nameFrench
+      }
       requirements {
         nameEn
         domain
@@ -119,8 +142,9 @@ query PersonById($id:UUID!) {
     affiliations {
       id
       organization {
-        nameEn
         id
+        nameEn
+        nameFr
       }
       affiliationRole
     }

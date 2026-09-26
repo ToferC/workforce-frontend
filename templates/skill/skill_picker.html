@@ -6,6 +6,7 @@
    The chosen skill is submitted as the parent form's `skill_id` field. Choosing
    a domain loads /{lang}/skill_options, which narrows the skill <select> to that
    domain. With no JS the grouped <select> below remains fully usable. #}
+{% import "macros/labels.html" as labels %}
 <div class="card border-info mb-3" id="skill-picker">
     <div class="card-body">
         <div class="mb-3">
@@ -19,7 +20,7 @@
                     hx-swap="innerHTML">
                 <option value="" selected>{{ fluent(key="select-domain-prompt", lang=lang) }}</option>
                 {% for d in skill_domains %}
-                <option value="{{ d.value }}">{{ d.label }}</option>
+                <option value="{{ d.value }}">{{ labels::enum_label(kind="domain", value=d.value, lang=lang) }}</option>
                 {% endfor %}
             </select>
             <div class="form-text">{{ fluent(key="skill-picker-help", lang=lang) }}</div>
@@ -34,7 +35,7 @@
                 </label>
                 <select class="form-select" id="skill_id" name="skill_id" required>
                     {% for group in skill_groups %}
-                    <optgroup label="{{ group.label }}">
+                    <optgroup label="{{ labels::enum_label(kind="domain", value=group.value, lang=lang) }}">
                         {% for option in group.skills %}
                         <option value="{{ option.value }}">{{ option.label }}</option>
                         {% endfor %}

@@ -78,6 +78,66 @@ fn team_from_form(form: &TeamForm, id: Option<&str>) -> serde_json::Value {
     })
 }
 
+/// Team roles ordered by reporting line: roles whose manager is outside the
+/// team come first, each followed depth-first by the roles reporting to it
+/// (siblings by title). Each row gains a `depth` for indentation; roles caught
+/// in a reporting cycle are appended flat.
+fn members_by_reporting_line(roles: &[serde_json::Value]) -> Vec<serde_json::Value> {
+    use std::collections::HashSet;
+    let ids: HashSet<&str> = roles.iter().filter_map(|r| r["id"].as_str()).collect();
+    // Does `r` report to `manager` (None: to no one inside this team)?
+    let reports_to = |r: &serde_json::Value, manager: Option<&str>| {
+        r["reportsToId"].as_str().filter(|m| ids.contains(m)) == manager
+    };
+
+    let mut by_title: Vec<&serde_json::Value> = roles.iter().collect();
+    by_title.sort_by_key(|r| r["titleEnglish"].as_str().unwrap_or("").to_lowercase());
+
+    // Stack of (role, depth); pushed in reverse so siblings pop in title order.
+    let mut stack: Vec<(&serde_json::Value, usize)> = by_title.iter().rev()
+        .filter(|r| reports_to(r, None))
+        .map(|r| (*r, 0))
+        .collect();
+    let mut seen = HashSet::new();
+    let mut out = Vec::new();
+    while let Some((role, depth)) = stack.pop() {
+        let id = role["id"].as_str().unwrap_or("");
+        if !seen.insert(id) { continue; }
+        let mut row = role.clone();
+        row["depth"] = json!(depth);
+        out.push(row);
+        stack.extend(by_title.iter().rev().filter(|r| reports_to(r, Some(id))).map(|r| (*r, depth + 1)));
+    }
+    for role in by_title.into_iter().filter(|r| !seen.contains(r["id"].as_str().unwrap_or(""))) {
+        let mut row = role.clone();
+        row["depth"] = json!(0);
+        out.push(row);
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn members_follow_the_reporting_line() {
+        let roles = vec![
+            json!({"id": "c", "titleEnglish": "Analyst", "reportsToId": "a"}),
+            json!({"id": "a", "titleEnglish": "Lead", "reportsToId": "outside"}),
+            json!({"id": "b", "titleEnglish": "Advisor", "reportsToId": "a"}),
+            json!({"id": "d", "titleEnglish": "Clerk", "reportsToId": null}),
+            json!({"id": "x", "titleEnglish": "Loop A", "reportsToId": "y"}),
+            json!({"id": "y", "titleEnglish": "Loop B", "reportsToId": "x"}),
+        ];
+        let order: Vec<(String, u64)> = members_by_reporting_line(&roles).iter()
+            .map(|r| (r["id"].as_str().unwrap().to_string(), r["depth"].as_u64().unwrap()))
+            .collect();
+        let expected = [("d", 0), ("a", 0), ("b", 1), ("c", 1), ("x", 0), ("y", 0)];
+        assert_eq!(order, expected.iter().map(|(i, d)| (i.to_string(), *d)).collect::<Vec<_>>());
+    }
+}
+
 #[get("/{lang}/team/{team_id}")]
 pub async fn team_by_id(
     data: web::Data<AppData>,
@@ -102,58 +162,59 @@ pub async fn team_by_id(
     let team = &r.team_by_id;
     ctx.insert("team", team);
 
-    let mut domain_totals: std::collections::BTreeMap<String, i64> = std::collections::BTreeMap::new();
-    for cap in &team.capability_counts {
-        *domain_totals.entry(format!("{:?}", cap.domain)).or_insert(0) += cap.counts;
-    }
-    let domain_summary: Vec<serde_json::Value> = domain_totals
-        .iter()
-        .map(|(domain, count)| json!({"domain": domain, "count": count}))
-        .collect();
-    ctx.insert("domain_summary", &domain_summary);
+    ctx.insert("domain_summary", &super::utility::domain_summary(&team.capability_counts));
 
-    // Delivery at a glance: distinct products and tasks this team contributes
-    // to, plus the active work underway. Traverses every role's (occupied and
-    // vacant) work -> task -> product so the products section references any
-    // product the team's tasks or work feed into, not just those reachable
-    // through filled positions.
     let team_json = serde_json::to_value(team).unwrap_or_else(|_| json!({}));
+    let mut roles: Vec<serde_json::Value> = Vec::new();
+    for (key, vacant) in [("occupiedRoles", false), ("vacantRoles", true)] {
+        for role in team_json[key].as_array().into_iter().flatten() {
+            let mut role = role.clone();
+            role["vacant"] = json!(vacant);
+            roles.push(role);
+        }
+    }
+    ctx.insert("members", &members_by_reporting_line(&roles));
+
+    // Delivery at a glance: distinct products, and the tasks this team's
+    // roles (occupied or vacant) contribute to, each with its due date and
+    // the team's in-progress work on it.
+    let today = chrono::Utc::now().date_naive();
     let mut products: std::collections::BTreeMap<String, serde_json::Value> = std::collections::BTreeMap::new();
     let mut tasks: std::collections::BTreeMap<String, serde_json::Value> = std::collections::BTreeMap::new();
-    let mut active_work: Vec<serde_json::Value> = Vec::new();
     let mut work_count = 0;
 
-    let mut roles: Vec<&serde_json::Value> = Vec::new();
-    if let Some(r) = team_json["occupiedRoles"].as_array() { roles.extend(r); }
-    if let Some(r) = team_json["vacantRoles"].as_array() { roles.extend(r); }
-
-    for role in roles {
+    for role in &roles {
         let person_name = match (role["person"]["givenName"].as_str(), role["person"]["familyName"].as_str()) {
             (Some(g), Some(f)) => format!("{} {}", g, f),
             _ => by_lang(&lang, "Unassigned", "Non assigné").to_string(),
         };
-        if let Some(work) = role["work"].as_array() {
-            for w in work {
-                work_count += 1;
-                let t = &w["task"];
-                tasks.entry(t["id"].as_str().unwrap_or("").to_string()).or_insert_with(|| json!({
+        for w in role["work"].as_array().into_iter().flatten() {
+            work_count += 1;
+            let t = &w["task"];
+            let task = tasks.entry(t["id"].as_str().unwrap_or("").to_string()).or_insert_with(|| {
+                let due = t["targetCompletionDate"].as_str().unwrap_or("");
+                let finished = matches!(t["taskStatus"].as_str(), Some("COMPLETED") | Some("CANCELLED"));
+                let overdue = !finished && due.get(..10)
+                    .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+                    .map_or(false, |d| d < today);
+                json!({
                     "id": t["id"], "title": t["title"], "status": t["taskStatus"],
+                    "due": due.get(..10).unwrap_or(""), "overdue": overdue, "activeWork": [],
+                })
+            });
+            if w["workStatus"].as_str() == Some("IN_PROGRESS") {
+                task["activeWork"].as_array_mut().unwrap().push(json!({
+                    "id": w["id"],
+                    "description": w["workDescription"],
+                    "effort": w["effort"],
+                    "person": person_name,
                 }));
-                let p = &t["product"];
-                if let Some(pid) = p["id"].as_str() {
-                    products.entry(pid.to_string()).or_insert_with(|| json!({
-                        "id": p["id"], "nameEn": p["nameEn"], "nameFr": p["nameFr"],
-                    }));
-                }
-                if w["workStatus"].as_str() == Some("IN_PROGRESS") {
-                    active_work.push(json!({
-                        "id": w["id"],
-                        "description": w["workDescription"],
-                        "status": w["workStatus"],
-                        "effort": w["effort"],
-                        "person": person_name,
-                    }));
-                }
+            }
+            let p = &t["product"];
+            if let Some(pid) = p["id"].as_str() {
+                products.entry(pid.to_string()).or_insert_with(|| json!({
+                    "id": p["id"], "nameEn": p["nameEn"], "nameFr": p["nameFr"],
+                }));
             }
         }
     }
@@ -162,7 +223,6 @@ pub async fn team_by_id(
     let tasks: Vec<serde_json::Value> = tasks.into_values().collect();
     ctx.insert("products", &products);
     ctx.insert("tasks", &tasks);
-    ctx.insert("active_work", &active_work);
     ctx.insert("work_count", &work_count);
 
     render_page(&data, "team/team.html", &ctx)

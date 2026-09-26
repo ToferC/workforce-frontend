@@ -4,8 +4,11 @@ query AllTeams($search: String, $includeRetired: Boolean!, $limit: Int, $offset:
     nameEnglish
     nameFrench
     retiredAt
-    organization { id nameEn }
-    organizationLevel { id nameEn }
+    organization { id nameEn nameFr }
+    organizationLevel { id nameEn nameFr }
+    owner { id person { id givenName familyName } }
+    headcount
+    vacantRoles { id }
   }
   teamsCount(search: $search, includeRetired: $includeRetired)
 }

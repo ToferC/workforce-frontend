@@ -18,6 +18,18 @@ extern crate strum_macros;
 
 const APP_NAME: &str = "Workforce-frontend";
 
+use fluent_templates::{langid, static_loader, LanguageIdentifier, Loader};
+
+// Fluent bundles for EN/FR, shared by the Tera `fluent` function and
+// server-side label lookups.
+static_loader! {
+    pub static LOCALES = {
+        locales: "./i18n/",
+        fallback_language: "en",
+        customise: |bundle| bundle.set_use_isolating(false),
+    };
+}
+
 #[derive(Clone, Debug)]
 pub struct AppData {
     pub tmpl: Tera,
@@ -95,7 +107,27 @@ pub fn format_cents(cents: i64, lang: &str) -> String {
     }
 }
 
-/// Tera filter over `format_cents`: `{{ summary.budgetedCents | money(lang=lang) }}`.
+/// Compact money for at-a-glance tiles: "$663.4M" / "663,4 M$", "$900K"
+/// (no trailing ".0"), whole dollars below 1,000.
+pub fn format_cents_compact(cents: i64, lang: &str) -> String {
+    let dollars = cents as f64 / 100.0;
+    let (scaled, suffix) = match dollars.abs() {
+        d if d >= 1e9 => (dollars / 1e9, if lang == "fr" { "\u{a0}G" } else { "B" }),
+        d if d >= 1e6 => (dollars / 1e6, if lang == "fr" { "\u{a0}M" } else { "M" }),
+        d if d >= 1e3 => (dollars / 1e3, if lang == "fr" { "\u{a0}k" } else { "K" }),
+        _ => return format_cents(cents, lang),
+    };
+    let number = format!("{:.1}", scaled).trim_end_matches(".0").to_string();
+    if lang == "fr" {
+        format!("{}{}\u{a0}$", number.replace('.', ","), suffix)
+    } else {
+        let (sign, number) = number.strip_prefix('-').map_or(("", number.as_str()), |n| ("-", n));
+        format!("{}${}{}", sign, number, suffix)
+    }
+}
+
+/// Tera filter over `format_cents`: `{{ summary.budgetedCents | money(lang=lang) }}`;
+/// `compact=true` gives the tile form ("$663.4M").
 pub fn money_filter(
     value: &tera::Value,
     args: &std::collections::HashMap<String, tera::Value>,
@@ -105,7 +137,8 @@ pub fn money_filter(
         .or_else(|| value.as_f64().map(|f| f as i64))
         .unwrap_or(0);
     let lang = args.get("lang").and_then(|v| v.as_str()).unwrap_or("en");
-    Ok(tera::Value::String(format_cents(cents, lang)))
+    let compact = args.get("compact").and_then(|v| v.as_bool()).unwrap_or(false);
+    Ok(tera::Value::String(if compact { format_cents_compact(cents, lang) } else { format_cents(cents, lang) }))
 }
 
 /// Numeric weight for each CapabilityLevel; shared by analytics and org chart.
@@ -120,27 +153,49 @@ pub fn level_weight(level: &str) -> i64 {
     }
 }
 
-/// Short display label for a SkillDomain key.
-pub fn domain_short_label(key: &str) -> &'static str {
-    match key {
-        "COMBAT"                                => "Combat",
-        "INTELLIGENCE"                          => "Intelligence",
-        "STRATEGY"                              => "Strategy",
-        "ENGINEERING"                           => "Engineering",
-        "MEDICAL"                               => "Medical",
-        "JOINT_OPERATIONS"                      => "Joint Ops",
-        "SOFTWARE_ENGINEERING"                  => "Software Eng",
-        "CLOUD_PLATFORM_DEV_OPS"               => "Cloud/DevOps",
-        "DATA_ANALYTICS_AND_AI"                => "Data & AI",
-        "CYBER_SECURITY"                        => "Cyber",
-        "PRODUCT_AGILE_AND_DELIVERY"           => "Product/Agile",
-        "USER_EXPERIENCE"                       => "UX",
-        "PROCUREMENT_AND_VENDOR_MANAGEMENT"    => "Procurement",
-        "PEOPLE_AND_ORGANISATIONAL_LEADERSHIP" => "People & Org",
-        "GOVERNANCE"                            => "Governance",
-        "CORPORATE_SERVICES"                    => "Corporate",
-        _                                       => "—",
-    }
+/// How well a set of capabilities covers a role's requirements, matched by
+/// skill name. The held level is the validated level when there is one,
+/// otherwise the self-identified level. Shared by the person page's current
+/// roles and job matches so both read the same way:
+/// `{rows: [{name, domain, required, held, validated, met}], met, total, pct}`.
+pub fn requirement_fit(requirements: &serde_json::Value, capabilities: &serde_json::Value) -> serde_json::Value {
+    let caps = capabilities.as_array().map(Vec::as_slice).unwrap_or_default();
+    let rows: Vec<serde_json::Value> = requirements.as_array().into_iter().flatten().map(|req| {
+        let name = req["nameEn"].as_str().unwrap_or("");
+        let required = req["requiredLevel"].as_str().unwrap_or("");
+        let cap = caps.iter().find(|c| c["nameEn"].as_str() == Some(name));
+        let validated = cap.and_then(|c| c["validatedLevel"].as_str());
+        let held = validated.or_else(|| cap.and_then(|c| c["selfIdentifiedLevel"].as_str()));
+        serde_json::json!({
+            "name": name,
+            "domain": req["domain"],
+            "required": required,
+            "held": held,
+            "validated": validated.is_some(),
+            "met": held.map_or(false, |h| level_weight(h) >= level_weight(required)),
+        })
+    }).collect();
+    let total = rows.len();
+    let met = rows.iter().filter(|r| r["met"] == true).count();
+    let pct = if total == 0 { 100 } else { met * 100 / total };
+    serde_json::json!({"rows": rows, "met": met, "total": total, "pct": pct})
+}
+
+/// Short, localized label for an API enum value — the Rust twin of
+/// `labels::enum_label` in templates/macros/labels.html, reading the same
+/// `enum-<kind>-<value>` Fluent keys (value lower-cased, `_` → `-`). Used where
+/// labels are built server-side (chart series, org-chart chips). A missing key
+/// falls back to sentence case, never ALL_CAPS.
+pub fn enum_label(kind: &str, value: &str, lang: &str) -> String {
+    let key = format!("enum-{}-{}", kind, value.to_lowercase().replace('_', "-"));
+    let lang_id: LanguageIdentifier = lang.parse().unwrap_or_else(|_| langid!("en"));
+    LOCALES.try_lookup(&lang_id, &key).unwrap_or_else(|| {
+        let mut words = value.replace('_', " ").to_lowercase();
+        if let Some(first) = words.get_mut(0..1) {
+            first.make_ascii_uppercase();
+        }
+        words
+    })
 }
 
 /// Hex colour for a WorkStatus, used for chart fills.

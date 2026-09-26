@@ -57,13 +57,13 @@
                 {{ forms::textarea(name="work_description", label=label_desc, value=work.workDescription) }}
                 {{ forms::text_input(name="url", label=label_url, value=work.url, type="url", required=false) }}
                 <div class="row">
-                    <div class="col-md-6">{{ forms::select(name="domain", label=label_domain, options=skill_domains, selected=work.domain, blank_label=fluent(key="select-domain-prompt", lang=lang), attrs='hx-get="/' ~ lang ~ '/work_skill_options" hx-trigger="change" hx-target="#skill-select-wrapper" hx-swap="outerHTML"') }}</div>
-                    <div class="col-md-6">{{ forms::select(name="capability_level", label=label_level, options=capability_levels, selected=work.capabilityLevel) }}</div>
+                    <div class="col-md-6">{{ forms::select(name="domain", label=label_domain, options=skill_domains, selected=work.domain, blank_label=fluent(key="select-domain-prompt", lang=lang), attrs='hx-get="/' ~ lang ~ '/work_skill_options" hx-trigger="change" hx-target="#skill-select-wrapper" hx-swap="outerHTML"', label_kind="domain", lang=lang) }}</div>
+                    <div class="col-md-6">{{ forms::select(name="capability_level", label=label_level, options=capability_levels, selected=work.capabilityLevel, label_kind="level", lang=lang) }}</div>
                 </div>
                 <div class="row">
                     <div class="col-md-4">{{ forms::text_input(name="effort", label=label_effort, value=work.effort, type="number") }}</div>
-                    <div class="col-md-4">{{ forms::select(name="work_status", label=label_status, options=work_statuses, selected=work.workStatus) }}</div>
-                    <div class="col-md-4">{{ forms::select(name="priority", label="Priority", options=priorities, selected=work.priority) }}</div>
+                    <div class="col-md-4">{{ forms::select(name="work_status", label=label_status, options=work_statuses, selected=work.workStatus, label_kind="status", lang=lang) }}</div>
+                    <div class="col-md-4">{{ forms::select(name="priority", label="Priority", options=priorities, selected=work.priority, label_kind="priority", lang=lang) }}</div>
                 </div>
                 <div class="row">
                     <div class="col-md-4">{{ forms::date_input(name="due_date", label=fluent(key="due-date", lang=lang), value=work.dueDate | default(value="") | truncate(length=10, end="")) }}</div>

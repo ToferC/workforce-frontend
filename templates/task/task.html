@@ -12,8 +12,8 @@
             <div class="entity-header__identity">
                 <h1 class="entity-header__title">
                     {{ task.title }}
-                    {{ viz::status_chip(status=task.taskStatus) }}
-                    {{ viz::priority_chip(priority=task.priority) }}
+                    {{ viz::status_chip(status=task.taskStatus, lang=lang) }}
+                    {{ viz::priority_chip(priority=task.priority, lang=lang) }}
                     {% if task.priorityBelowParent %}
                     <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="priority-below-product", lang=lang) }}</span>
                     {% endif %}
@@ -59,7 +59,7 @@
         <div class="entity-header__meta">
             <span class="meta-item">
                 <span class="meta-item__label">{{ fluent(key="approval", lang=lang) }}</span>
-                {{ viz::approval_chip(status=task.approvalStatus) }}
+                {{ viz::approval_chip(status=task.approvalStatus, lang=lang) }}
             </span>
             <span class="meta-item">
                 <span class="meta-item__label">{{ fluent(key="target-completion-date", lang=lang) }}</span>
@@ -121,10 +121,10 @@
                         <div class="me-auto">
                             <a href="/{{ lang }}/work/{{ work.id }}" class="fw-semibold">{{ work.workDescription }}</a>
                             <div class="d-flex flex-wrap gap-1 mt-1 align-items-center small">
-                                {{ viz::domain_chip(domain=work.domain) }}
-                                {{ viz::level_chip(level=work.capabilityLevel) }}
+                                {{ viz::domain_chip(domain=work.domain, lang=lang) }}
+                                {{ viz::level_chip(level=work.capabilityLevel, lang=lang) }}
                                 {{ viz::effort_meter(value=work.effort) }}
-                                {% if work.priority %}{{ viz::priority_chip(priority=work.priority) }}{% endif %}
+                                {% if work.priority %}{{ viz::priority_chip(priority=work.priority, lang=lang) }}{% endif %}
                                 {% if work.priorityBelowParent %}<span class="badge bg-warning text-dark" title="{{ fluent(key='priority-below-task', lang=lang) }}"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>{% endif %}
                                 {% if work.workStatus == "BLOCKED" %}<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="blocked-label", lang=lang) }}</span>{% endif %}
                                 {% if work.dueDate %}
@@ -182,7 +182,7 @@
                                     <td>{{ contract.vendor }}</td>
                                     <td class="small text-muted">{{ contract.startDate | truncate(length=10, end="") }} &rarr; {{ contract.endDate | truncate(length=10, end="") }}</td>
                                     <td class="text-end">{{ contract.totalValueCents | money(lang=lang) }}</td>
-                                    <td>{{ viz::contract_status_chip(status=contract.status) }}</td>
+                                    <td>{{ viz::contract_status_chip(status=contract.status, lang=lang) }}</td>
                                     {% if role == "operator" or role == "admin" %}
                                     <td class="text-end">
                                         <a href="/{{ lang }}/contract/{{ contract.id }}/edit" class="btn btn-sm btn-outline-secondary" aria-label="{{ fluent(key='edit-button', lang=lang) }} {{ contract.referenceNumber }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
@@ -214,7 +214,7 @@
                 <div class="card shadow-lg mb-4">
                     <div class="card-header d-flex align-items-center justify-content-between">
                         <h2 class="h4 mb-0"><i class="bi bi-clipboard-check" aria-hidden="true"></i> {{ fluent(key="approval", lang=lang) }}</h2>
-                        {{ viz::approval_chip(status=task.approvalStatus) }}
+                        {{ viz::approval_chip(status=task.approvalStatus, lang=lang) }}
                     </div>
                     <div class="card-body">
                         <ul class="list-group list-group-flush mb-2">
@@ -270,7 +270,7 @@
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item"><span class="text-muted">{{ fluent(key="website", lang=lang) }}:</span> <a href="{{ task.url }}">{{ task.url }}</a></li>
-                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">{{ fluent(key="domain", lang=lang) }}:</span> {{ viz::domain_chip(domain=task.domain) }}</li>
+                            <li class="list-group-item d-flex align-items-center gap-2"><span class="text-muted">{{ fluent(key="domain", lang=lang) }}:</span> {{ viz::domain_chip(domain=task.domain, lang=lang) }}</li>
                             <li class="list-group-item"><span class="text-muted">{{ fluent(key="approval-tier", lang=lang) }}:</span> {{ task.approvalTier }}</li>
                             <li class="list-group-item"><span class="text-muted">{{ fluent(key="start-date", lang=lang) }}:</span> {{ task.startDatestamp }}</li>
                             <li class="list-group-item"><span class="text-muted">{{ fluent(key="target-completion-date", lang=lang) }}:</span> {{ task.targetCompletionDate }}</li>

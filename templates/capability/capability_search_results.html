@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
 
 {% block title %}
     <title>Capability Search for {{ name }} and {{ level }}</title>
@@ -34,7 +35,7 @@
                 <h4 class="h6 text-muted mb-2">Capabilities</h4>
                 <ul class="list-group list-group-flush">
                     {% for cap in capability.person.capabilities %}
-                    <li class="list-group-item px-0">{{ cap.nameEn }} <span class="text-muted">({{ cap.domain }})</span> &mdash; {{ cap.validatedLevel }}</li>
+                    <li class="list-group-item px-0">{{ cap.nameEn }} {{ viz::domain_chip(domain=cap.domain, lang=lang) }} {{ viz::level_chip(level=cap.validatedLevel, source="validated", lang=lang) }}</li>
                     {% endfor %}
                 </ul>
             </div>

@@ -11,7 +11,10 @@ query OrganizationById($id:UUID!) {
     topOrgTier {
       id
       nameEn
+      nameFr
       primaryDomain
+      headcount
+      totalEffort
       owner {
         id
         person {
@@ -27,16 +30,6 @@ query OrganizationById($id:UUID!) {
       name
       level
       counts
-    }
-    publications {
-      id
-      title
-      publicationStatus
-      leadAuthor {
-        id
-        givenName
-        familyName
-      }
     }
     affiliations {
       id

@@ -1,0 +1,26 @@
+{#
+  Page-structure macros shared by the entity detail pages.
+  Import with: {% import "macros/page.html" as page %}
+
+  trail(lang, section, org, tier, team, role)
+      GCDS breadcrumb trail of a record's ancestors in the hierarchy
+      Organization › Tier › Team › Role. Pass whichever ancestors the page
+      has (any may be omitted or null); `section` names an index route whose
+      Fluent key matches it ("organizations", "people", …) for records with no
+      ancestor. The current page is not repeated — its <h1> names it.
+      Use inside {% block breadcrumb %}.
+#}
+{% import "macros/labels.html" as labels %}
+
+{% macro trail(lang, section="", org=false, tier=false, team=false, role=false) %}
+<div class="container pt-2">
+    <gcds-breadcrumbs hide-canada-link="true">
+        <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
+        {% if section %}<gcds-breadcrumbs-item href="/{{ lang }}/{{ section }}">{{ fluent(key=section, lang=lang) }}</gcds-breadcrumbs-item>{% endif %}
+        {% if org %}<gcds-breadcrumbs-item href="/{{ lang }}/organization/{{ org.id }}">{{ labels::name(obj=org, lang=lang) }}</gcds-breadcrumbs-item>{% endif %}
+        {% if tier %}<gcds-breadcrumbs-item href="/{{ lang }}/org_tier/{{ tier.id }}">{{ labels::name(obj=tier, lang=lang) }}</gcds-breadcrumbs-item>{% endif %}
+        {% if team %}<gcds-breadcrumbs-item href="/{{ lang }}/team/{{ team.id }}">{{ labels::name(obj=team, lang=lang) }}</gcds-breadcrumbs-item>{% endif %}
+        {% if role %}<gcds-breadcrumbs-item href="/{{ lang }}/role/{{ role.id }}">{{ labels::name(obj=role, lang=lang) }}</gcds-breadcrumbs-item>{% endif %}
+    </gcds-breadcrumbs>
+</div>
+{% endmacro trail %}

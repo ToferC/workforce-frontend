@@ -7,12 +7,14 @@ query TeamById($id:UUID!) {
     descriptionFrench
     retiredAt
     organizationLevel {
-      nameEn
       id
+      nameEn
+      nameFr
     }
     organization {
       id
       nameEn
+      nameFr
     }
     headcount
     totalEffort
@@ -24,6 +26,7 @@ query TeamById($id:UUID!) {
     }
     occupiedRoles {
       titleEnglish
+      titleFrench
       id
       reportsToId
       rank
@@ -52,6 +55,7 @@ query TeamById($id:UUID!) {
           id
           title
           taskStatus
+          targetCompletionDate
           product {
             id
             nameEn
@@ -62,6 +66,7 @@ query TeamById($id:UUID!) {
     }
     vacantRoles {
       titleEnglish
+      titleFrench
       id
       reportsToId
       rank
@@ -78,6 +83,7 @@ query TeamById($id:UUID!) {
           id
           title
           taskStatus
+          targetCompletionDate
           product {
             id
             nameEn

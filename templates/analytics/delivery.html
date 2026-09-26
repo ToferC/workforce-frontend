@@ -65,7 +65,7 @@
                 {% for s in status_legend %}
                 <span class="d-flex align-items-center gap-1">
                     <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:{{ s.color }}"></span>
-                    {{ viz::status_chip(status=s.status) }}
+                    {{ viz::status_chip(status=s.status, lang=lang) }}
                 </span>
                 {% endfor %}
             </div>
@@ -127,7 +127,7 @@
                     {% for p in product_rows %}
                     <tr>
                         <td><a href="/{{ lang }}/product/{{ p.id }}">{{ p.name }}</a></td>
-                        <td>{{ viz::domain_chip(domain=p.domain) }}</td>
+                        <td>{{ viz::domain_chip(domain=p.domain, lang=lang) }}</td>
                         <td class="text-center">{{ p.task_count }}</td>
                         <td class="text-center">{{ p.work_count }}</td>
                         <td class="text-end fw-bold">{{ p.effort }}</td>

@@ -3,18 +3,12 @@
 // at startup does not.
 
 use tera::{Tera, Context};
-use fluent_templates::{FluentLoader, static_loader};
+use fluent_templates::FluentLoader;
 use serde_json::json;
 
 use frontend::security::FlashMessage;
 
-static_loader! {
-    static LOCALES = {
-        locales: "./i18n/",
-        fallback_language: "en",
-        customise: |bundle| bundle.set_use_isolating(false),
-    };
-}
+use frontend::LOCALES;
 
 fn tera() -> Tera {
     let mut tera = Tera::new("templates/**/*").unwrap();
@@ -39,6 +33,14 @@ fn base_context(lang: &str, role: &str) -> Context {
     }]);
     ctx.insert("csrf_token", "test-csrf-token");
     ctx
+}
+
+// What organization_by_id inserts alongside the organization itself.
+fn organization_page_extras(ctx: &mut Context) {
+    ctx.insert("org_headcount", &0);
+    ctx.insert("org_effort", &0);
+    ctx.insert("domain_summary", &json!([]));
+    ctx.insert("tier_finances", &json!({}));
 }
 
 fn sample_organization() -> serde_json::Value {
@@ -104,36 +106,62 @@ fn organization_detail_shows_actions_for_operator_only() {
     let tera = tera();
     let mut ctx = base_context("en", "operator");
     ctx.insert("organization", &sample_organization());
+    organization_page_extras(&mut ctx);
     let html = tera.render("organization/organization.html", &ctx).unwrap();
     assert!(html.contains("/organization/11111111-1111-1111-1111-111111111111/edit"));
     assert!(html.contains("/organization/11111111-1111-1111-1111-111111111111/retire"));
 
     let mut ctx = base_context("en", "user");
     ctx.insert("organization", &sample_organization());
+    organization_page_extras(&mut ctx);
     let html = tera.render("organization/organization.html", &ctx).unwrap();
     assert!(!html.contains("/edit"));
     assert!(!html.contains("/retire"));
 }
 
 #[test]
-fn organization_detail_tiles_and_publications_link() {
+fn organization_detail_tiles_and_tier_comparison() {
     let tera = tera();
     let mut ctx = base_context("en", "user");
-    ctx.insert("organization", &sample_organization());
+    let mut org = sample_organization();
+    org["topOrgTier"] = json!([{
+        "id": "22222222-2222-2222-2222-222222222222", "nameEn": "Operations", "nameFr": "Opérations",
+        "primaryDomain": "JOINT_OPERATIONS", "headcount": 10, "totalEffort": 90,
+        "owner": {"id": "o1", "person": null},
+    }]);
+    ctx.insert("organization", &org);
+    organization_page_extras(&mut ctx);
+    ctx.insert("org_headcount", &10);
+    ctx.insert("org_effort", &90);
     ctx.insert("org_finances", &json!({
         "tiers": 42, "budgetedCents": 66_344_153_951_i64,
         "projectedCents": 63_000_000_000_i64, "lapseCents": 3_344_153_951_i64,
         "allocationCents": 69_670_000_000_i64
     }));
+    ctx.insert("tier_finances", &json!({"22222222-2222-2222-2222-222222222222": {
+        "allocationCents": null, "projectedCents": 63_000_000_000_i64, "lapseCents": 3_344_153_951_i64}}));
     let html = tera.render("organization/organization.html", &ctx).unwrap();
-    // At-a-glance tiles lead the page
-    assert!(html.contains("$663,441,539"));
-    assert!(html.contains(">42<"));
-    // Publications moved to their own view — no card, just the index link
-    assert!(!html.contains("bi-journal-richtext\" aria-hidden=\"true\"></i> Publications"));
+    // Stat tiles: compact money, utilization with a warning icon at 90 %
+    assert!(html.contains("$630M"));
+    assert!(html.contains("of $663.4M budget"));
+    assert!(html.contains("stat-tile--warning"));
+    assert!(html.contains("util--warning"));
+    // Tier comparison row: localized short domain, vacant owner chip, money
+    assert!(html.contains("Joint Ops"));
+    assert!(html.contains("chip-vacant"));
+    assert!(html.contains("$33.4M"));
+    // Publications stay on their own view
     assert!(html.contains("/en/publications"));
-    // Meta strip carries the identity facts
     assert!(html.contains("Organization type"));
+    // Breadcrumb back to the index
+    assert!(html.contains("gcds-breadcrumbs-item href=\"/en/organizations\""));
+
+    let mut ctx = base_context("fr", "user");
+    ctx.insert("organization", &org);
+    organization_page_extras(&mut ctx);
+    let html = tera.render("organization/organization.html", &ctx).unwrap();
+    assert!(html.contains("Opérations"));
+    assert!(html.contains("Ops interarmées"));
 }
 
 #[test]
@@ -204,6 +232,7 @@ fn organization_detail_hides_retire_when_already_retired() {
     let mut org = sample_organization();
     org["retiredAt"] = json!("2026-01-01T00:00:00");
     ctx.insert("organization", &org);
+    organization_page_extras(&mut ctx);
     let html = tera.render("organization/organization.html", &ctx).unwrap();
     assert!(html.contains("/edit"));
     assert!(!html.contains("/retire"));
@@ -403,7 +432,7 @@ fn sample_team_stats() -> serde_json::Value {
 fn team_page_extras(ctx: &mut Context) {
     ctx.insert("products", &json!([]));
     ctx.insert("tasks", &json!([]));
-    ctx.insert("active_work", &json!([]));
+    ctx.insert("members", &json!([]));
     ctx.insert("work_count", &0);
 }
 
@@ -547,7 +576,8 @@ fn sample_role_record() -> serde_json::Value {
         "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "phone": "555", "email": "s@e.com"},
         "team": {
             "id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team",
-            "organizationLevel": {"nameEn": "Tier", "primaryDomain": "CYBER_SECURITY"},
+            "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization", "nameFr": "Organisation test"},
+            "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Tier", "nameFr": "Niveau", "primaryDomain": "CYBER_SECURITY"},
             "owner": {"id": "44444444-4444-4444-4444-444444444444", "givenName": "Jane", "familyName": "Doe", "email": "j@e.com"},
         },
         "work": [],
@@ -660,11 +690,16 @@ fn role_detail_shows_assignment_history() {
     ctx.insert("role_record", &role);
     let html = tera.render("role/role.html", &ctx).unwrap();
     assert!(html.contains("Assignment History"));
-    // both occupants and the current badge appear
-    assert!(html.contains("Sam Lee"));
-    assert!(html.contains("Pat Kim"));
-    assert!(html.contains("Current"));
+    // The current holder leads the meta strip with their start date; the
+    // history lists only previous holders.
+    assert!(html.contains("since 2026-01-01"));
+    let history = &html[html.find("Assignment History").unwrap()..];
+    assert!(history.contains("Pat Kim"));
+    assert!(!history.contains("Sam Lee"));
     assert!(html.contains("/person/99999999-9999-9999-9999-999999999999"));
+    // Breadcrumb: organization › tier › team
+    assert!(html.contains("gcds-breadcrumbs-item href=\"/en/team/66666666-6666-6666-6666-666666666666\""));
+    assert!(html.contains("gcds-breadcrumbs-item href=\"/en/org_tier/22222222-2222-2222-2222-222222222222\""));
 }
 
 #[test]
@@ -1272,7 +1307,7 @@ fn org_tier_page_shows_budget_card_with_set_form_for_operator() {
         ctx.insert("org_tier", &tier);
         ctx.insert("domain_summary", &json!([]));
         ctx.insert("budget", &budget);
-        ctx.insert("budget_children", &children);
+        ctx.insert("child_finances", &json!({"55555555-5555-5555-5555-555555555555": children[0].clone()}));
         ctx.insert("budget_amount_dollars", "1000000.00");
         ctx.insert("budget_fy_options", &json!([
             {"value": 2026, "label": "2026-27"},
@@ -1387,7 +1422,7 @@ fn team_index_renders_with_retired_toggle() {
     assert!(html.contains("Active Team"));
     // the retired one carries the badge
     assert!(html.contains("/team/66666666-6666-6666-6666-666666666667"));
-    let badges = html.matches("badge bg-warning").count();
+    let badges = html.matches("chip-retired").count();
     assert_eq!(badges, 1, "only the retired team should be badged");
 
     ctx.insert("show_retired", &true);
@@ -1400,8 +1435,8 @@ fn role_index_renders_vacant_and_occupied() {
     let tera = tera();
     let mut ctx = base_context("en", "user");
     ctx.insert("roles", &json!([
-        {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "titleFrench": "x", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "person": {"id": "8", "givenName": "Sam", "familyName": "Lee"}, "team": {"id": "6", "nameEnglish": "Team"}},
-        {"id": "77777777-7777-7777-7777-777777777778", "titleEnglish": "Advisor", "titleFrench": "y", "militaryOccupation": null, "rank": null, "person": null, "team": {"id": "6", "nameEnglish": "Team"}}
+        {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "titleFrench": "x", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "occupationalGroup": null, "occupationalLevel": null, "person": {"id": "8", "givenName": "Sam", "familyName": "Lee"}, "team": {"id": "6", "nameEnglish": "Team"}},
+        {"id": "77777777-7777-7777-7777-777777777778", "titleEnglish": "Advisor", "titleFrench": "y", "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null, "person": null, "team": {"id": "6", "nameEnglish": "Team"}}
     ]));
     ctx.insert("q", "");
     ctx.insert("total", &2);
@@ -1415,7 +1450,8 @@ fn role_index_renders_vacant_and_occupied() {
     let html = tera.render("role/role_index.html", &ctx).unwrap();
     assert!(html.contains("Sam Lee"));
     assert!(html.contains("/role/77777777-7777-7777-7777-777777777778"));
-    assert!(html.contains("badge bg-danger"));  // vacant badge for the unassigned role
+    assert!(html.contains("chip-vacant"));  // vacant chip for the unassigned role
+    assert!(html.contains("CYBER &middot; CAPTAIN")); // classification column
     // Filter controls render with the org list and persist the selections
     assert!(html.contains("name=\"org\""));
     assert!(html.contains("name=\"status\""));
@@ -1429,7 +1465,8 @@ fn person_index_renders_with_retired_toggle() {
     let tera = tera();
     let mut ctx = base_context("en", "operator");
     ctx.insert("people", &json!([
-        {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "retiredAt": null, "organization": {"id": "1", "nameEn": "Org"}}
+        {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee", "retiredAt": null, "organization": {"id": "1", "nameEn": "Org"},
+         "activeRoles": [{"id": "7", "titleEnglish": "Analyst", "titleFrench": "Analyste", "team": {"id": "6", "nameEnglish": "Cyber Team", "nameFrench": "Équipe cyber"}}]}
     ]));
     ctx.insert("show_retired", &false);
     ctx.insert("q", "");
@@ -1445,6 +1482,7 @@ fn person_index_renders_with_retired_toggle() {
     assert!(html.contains("/people?retired=1"));
     assert!(html.contains("Sam Lee"));
     assert!(html.contains("/person/new"));  // operator sees New Person
+    assert!(html.contains("Analyst") && html.contains("Cyber Team")); // current role column
     // Org + availability filters render and persist the active selections
     assert!(html.contains("name=\"org\""));
     assert!(html.contains("name=\"status\""));
@@ -1772,18 +1810,44 @@ fn role_work_rows_show_due_dates_and_overdue() {
 }
 
 #[test]
-fn team_page_lists_vacant_roles_with_find_candidates() {
+fn team_page_lists_members_by_reporting_line_with_vacancies() {
     let tera = tera();
     let mut team = sample_team();
     team["vacantRoles"] = json!([{"id": "99999999-9999-9999-9999-999999999999", "titleEnglish": "Advisor", "titleFrench": "Conseiller"}]);
+    let members = json!([
+        {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Lead", "titleFrench": "Chef", "depth": 0, "vacant": false, "effort": 9,
+         "militaryOccupation": null, "rank": null, "occupationalGroup": "EC", "occupationalLevel": 6,
+         "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee"}},
+        {"id": "99999999-9999-9999-9999-999999999999", "titleEnglish": "Advisor", "titleFrench": "Conseiller", "depth": 1, "vacant": true, "effort": 0,
+         "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null},
+    ]);
     let mut ctx = base_context("en", "operator");
     ctx.insert("team", &team);
     team_page_extras(&mut ctx);
+    ctx.insert("members", &members);
+    ctx.insert("tasks", &json!([{"id": "t1", "title": "Readiness push", "status": "IN_PROGRESS", "due": "2020-01-01", "overdue": true,
+        "activeWork": [{"id": "w1", "description": "Draft plan", "effort": 3, "person": "Sam Lee"}]}]));
     let html = tera.render("team/team.html", &ctx).unwrap();
-    assert!(html.contains("Find candidates"));
-    assert!(html.contains("/role/99999999-9999-9999-9999-999999999999"));
-    // Team page title carries the team name
+    // One table: lead first, vacant report indented under it with a matcher link
+    assert!(html.find("Lead").unwrap() < html.find("Advisor").unwrap());
+    assert!(html.contains("member-report"));
+    assert!(html.contains("/role/99999999-9999-9999-9999-999999999999#matches"));
+    assert!(html.contains("High load"));
+    // Tasks carry due dates, overdue flags and their active work
+    assert!(html.contains("Overdue"));
+    assert!(html.contains("Draft plan"));
+    // Breadcrumb up to the tier; title carries the team name
+    assert!(html.contains("/en/org_tier/22222222-2222-2222-2222-222222222222"));
     assert!(html.contains("<title>Test Team"));
+
+    let mut ctx = base_context("fr", "user");
+    ctx.insert("team", &team);
+    team_page_extras(&mut ctx);
+    ctx.insert("members", &members);
+    let html = tera.render("team/team.html", &ctx).unwrap();
+    assert!(html.contains("Chef"));
+    assert!(html.contains("Équipe test"));
+    assert!(!html.contains("#matches"), "matcher link is operator-only");
 }
 
 #[test]
@@ -1815,4 +1879,133 @@ fn index_shows_new_organization_button_for_operator_only() {
     ctx.insert("organizations", &json!([]));
     let html = tera.render("index.html", &ctx).unwrap();
     assert!(!html.contains("/en/organization/new"));
+}
+
+#[test]
+fn domain_chips_render_short_localized_labels() {
+    let tera = tera();
+    let mut role = sample_role_record();
+    role["requirements"] = json!([
+        {"id": "r0000000-0000-0000-0000-000000000009", "nameEn": "Modelling", "domain": "DATA_ANALYTICS_AND_AI", "requiredLevel": "EXPERT"},
+    ]);
+    for (lang, domain, level) in [("en", "Data &amp; AI", "Expert"), ("fr", "Données et IA", "Expert")] {
+        let mut ctx = base_context(lang, "user");
+        ctx.insert("role_record", &role);
+        let html = tera.render("role/role.html", &ctx).unwrap();
+        assert!(html.contains(domain), "{} domain label", lang);
+        assert!(html.contains(level), "{} level label", lang);
+        assert!(!html.contains("DATA_ANALYTICS") && !html.contains("DATA ANALYTICS"), "no ALL_CAPS domain");
+    }
+}
+
+#[test]
+fn person_past_roles_shows_none_when_every_assignment_is_current() {
+    let tera = tera();
+    let mut person = sample_person();
+    person["roleAssignments"] = json!([
+        {"id": "a0000000-0000-0000-0000-000000000003", "startDate": "2026-01-01", "endDate": "Current", "isCurrent": true,
+         "role": {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null, "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team"}}},
+    ]);
+    let mut ctx = base_context("en", "user");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    let past = &html[html.find("Past Roles").expect("past roles card")..];
+    assert!(past.contains("None"), "empty past-roles card must say so");
+}
+
+#[test]
+fn person_grant_access_only_when_status_known_and_inactive() {
+    let tera = tera();
+    // Operator: status unresolved (admin-only lookup) -> no Grant access
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &sample_person());
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(!html.contains("/grant-access"));
+    // Contact facts stay in the meta strip without an account status
+    assert!(html.contains("mailto:sam.lee@example.com"));
+
+    for (status, offered) in [("INVITED", true), ("ACTIVE", false)] {
+        let mut ctx = base_context("en", "admin");
+        ctx.insert("person", &sample_person());
+        ctx.insert("account_status", status);
+        let html = tera.render("person/person.html", &ctx).unwrap();
+        assert_eq!(html.contains("/grant-access"), offered, "{}", status);
+    }
+}
+
+#[test]
+fn org_tier_page_compares_sub_units_and_links_up_the_hierarchy() {
+    let tera = tera();
+    let mut tier = sample_org_tier();
+    tier["headcount"] = json!(4);
+    tier["totalEffort"] = json!(12);
+    tier["capabilityCounts"] = json!([]);
+    tier["organization"]["nameFr"] = json!("Organisation test");
+    tier["teams"][0]["headcount"] = json!(1);
+    tier["teams"][0]["totalEffort"] = json!(3);
+    for (lang, team_name, org_name) in [("en", "Test Team", "Test Organization"), ("fr", "Équipe test", "Organisation test")] {
+        let mut ctx = base_context(lang, "operator");
+        ctx.insert("org_tier", &tier);
+        ctx.insert("domain_summary", &json!([{"domain": "STRATEGY", "count": 3}]));
+        ctx.insert("tier_vacancies", &1);
+        let html = tera.render("org_tier/org_tier.html", &ctx).unwrap();
+        // Breadcrumb: organization, then parent tier
+        let crumbs = &html[html.find("<gcds-breadcrumbs").unwrap()..html.find("</gcds-breadcrumbs>").unwrap()];
+        assert!(crumbs.contains(&format!("/{}/organization/11111111-1111-1111-1111-111111111111", lang)));
+        assert!(crumbs.contains(&format!("/{}/org_tier/33333333-3333-3333-3333-333333333333", lang)));
+        // Organization linked from the meta strip too
+        assert!(html.contains(org_name));
+        // Sub-units: child tier and team rows, vacant count drills into the team
+        assert!(html.contains("/org_tier/55555555-5555-5555-5555-555555555555"));
+        assert!(html.contains(team_name));
+        assert!(html.contains("/team/66666666-6666-6666-6666-666666666666#members\">1</a>"));
+        // Vacancy tile warns
+        assert!(html.contains("stat-tile--warning"));
+        // Lifecycle actions live in the More menu, retire last
+        let menu = &html[html.find("action-menu__list").unwrap()..];
+        assert!(menu.find("/edit").unwrap() < menu.find("/retire").unwrap());
+    }
+}
+
+#[test]
+fn person_page_shows_role_fit_and_ranked_job_matches() {
+    let tera = tera();
+    let mut person = sample_person();
+    person["activeRoles"] = json!([{
+        "id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "titleFrench": "Analyste",
+        "militaryOccupation": null, "rank": null, "occupationalGroup": "EC", "occupationalLevel": 5, "effort": 6, "work": [],
+        "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team", "nameFrench": "Équipe test",
+                 "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization", "nameFr": "Organisation test"},
+                 "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Test Tier", "nameFr": "Niveau test"},
+                 "owner": {"id": "o1", "person": null}},
+    }]);
+    let fit = json!({"met": 1, "total": 2, "pct": 50, "rows": [
+        {"name": "Threat Analysis", "domain": "CYBER_SECURITY", "required": "EXPERT", "held": "EXPERT", "validated": true, "met": true},
+        {"name": "Forecasting", "domain": "DATA_ANALYTICS_AND_AI", "required": "EXPERT", "held": null, "validated": false, "met": false},
+    ]});
+    let matches = json!([{"role": {"id": "dddddddd-dddd-dddd-dddd-dddddddddddd", "titleEnglish": "Senior Analyst", "titleFrench": "Analyste principal",
+        "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null, "requirements": []}, "fit": fit}]);
+
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &person);
+    ctx.insert("role_fit", &json!({"77777777-7777-7777-7777-777777777777": fit}));
+    ctx.insert("job_matches", &matches);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(html.contains("1 of 2 requirements met"));
+    assert!(html.contains("none held"));
+    assert!(html.contains("50% match"));
+    assert!(html.contains("Senior Analyst"));
+    // Breadcrumb climbs through the current role: org › tier › team › role
+    let crumbs = &html[html.find("<gcds-breadcrumbs").unwrap()..html.find("</gcds-breadcrumbs>").unwrap()];
+    for path in ["/en/organization/1111", "/en/org_tier/2222", "/en/team/6666", "/en/role/7777"] {
+        assert!(crumbs.contains(path), "breadcrumb {}", path);
+    }
+
+    // Job matches are for operators and the person themself only
+    let mut ctx = base_context("fr", "user");
+    ctx.insert("person", &person);
+    ctx.insert("job_matches", &matches);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(!html.contains("Analyste principal"));
+    assert!(html.contains("Équipe test"));
 }

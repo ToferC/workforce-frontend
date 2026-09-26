@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/viz.html" as viz %}
 {% import "macros/forms.html" as forms %}
 
 {% block title %}
@@ -29,10 +30,10 @@
         <div class="card-header"><h2 class="h6 mb-0">Work Details</h2></div>
         <div class="card-body p-0">
             <ul class="list-group list-group-flush small">
-                <li class="list-group-item"><span class="text-muted">Domain:</span> {{ work.domain }} &rarr; {{ work.capabilityLevel }}</li>
+                <li class="list-group-item"><span class="text-muted">Domain:</span> {{ viz::domain_chip(domain=work.domain, lang=lang) }} &rarr; {{ viz::level_chip(level=work.capabilityLevel, source="self", lang=lang) }}</li>
                 <li class="list-group-item"><span class="text-muted">Required Skill:</span> {{ work.skill.nameEn }}</li>
                 <li class="list-group-item"><span class="text-muted">Effort:</span> {{ work.effort }}</li>
-                <li class="list-group-item"><span class="text-muted">Status:</span> {{ work.workStatus }}</li>
+                <li class="list-group-item"><span class="text-muted">Status:</span> {{ viz::status_chip(status=work.workStatus, lang=lang) }}</li>
             </ul>
         </div>
     </div>

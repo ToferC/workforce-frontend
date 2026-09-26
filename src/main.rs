@@ -14,19 +14,12 @@ use std::sync::Arc;
 use frontend::handlers;
 use frontend::AppData;
 
-use fluent_templates::{FluentLoader, static_loader};
+use fluent_templates::FluentLoader;
+use frontend::LOCALES;
 // https://lib.rs/crates/fluent-templates
 
 // Setup for serving static files
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
-
-static_loader! {
-    static LOCALES = {
-        locales: "./i18n/",
-        fallback_language: "en",
-        customise: |bundle| bundle.set_use_isolating(false),
-    };
-}
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {

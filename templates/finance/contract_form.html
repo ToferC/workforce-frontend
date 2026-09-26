@@ -47,7 +47,7 @@
                 {{ forms::date_input(name="start_date", label=label_start, value=contract.startDate, required=true) }}
                 {{ forms::date_input(name="end_date", label=label_end, value=contract.endDate, required=true) }}
                 {{ forms::text_input(name="total_value", label=label_value, value=contract.totalValueDollars, help=help_value) }}
-                {{ forms::select(name="status", label=label_status, options=contract_statuses, selected=contract.status) }}
+                {{ forms::select(name="status", label=label_status, options=contract_statuses, selected=contract.status, label_kind="status", lang=lang) }}
                 {% else %}
                 {{ forms::text_input(name="reference_number", label=label_reference, placeholder="PSPC-2026-1234") }}
                 {{ forms::text_input(name="vendor", label=label_vendor) }}
@@ -55,7 +55,7 @@
                 {{ forms::date_input(name="start_date", label=label_start, value=today, required=true) }}
                 {{ forms::date_input(name="end_date", label=label_end, required=true) }}
                 {{ forms::text_input(name="total_value", label=label_value, help=help_value) }}
-                {{ forms::select(name="status", label=label_status, options=contract_statuses, selected="ACTIVE") }}
+                {{ forms::select(name="status", label=label_status, options=contract_statuses, selected="ACTIVE", label_kind="status", lang=lang) }}
                 {% endif %}
 
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}

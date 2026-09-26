@@ -54,7 +54,7 @@
                 {% endif %}
                 {{ forms::text_input(name="title", label=label_title, value=publication.title) }}
                 {{ forms::textarea(name="subject_text", label=label_subject, value=publication.subjectText) }}
-                {{ forms::select(name="publication_status", label=label_status, options=publication_statuses, selected=publication.publicationStatus) }}
+                {{ forms::select(name="publication_status", label=label_status, options=publication_statuses, selected=publication.publicationStatus, label_kind="status", lang=lang) }}
                 <div class="row">
                     <div class="col-md-6">{{ forms::text_input(name="url_string", label=label_url, value=publication.urlString, type="url", required=false) }}</div>
                     <div class="col-md-6">{{ forms::text_input(name="publishing_id", label=label_pubid, value=publication.publishingId, required=false) }}</div>
