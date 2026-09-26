@@ -195,16 +195,9 @@ pub async fn org_tier_by_id(
 
     let tier = &r.org_tier_by_id;
     ctx.insert("org_tier", tier);
+    ctx.insert("tier_vacancies", &tier.teams.iter().map(|t| t.vacant_roles.len()).sum::<usize>());
 
-    let mut domain_totals: std::collections::BTreeMap<String, i64> = std::collections::BTreeMap::new();
-    for cap in &tier.capability_counts {
-        *domain_totals.entry(format!("{:?}", cap.domain)).or_insert(0) += cap.counts;
-    }
-    let domain_summary: Vec<serde_json::Value> = domain_totals
-        .iter()
-        .map(|(domain, count)| json!({"domain": domain, "count": count}))
-        .collect();
-    ctx.insert("domain_summary", &domain_summary);
+    ctx.insert("domain_summary", &super::utility::domain_summary(&tier.capability_counts));
 
     // Budget card: this tier's own fiscal-year row plus its direct children,
     // so an envelope can be rolled down level by level. Best-effort — the
@@ -239,12 +232,13 @@ pub async fn org_tier_by_id(
                 ctx.insert("budget_fy_options", &options);
             }
         }
-        let children: Vec<serde_json::Value> = rows
+        // Direct children's figures keyed by tier id, for the sub-units table.
+        let children: serde_json::Map<String, serde_json::Value> = rows
             .iter()
             .filter(|r| r.parent_id.as_deref() == Some(tier.id.as_str()))
-            .map(|r| pick(r))
+            .map(|r| (r.org_tier_id.to_string(), pick(r)))
             .collect();
-        ctx.insert("budget_children", &children);
+        ctx.insert("child_finances", &children);
     }
 
     render_page(&data, "org_tier/org_tier.html", &ctx)

@@ -920,3 +920,14 @@ enum-personnel-civilian = Civil
 enum-personnel-contractor = Entrepreneur
 enum-personnel-student = Étudiant
 enum-personnel-other = Autre
+
+## Passe UX des pages de détail (tuiles, tableaux comparatifs, menus d'actions)
+utilization = Utilisation
+utilization-hint = Effort actif ÷ capacité
+of-budget = sur un budget de { $amount }
+top-level-tiers = Niveaux supérieurs
+more-actions = Plus
+show-by-skill = Afficher par compétence
+sub-units = Sous-unités
+no-sub-units = Aucun niveau enfant ni équipe pour l'instant.
+in-direct-teams = Dans les équipes relevant directement de ce niveau

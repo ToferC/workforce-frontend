@@ -920,3 +920,14 @@ enum-personnel-civilian = Civilian
 enum-personnel-contractor = Contractor
 enum-personnel-student = Student
 enum-personnel-other = Other
+
+## Detail-page UX pass (stat tiles, comparison tables, action menus)
+utilization = Utilization
+utilization-hint = Active effort ÷ capacity
+of-budget = of { $amount } budget
+top-level-tiers = Top-level tiers
+more-actions = More
+show-by-skill = Show counts by skill
+sub-units = Sub-units
+no-sub-units = No child tiers or teams yet.
+in-direct-teams = In teams directly under this tier

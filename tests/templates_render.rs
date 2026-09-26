@@ -35,6 +35,14 @@ fn base_context(lang: &str, role: &str) -> Context {
     ctx
 }
 
+// What organization_by_id inserts alongside the organization itself.
+fn organization_page_extras(ctx: &mut Context) {
+    ctx.insert("org_headcount", &0);
+    ctx.insert("org_effort", &0);
+    ctx.insert("domain_summary", &json!([]));
+    ctx.insert("tier_finances", &json!({}));
+}
+
 fn sample_organization() -> serde_json::Value {
     json!({
         "id": "11111111-1111-1111-1111-111111111111",
@@ -98,36 +106,62 @@ fn organization_detail_shows_actions_for_operator_only() {
     let tera = tera();
     let mut ctx = base_context("en", "operator");
     ctx.insert("organization", &sample_organization());
+    organization_page_extras(&mut ctx);
     let html = tera.render("organization/organization.html", &ctx).unwrap();
     assert!(html.contains("/organization/11111111-1111-1111-1111-111111111111/edit"));
     assert!(html.contains("/organization/11111111-1111-1111-1111-111111111111/retire"));
 
     let mut ctx = base_context("en", "user");
     ctx.insert("organization", &sample_organization());
+    organization_page_extras(&mut ctx);
     let html = tera.render("organization/organization.html", &ctx).unwrap();
     assert!(!html.contains("/edit"));
     assert!(!html.contains("/retire"));
 }
 
 #[test]
-fn organization_detail_tiles_and_publications_link() {
+fn organization_detail_tiles_and_tier_comparison() {
     let tera = tera();
     let mut ctx = base_context("en", "user");
-    ctx.insert("organization", &sample_organization());
+    let mut org = sample_organization();
+    org["topOrgTier"] = json!([{
+        "id": "22222222-2222-2222-2222-222222222222", "nameEn": "Operations", "nameFr": "Opérations",
+        "primaryDomain": "JOINT_OPERATIONS", "headcount": 10, "totalEffort": 90,
+        "owner": {"id": "o1", "person": null},
+    }]);
+    ctx.insert("organization", &org);
+    organization_page_extras(&mut ctx);
+    ctx.insert("org_headcount", &10);
+    ctx.insert("org_effort", &90);
     ctx.insert("org_finances", &json!({
         "tiers": 42, "budgetedCents": 66_344_153_951_i64,
         "projectedCents": 63_000_000_000_i64, "lapseCents": 3_344_153_951_i64,
         "allocationCents": 69_670_000_000_i64
     }));
+    ctx.insert("tier_finances", &json!({"22222222-2222-2222-2222-222222222222": {
+        "allocationCents": null, "projectedCents": 63_000_000_000_i64, "lapseCents": 3_344_153_951_i64}}));
     let html = tera.render("organization/organization.html", &ctx).unwrap();
-    // At-a-glance tiles lead the page
-    assert!(html.contains("$663,441,539"));
-    assert!(html.contains(">42<"));
-    // Publications moved to their own view — no card, just the index link
-    assert!(!html.contains("bi-journal-richtext\" aria-hidden=\"true\"></i> Publications"));
+    // Stat tiles: compact money, utilization with a warning icon at 90 %
+    assert!(html.contains("$630.0M"));
+    assert!(html.contains("of $663.4M budget"));
+    assert!(html.contains("stat-tile--warning"));
+    assert!(html.contains("util--warning"));
+    // Tier comparison row: localized short domain, vacant owner chip, money
+    assert!(html.contains("Joint Ops"));
+    assert!(html.contains("chip-vacant"));
+    assert!(html.contains("$33.4M"));
+    // Publications stay on their own view
     assert!(html.contains("/en/publications"));
-    // Meta strip carries the identity facts
     assert!(html.contains("Organization type"));
+    // Breadcrumb back to the index
+    assert!(html.contains("gcds-breadcrumbs-item href=\"/en/organizations\""));
+
+    let mut ctx = base_context("fr", "user");
+    ctx.insert("organization", &org);
+    organization_page_extras(&mut ctx);
+    let html = tera.render("organization/organization.html", &ctx).unwrap();
+    assert!(html.contains("Opérations"));
+    assert!(html.contains("Ops interarmées"));
 }
 
 #[test]
@@ -198,6 +232,7 @@ fn organization_detail_hides_retire_when_already_retired() {
     let mut org = sample_organization();
     org["retiredAt"] = json!("2026-01-01T00:00:00");
     ctx.insert("organization", &org);
+    organization_page_extras(&mut ctx);
     let html = tera.render("organization/organization.html", &ctx).unwrap();
     assert!(html.contains("/edit"));
     assert!(!html.contains("/retire"));
@@ -1266,7 +1301,7 @@ fn org_tier_page_shows_budget_card_with_set_form_for_operator() {
         ctx.insert("org_tier", &tier);
         ctx.insert("domain_summary", &json!([]));
         ctx.insert("budget", &budget);
-        ctx.insert("budget_children", &children);
+        ctx.insert("child_finances", &json!({"55555555-5555-5555-5555-555555555555": children[0].clone()}));
         ctx.insert("budget_amount_dollars", "1000000.00");
         ctx.insert("budget_fy_options", &json!([
             {"value": 2026, "label": "2026-27"},
@@ -1860,5 +1895,39 @@ fn person_grant_access_only_when_status_known_and_inactive() {
         ctx.insert("account_status", status);
         let html = tera.render("person/person.html", &ctx).unwrap();
         assert_eq!(html.contains("/grant-access"), offered, "{}", status);
+    }
+}
+
+#[test]
+fn org_tier_page_compares_sub_units_and_links_up_the_hierarchy() {
+    let tera = tera();
+    let mut tier = sample_org_tier();
+    tier["headcount"] = json!(4);
+    tier["totalEffort"] = json!(12);
+    tier["capabilityCounts"] = json!([]);
+    tier["organization"]["nameFr"] = json!("Organisation test");
+    tier["teams"][0]["headcount"] = json!(1);
+    tier["teams"][0]["totalEffort"] = json!(3);
+    for (lang, team_name, org_name) in [("en", "Test Team", "Test Organization"), ("fr", "Équipe test", "Organisation test")] {
+        let mut ctx = base_context(lang, "operator");
+        ctx.insert("org_tier", &tier);
+        ctx.insert("domain_summary", &json!([{"domain": "STRATEGY", "count": 3}]));
+        ctx.insert("tier_vacancies", &1);
+        let html = tera.render("org_tier/org_tier.html", &ctx).unwrap();
+        // Breadcrumb: organization, then parent tier
+        let crumbs = &html[html.find("<gcds-breadcrumbs").unwrap()..html.find("</gcds-breadcrumbs>").unwrap()];
+        assert!(crumbs.contains(&format!("/{}/organization/11111111-1111-1111-1111-111111111111", lang)));
+        assert!(crumbs.contains(&format!("/{}/org_tier/33333333-3333-3333-3333-333333333333", lang)));
+        // Organization linked from the meta strip too
+        assert!(html.contains(org_name));
+        // Sub-units: child tier and team rows, vacant count drills into the team
+        assert!(html.contains("/org_tier/55555555-5555-5555-5555-555555555555"));
+        assert!(html.contains(team_name));
+        assert!(html.contains("/team/66666666-6666-6666-6666-666666666666#members\">1</a>"));
+        // Vacancy tile warns
+        assert!(html.contains("stat-tile--warning"));
+        // Lifecycle actions live in the More menu, retire last
+        let menu = &html[html.find("action-menu__list").unwrap()..];
+        assert!(menu.find("/edit").unwrap() < menu.find("/retire").unwrap());
     }
 }

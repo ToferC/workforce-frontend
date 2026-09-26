@@ -107,7 +107,27 @@ pub fn format_cents(cents: i64, lang: &str) -> String {
     }
 }
 
-/// Tera filter over `format_cents`: `{{ summary.budgetedCents | money(lang=lang) }}`.
+/// Compact money for at-a-glance tiles: "$663.4M" / "663,4 M$", "$12.9K",
+/// whole dollars below 1,000.
+pub fn format_cents_compact(cents: i64, lang: &str) -> String {
+    let dollars = cents as f64 / 100.0;
+    let (scaled, suffix) = match dollars.abs() {
+        d if d >= 1e9 => (dollars / 1e9, if lang == "fr" { "\u{a0}G" } else { "B" }),
+        d if d >= 1e6 => (dollars / 1e6, if lang == "fr" { "\u{a0}M" } else { "M" }),
+        d if d >= 1e3 => (dollars / 1e3, if lang == "fr" { "\u{a0}k" } else { "K" }),
+        _ => return format_cents(cents, lang),
+    };
+    let number = format!("{:.1}", scaled);
+    if lang == "fr" {
+        format!("{}{}\u{a0}$", number.replace('.', ","), suffix)
+    } else {
+        let (sign, number) = number.strip_prefix('-').map_or(("", number.as_str()), |n| ("-", n));
+        format!("{}${}{}", sign, number, suffix)
+    }
+}
+
+/// Tera filter over `format_cents`: `{{ summary.budgetedCents | money(lang=lang) }}`;
+/// `compact=true` gives the tile form ("$663.4M").
 pub fn money_filter(
     value: &tera::Value,
     args: &std::collections::HashMap<String, tera::Value>,
@@ -117,7 +137,8 @@ pub fn money_filter(
         .or_else(|| value.as_f64().map(|f| f as i64))
         .unwrap_or(0);
     let lang = args.get("lang").and_then(|v| v.as_str()).unwrap_or("en");
-    Ok(tera::Value::String(format_cents(cents, lang)))
+    let compact = args.get("compact").and_then(|v| v.as_bool()).unwrap_or(false);
+    Ok(tera::Value::String(if compact { format_cents_compact(cents, lang) } else { format_cents(cents, lang) }))
 }
 
 /// Numeric weight for each CapabilityLevel; shared by analytics and org chart.

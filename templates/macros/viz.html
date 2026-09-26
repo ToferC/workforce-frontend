@@ -8,6 +8,9 @@
   domain_chip(domain)               — color-coded SkillDomain badge
   level_chip(level, source)         — capability level badge (validated vs self)
   priority_chip(priority)           — color-coded Priority badge
+  vacancy_chip / retired_chip       — distinct state chips (never the same color)
+  stat_tile(value, label, …)        — at-a-glance number with optional status
+  utilization(effort, headcount)    — % of capacity in use, with status icon
 
   Every chip takes `lang` and renders its value through
   labels::enum_label, so ALL_CAPS API values show as short localized text.
@@ -147,3 +150,52 @@
 {{ group }}{% if group and level %} &middot; {% endif %}{{ level }}
 {%- endif -%}
 {% endmacro classification %}
+
+
+{# ── State chips ─────────────────────────────────────────────────────────────
+   Vacant is an action signal (amber, person-dash icon); retired/ended is a
+   neutral archive state. They never share a color.
+#}
+{% macro vacancy_chip(lang) %}
+<span class="badge chip-vacant"><i class="bi bi-person-dash" aria-hidden="true"></i> {{ fluent(key="vacant-label", lang=lang) }}</span>
+{% endmacro vacancy_chip %}
+
+{% macro retired_chip(lang, label_key="retired") %}
+<span class="badge chip-retired"><i class="bi bi-archive" aria-hidden="true"></i> {{ fluent(key=label_key, lang=lang) }}</span>
+{% endmacro retired_chip %}
+
+
+{# ── stat_tile ───────────────────────────────────────────────────────────────
+   value : pre-formatted value (number, money, or viz::utilization output)
+   label : sentence-case label, no colon
+   tone  : "" | "warning" | "danger" — adds an icon and accent rule, so the
+           state never rests on color alone
+   href  : optional drill-down link for the value
+   hint  : optional one-line caption under the value
+   Place tiles in a <div class="stat-row"> (auto-fit grid).
+#}
+{% macro stat_tile(value, label, tone="", href="", hint="") %}
+<div class="stat-tile{% if tone %} stat-tile--{{ tone }}{% endif %}">
+  <div class="stat-tile__label">
+    {%- if tone == "danger" %}<i class="bi bi-exclamation-octagon" aria-hidden="true"></i> {% elif tone == "warning" %}<i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {% endif -%}
+    {{ label }}</div>
+  <div class="stat-tile__value">{% if href %}<a href="{{ href }}">{{ value }}</a>{% else %}{{ value }}{% endif %}</div>
+  {% if hint %}<div class="stat-tile__hint">{{ hint }}</div>{% endif %}
+</div>
+{% endmacro stat_tile %}
+
+
+{# ── utilization ─────────────────────────────────────────────────────────────
+   Share of capacity in use: total active effort over headcount × 10 (the
+   sustainable effort per person, as in effort_meter). ≥ 85 % warns, ≥ 100 %
+   is over capacity. Renders "—" when nobody is assigned.
+#}
+{% macro utilization(effort, headcount) %}
+{%- if headcount > 0 -%}
+{%- set pct = (effort * 10 / headcount) | round | int -%}
+{%- if pct >= 100 -%}<span class="util util--danger"><i class="bi bi-exclamation-octagon" aria-hidden="true"></i> {{ pct }}%</span>
+{%- elif pct >= 85 -%}<span class="util util--warning"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ pct }}%</span>
+{%- else -%}<span class="util">{{ pct }}%</span>
+{%- endif -%}
+{%- else -%}&mdash;{%- endif -%}
+{% endmacro utilization %}

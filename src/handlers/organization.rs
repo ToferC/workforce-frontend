@@ -101,11 +101,14 @@ pub async fn organization_by_id(
     };
 
     ctx.insert("organization", &r.organization_by_id);
+    ctx.insert("domain_summary", &super::utility::domain_summary(&r.organization_by_id.capability_counts));
 
     // At-a-glance tiles and the top-tier comparison table: fiscal-year money
     // for each top tier's subtree, fetched concurrently. Best-effort — the
     // page still renders without it.
     let top_tiers = &r.organization_by_id.top_org_tier;
+    ctx.insert("org_headcount", &top_tiers.iter().map(|t| t.headcount).sum::<i64>());
+    ctx.insert("org_effort", &top_tiers.iter().map(|t| t.total_effort).sum::<i64>());
     let financials = futures::future::join_all(top_tiers.iter().map(|root| {
         org_tier_financials(9, Some(root.id.clone()), None, bearer.clone(), &data.api_url, Arc::clone(&data.client))
     })).await;
