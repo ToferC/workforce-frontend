@@ -31,7 +31,9 @@
                 <a class="btn btn-primary btn-sm" href="/{{ lang }}/person/{{ person.id }}/edit">
                     <i class="bi bi-pencil" aria-hidden="true"></i> {{ fluent(key="edit-person", lang=lang) }}
                 </a>
-                {% if not account_status or account_status != "ACTIVE" %}
+                {# userByEmail is admin-guarded: status is only known to admins, so
+                   only offer Grant access when it's known to be needed. #}
+                {% if account_status and account_status != "ACTIVE" %}
                 <form method="post" action="/{{ lang }}/person/{{ person.id }}/grant-access">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-key" aria-hidden="true"></i> {{ fluent(key="grant-access", lang=lang) }}</button>
@@ -51,7 +53,6 @@
             {% endif %}
         </div>
 
-        {% if account_status or person.activeEffort is defined %}
         <div class="entity-header__meta">
             {% if account_status %}
             <span class="meta-item">
@@ -81,7 +82,6 @@
             </span>
             {% endif %}
         </div>
-        {% endif %}
     </div>
 
     {# Self-service band: shown when the person record is the signed-in user's
@@ -270,8 +270,8 @@
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
-                        {% for a in person.roleAssignments | default(value=[]) %}
-                        {% if not a.isCurrent %}
+                        {% set past_assignments = person.roleAssignments | default(value=[]) | filter(attribute="isCurrent", value=false) %}
+                        {% for a in past_assignments %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span>
                                 <a href="/{{lang}}/role/{{ a.role.id }}">{{ a.role.titleEnglish }}</a>
@@ -280,7 +280,6 @@
                             </span>
                             <span class="text-muted small">{{ a.startDate }} &rarr; {{ a.endDate }}</span>
                         </li>
-                        {% endif %}
                         {% else %}
                         <li class="list-group-item text-muted">{{ fluent(key="none-label", lang=lang) }}</li>
                         {% endfor %}

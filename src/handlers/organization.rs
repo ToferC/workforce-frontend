@@ -102,27 +102,35 @@ pub async fn organization_by_id(
 
     ctx.insert("organization", &r.organization_by_id);
 
-    // At-a-glance tiles: tier count and fiscal-year money for the org,
-    // summed over its top tiers' subtrees. Best-effort — the page still
-    // renders without it.
+    // At-a-glance tiles and the top-tier comparison table: fiscal-year money
+    // for each top tier's subtree, fetched concurrently. Best-effort — the
+    // page still renders without it.
+    let top_tiers = &r.organization_by_id.top_org_tier;
+    let financials = futures::future::join_all(top_tiers.iter().map(|root| {
+        org_tier_financials(9, Some(root.id.clone()), None, bearer.clone(), &data.api_url, Arc::clone(&data.client))
+    })).await;
+
     let mut tier_count = 0usize;
     let (mut budgeted, mut projected, mut lapse, mut allocation) = (0i64, 0i64, 0i64, 0i64);
-    let mut have_finances = false;
-    for root in &r.organization_by_id.top_org_tier {
-        if let Ok(fin) = org_tier_financials(9, Some(root.id.clone()), None, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
-            let rows = fin.org_tier_financials;
-            tier_count += rows.len();
-            if let Some(own) = rows.iter().find(|row| row.org_tier_id == root.id) {
-                budgeted += own.budgeted_cents;
-                projected += own.projected_cents;
-                lapse += own.lapse_cents;
-                allocation += own.allocation_cents.unwrap_or(0);
-                have_finances = true;
-            }
+    let mut tier_finances = serde_json::Map::new();
+    for (root, fin) in top_tiers.iter().zip(financials) {
+        let Ok(fin) = fin else { continue };
+        let rows = fin.org_tier_financials;
+        tier_count += rows.len();
+        if let Some(own) = rows.iter().find(|row| row.org_tier_id == root.id) {
+            budgeted += own.budgeted_cents;
+            projected += own.projected_cents;
+            lapse += own.lapse_cents;
+            allocation += own.allocation_cents.unwrap_or(0);
+            tier_finances.insert(root.id.to_string(), json!({
+                "allocationCents": own.allocation_cents,
+                "projectedCents": own.projected_cents,
+                "lapseCents": own.lapse_cents,
+            }));
         }
     }
-    if have_finances {
-        ctx.insert("org_finances", &serde_json::json!({
+    if !tier_finances.is_empty() {
+        ctx.insert("org_finances", &json!({
             "tiers": tier_count,
             "budgetedCents": budgeted,
             "projectedCents": projected,
@@ -130,6 +138,7 @@ pub async fn organization_by_id(
             "allocationCents": allocation,
         }));
     }
+    ctx.insert("tier_finances", &tier_finances);
 
     render_page(&data, "organization/organization.html", &ctx)
 }

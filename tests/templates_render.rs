@@ -1827,3 +1827,38 @@ fn domain_chips_render_short_localized_labels() {
         assert!(!html.contains("DATA_ANALYTICS") && !html.contains("DATA ANALYTICS"), "no ALL_CAPS domain");
     }
 }
+
+#[test]
+fn person_past_roles_shows_none_when_every_assignment_is_current() {
+    let tera = tera();
+    let mut person = sample_person();
+    person["roleAssignments"] = json!([
+        {"id": "a0000000-0000-0000-0000-000000000003", "startDate": "2026-01-01", "endDate": "Current", "isCurrent": true,
+         "role": {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null, "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team"}}},
+    ]);
+    let mut ctx = base_context("en", "user");
+    ctx.insert("person", &person);
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    let past = &html[html.find("Past Roles").expect("past roles card")..];
+    assert!(past.contains("None"), "empty past-roles card must say so");
+}
+
+#[test]
+fn person_grant_access_only_when_status_known_and_inactive() {
+    let tera = tera();
+    // Operator: status unresolved (admin-only lookup) -> no Grant access
+    let mut ctx = base_context("en", "operator");
+    ctx.insert("person", &sample_person());
+    let html = tera.render("person/person.html", &ctx).unwrap();
+    assert!(!html.contains("/grant-access"));
+    // Contact facts stay in the meta strip without an account status
+    assert!(html.contains("mailto:sam.lee@example.com"));
+
+    for (status, offered) in [("INVITED", true), ("ACTIVE", false)] {
+        let mut ctx = base_context("en", "admin");
+        ctx.insert("person", &sample_person());
+        ctx.insert("account_status", status);
+        let html = tera.render("person/person.html", &ctx).unwrap();
+        assert_eq!(html.contains("/grant-access"), offered, "{}", status);
+    }
+}
