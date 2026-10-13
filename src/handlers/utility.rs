@@ -117,6 +117,16 @@ pub async fn toggle_language(
 /// Capability counts rolled up per domain, largest first: the "Capabilities
 /// by domain" card on organization, tier and team pages. Takes any
 /// generated `capabilityCounts` row type (each query module has its own).
+/// Options for an index page's organization filter: active organizations,
+/// sorted by English name.
+pub fn active_organizations_by_name(
+    mut organizations: Vec<crate::graphql::all_organizations::AllOrganizationsAllOrganizations>,
+) -> Vec<crate::graphql::all_organizations::AllOrganizationsAllOrganizations> {
+    organizations.retain(|o| o.retired_at.is_none());
+    organizations.sort_by_key(|o| o.name_en.to_lowercase());
+    organizations
+}
+
 pub fn domain_summary<T: serde::Serialize>(counts: &[T]) -> Vec<serde_json::Value> {
     let mut totals: std::collections::BTreeMap<String, i64> = std::collections::BTreeMap::new();
     for row in counts.iter().filter_map(|c| serde_json::to_value(c).ok()) {

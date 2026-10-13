@@ -195,7 +195,6 @@ pub async fn org_tier_by_id(
 
     let tier = &r.org_tier_by_id;
     ctx.insert("org_tier", tier);
-    ctx.insert("tier_vacancies", &tier.teams.iter().map(|t| t.vacant_roles.len()).sum::<usize>());
 
     ctx.insert("domain_summary", &super::utility::domain_summary(&tier.capability_counts));
 

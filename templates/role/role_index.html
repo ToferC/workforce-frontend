@@ -7,14 +7,20 @@
 {% block content %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="card shadow-lg mb-4">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h1 class="h3 mb-0"><i class="bi bi-briefcase" aria-hidden="true"></i> {{ fluent(key="roles", lang=lang) }}</h1>
+            {% if show_ended %}
+            <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/roles?org={{ selected_org }}&status={{ selected_status }}">{{ fluent(key="hide-ended", lang=lang) }}</a>
+            {% else %}
+            <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/roles?org={{ selected_org }}&status={{ selected_status }}&ended=1">{{ fluent(key="show-ended", lang=lang) }}</a>
+            {% endif %}
         </div>
         <div class="card-body">
             <form id="role-filters" class="d-flex flex-wrap align-items-end mb-3" style="gap:.5rem"
                   hx-get="/{{ lang }}/roles"
                   hx-trigger="change, keyup changed delay:300ms, search"
                   hx-target="#role-list" hx-swap="outerHTML">
+                {% if show_ended %}<input type="hidden" name="ended" value="1">{% endif %}
                 <div class="flex-grow-1" style="min-width:200px">
                     <label class="form-label small mb-1" for="role-q">{{ fluent(key="search-placeholder", lang=lang) }}</label>
                     <input type="search" id="role-q" class="form-control" name="q" value="{{ q }}"

@@ -218,18 +218,23 @@ pub async fn person_by_id(
 
     ctx.insert("person", &r.person_by_id);
 
-    // Requirement fit for each current role, and job matches ranked by fit —
-    // one computation so both read the same way.
+    // Requirement-by-requirement fit for each current role and each job match,
+    // so both read the same way. The API's fuzzyMatches picks and ranks the
+    // matches and scores them (`matchScore`); `requirement_fit` only lays out
+    // the rows, with the same validated-over-self rule.
     let person_json = serde_json::to_value(&r.person_by_id).unwrap_or_default();
     let capabilities = &person_json["capabilities"];
     let role_fit: serde_json::Map<String, serde_json::Value> = person_json["activeRoles"].as_array().into_iter().flatten()
         .map(|role| (role["id"].as_str().unwrap_or("").to_string(), requirement_fit(&role["requirements"], capabilities)))
         .collect();
     ctx.insert("role_fit", &role_fit);
-    let mut job_matches: Vec<serde_json::Value> = person_json["findMatches"].as_array().into_iter().flatten()
-        .map(|role| json!({"role": role, "fit": requirement_fit(&role["requirements"], capabilities)}))
+    let job_matches: Vec<serde_json::Value> = person_json["fuzzyMatches"].as_array().into_iter().flatten()
+        .map(|m| json!({
+            "role": m["role"],
+            "pct": (m["matchScore"].as_f64().unwrap_or(0.0) * 100.0).round() as i64,
+            "fit": requirement_fit(&m["role"]["requirements"], capabilities),
+        }))
         .collect();
-    job_matches.sort_by_key(|m| std::cmp::Reverse(m["fit"]["pct"].as_u64().unwrap_or(0)));
     ctx.insert("job_matches", &job_matches);
 
     // Overdue work ids for the badge: due before today and not finished.

@@ -745,7 +745,7 @@ pub async fn analytics_mobility_view(
     // drawing hundreds of near-unique team-to-team links.
     let (movements_res, teams_res, org_tiers_res) = futures::join!(
         talent_movements(None, None, None, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
-        all_teams(None, false, Some(5000), 0, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_teams(None, false, None, Some(5000), 0, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
         all_org_tiers(auth.bearer, &data.api_url, Arc::clone(&data.client)),
     );
 

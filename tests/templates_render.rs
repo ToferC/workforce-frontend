@@ -37,8 +37,6 @@ fn base_context(lang: &str, role: &str) -> Context {
 
 // What organization_by_id inserts alongside the organization itself.
 fn organization_page_extras(ctx: &mut Context) {
-    ctx.insert("org_headcount", &0);
-    ctx.insert("org_effort", &0);
     ctx.insert("domain_summary", &json!([]));
     ctx.insert("tier_finances", &json!({}));
 }
@@ -53,6 +51,9 @@ fn sample_organization() -> serde_json::Value {
         "orgType": "department",
         "url": "https://example.com",
         "retiredAt": null,
+        "headcount": 0,
+        "totalEffort": 0,
+        "vacantRoleCount": 0,
         "topOrgTier": [],
         "capabilityCounts": [],
         "publications": [],
@@ -126,13 +127,14 @@ fn organization_detail_tiles_and_tier_comparison() {
     let mut org = sample_organization();
     org["topOrgTier"] = json!([{
         "id": "22222222-2222-2222-2222-222222222222", "nameEn": "Operations", "nameFr": "Opérations",
-        "primaryDomain": "JOINT_OPERATIONS", "headcount": 10, "totalEffort": 90,
+        "primaryDomain": "JOINT_OPERATIONS", "headcount": 10, "totalEffort": 90, "vacantRoleCount": 3,
         "owner": {"id": "o1", "person": null},
     }]);
+    org["headcount"] = json!(10);
+    org["totalEffort"] = json!(90);
+    org["vacantRoleCount"] = json!(3);
     ctx.insert("organization", &org);
     organization_page_extras(&mut ctx);
-    ctx.insert("org_headcount", &10);
-    ctx.insert("org_effort", &90);
     ctx.insert("org_finances", &json!({
         "tiers": 42, "budgetedCents": 66_344_153_951_i64,
         "projectedCents": 63_000_000_000_i64, "lapseCents": 3_344_153_951_i64,
@@ -241,22 +243,23 @@ fn organization_detail_hides_retire_when_already_retired() {
 }
 
 #[test]
-fn team_detail_uses_still_active_sentinel_for_restore() {
+fn team_detail_offers_retire_or_restore_from_retired_at() {
     let tera = tera();
-    // active team (sentinel) -> Retire shown, no badge, no Restore
+    // active team (null) -> Retire shown, no badge, no Restore
     let mut ctx = base_context("en", "operator");
-    let mut team = sample_team();
-    team["retiredAt"] = json!("Still Active");
-    ctx.insert("team", &team);
+    ctx.insert("team", &sample_team());
     team_page_extras(&mut ctx);
     let html = tera.render("team/team.html", &ctx).unwrap();
     assert!(html.contains("/team/66666666-6666-6666-6666-666666666666/retire"));
     assert!(!html.contains("/restore"));
+    // Breadcrumb: organization › ancestor tiers › the team's own tier
+    let crumbs = &html[html.find("<gcds-breadcrumbs").unwrap()..html.find("</gcds-breadcrumbs>").unwrap()];
+    assert!(crumbs.find("/org_tier/33333333").unwrap() < crumbs.find("/org_tier/22222222").unwrap());
 
-    // retired team (a date) -> Restore shown, no Retire
+    // retired team (a timestamp) -> Restore shown, no Retire
     let mut ctx = base_context("en", "operator");
     let mut team = sample_team();
-    team["retiredAt"] = json!("2026-01-01");
+    team["retiredAt"] = json!("2026-01-01T00:00:00");
     ctx.insert("team", &team);
     team_page_extras(&mut ctx);
     let html = tera.render("team/team.html", &ctx).unwrap();
@@ -274,9 +277,14 @@ fn sample_org_tier() -> serde_json::Value {
         "retiredAt": null,
         "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization"},
         "parentOrganizationTier": {"id": "33333333-3333-3333-3333-333333333333", "nameEn": "Parent Tier"},
+        "ancestors": [
+            {"id": "30000000-0000-0000-0000-000000000000", "nameEn": "Root Tier", "nameFr": "Niveau racine"},
+            {"id": "33333333-3333-3333-3333-333333333333", "nameEn": "Parent Tier", "nameFr": "Niveau parent"}
+        ],
+        "vacantRoleCount": 2,
         "owner": {"person": {"id": "44444444-4444-4444-4444-444444444444", "givenName": "Jane", "familyName": "Doe", "email": "jane@example.com"}},
         "childOrganizationTier": [
-            {"id": "55555555-5555-5555-5555-555555555555", "nameEn": "Child Tier", "nameFr": "Niveau enfant", "tierLevel": 3, "retiredAt": null}
+            {"id": "55555555-5555-5555-5555-555555555555", "nameEn": "Child Tier", "nameFr": "Niveau enfant", "tierLevel": 3, "retiredAt": null, "vacantRoleCount": 1}
         ],
         "teams": [{
             "id": "66666666-6666-6666-6666-666666666666",
@@ -288,10 +296,12 @@ fn sample_org_tier() -> serde_json::Value {
                 "titleEnglish": "Analyst", "titleFrench": "Analyste",
                 "person": {"id": "88888888-8888-8888-8888-888888888888", "givenName": "Sam", "familyName": "Lee"}
             }],
+            // The org chart node lists each vacant role; the tier page only counts them.
             "vacantRoles": [{
                 "id": "99999999-9999-9999-9999-999999999999",
                 "titleEnglish": "Advisor", "titleFrench": "Conseiller"
             }],
+            "vacantRoleCount": 1,
         }],
     })
 }
@@ -407,10 +417,12 @@ fn sample_team() -> serde_json::Value {
         "headcount": 0,
         "totalEffort": 0,
         "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization"},
-        "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Test Tier"},
+        "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Test Tier",
+                              "ancestors": [{"id": "33333333-3333-3333-3333-333333333333", "nameEn": "Parent Tier"}]},
         "owner": {"person": {"id": "44444444-4444-4444-4444-444444444444", "givenName": "Jane", "familyName": "Doe", "email": "jane@example.com"}},
         "occupiedRoles": [],
         "vacantRoles": [],
+        "vacantRoleCount": 0,
     })
 }
 
@@ -459,7 +471,7 @@ fn sample_person() -> serde_json::Value {
         "activeRoles": [],
         "inactiveRoles": [],
         "roleAssignments": [],
-        "findMatches": [],
+        "fuzzyMatches": [],
         "affiliations": [],
         "publications": [],
     })
@@ -577,7 +589,7 @@ fn sample_role_record() -> serde_json::Value {
         "team": {
             "id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team",
             "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization", "nameFr": "Organisation test"},
-            "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Tier", "nameFr": "Niveau", "primaryDomain": "CYBER_SECURITY"},
+            "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Tier", "nameFr": "Niveau", "primaryDomain": "CYBER_SECURITY", "ancestors": []},
             "owner": {"id": "44444444-4444-4444-4444-444444444444", "givenName": "Jane", "familyName": "Doe", "email": "j@e.com"},
         },
         "work": [],
@@ -1407,10 +1419,12 @@ fn team_index_renders_with_retired_toggle() {
     let tera = tera();
     let mut ctx = base_context("en", "operator");
     ctx.insert("teams", &json!([
-        {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Active Team", "nameFrench": "x", "retiredAt": "Still Active", "organization": {"id": "1", "nameEn": "Org"}, "organizationLevel": {"id": "2", "nameEn": "Tier"}},
-        {"id": "66666666-6666-6666-6666-666666666667", "nameEnglish": "Old Team", "nameFrench": "y", "retiredAt": "2026-01-01", "organization": {"id": "1", "nameEn": "Org"}, "organizationLevel": {"id": "2", "nameEn": "Tier"}}
+        {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Active Team", "nameFrench": "x", "retiredAt": null, "vacantRoleCount": 2, "organization": {"id": "1", "nameEn": "Org"}, "organizationLevel": {"id": "2", "nameEn": "Tier"}},
+        {"id": "66666666-6666-6666-6666-666666666667", "nameEnglish": "Old Team", "nameFrench": "y", "retiredAt": "2026-01-01T00:00:00", "vacantRoleCount": 0, "organization": {"id": "1", "nameEn": "Org"}, "organizationLevel": {"id": "2", "nameEn": "Tier"}}
     ]));
     ctx.insert("show_retired", &false);
+    ctx.insert("organizations", &json!([{"id": "1", "nameEn": "Alpha Org", "nameFr": "Org Alpha"}]));
+    ctx.insert("selected_org", "1");
     ctx.insert("q", "");
     ctx.insert("total", &2);
     ctx.insert("page", &1);
@@ -1418,8 +1432,10 @@ fn team_index_renders_with_retired_toggle() {
     ctx.insert("has_prev", &false);
     ctx.insert("has_next", &false);
     let html = tera.render("team/team_index.html", &ctx).unwrap();
-    assert!(html.contains("/teams?retired=1"));      // "show retired" link when hidden
+    assert!(html.contains("/teams?org=1&retired=1")); // "show retired" link keeps the org filter
     assert!(html.contains("Active Team"));
+    assert!(html.contains("value=\"1\" selected"));   // org filter persisted
+    assert!(html.contains("/team/66666666-6666-6666-6666-666666666666#members\">2</a>")); // API vacancy count
     // the retired one carries the badge
     assert!(html.contains("/team/66666666-6666-6666-6666-666666666667"));
     let badges = html.matches("chip-retired").count();
@@ -1427,7 +1443,7 @@ fn team_index_renders_with_retired_toggle() {
 
     ctx.insert("show_retired", &true);
     let html = tera.render("team/team_index.html", &ctx).unwrap();
-    assert!(html.contains("/teams\""));               // "hide retired" link back to plain
+    assert!(html.contains("/teams?org=1\""));        // "hide retired" link keeps the org filter
 }
 
 #[test]
@@ -1435,8 +1451,8 @@ fn role_index_renders_vacant_and_occupied() {
     let tera = tera();
     let mut ctx = base_context("en", "user");
     ctx.insert("roles", &json!([
-        {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "titleFrench": "x", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "occupationalGroup": null, "occupationalLevel": null, "person": {"id": "8", "givenName": "Sam", "familyName": "Lee"}, "team": {"id": "6", "nameEnglish": "Team"}},
-        {"id": "77777777-7777-7777-7777-777777777778", "titleEnglish": "Advisor", "titleFrench": "y", "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null, "person": null, "team": {"id": "6", "nameEnglish": "Team"}}
+        {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Analyst", "titleFrench": "x", "active": "Active", "militaryOccupation": "CYBER", "rank": "CAPTAIN", "occupationalGroup": null, "occupationalLevel": null, "person": {"id": "8", "givenName": "Sam", "familyName": "Lee"}, "team": {"id": "6", "nameEnglish": "Team"}},
+        {"id": "77777777-7777-7777-7777-777777777778", "titleEnglish": "Advisor", "titleFrench": "y", "active": "INACTIVE", "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null, "person": null, "team": {"id": "6", "nameEnglish": "Team"}}
     ]));
     ctx.insert("q", "");
     ctx.insert("total", &2);
@@ -1447,7 +1463,11 @@ fn role_index_renders_vacant_and_occupied() {
     ctx.insert("organizations", &json!([{"id": "1", "nameEn": "Alpha Org"}, {"id": "2", "nameEn": "Beta Org"}]));
     ctx.insert("selected_org", "2");
     ctx.insert("selected_status", "vacant");
+    ctx.insert("show_ended", &true);
     let html = tera.render("role/role_index.html", &ctx).unwrap();
+    assert_eq!(html.matches("chip-retired").count(), 1, "only the ended role is badged");
+    assert!(html.contains("/roles?org=2&status=vacant\"")); // "hide ended" keeps the filters
+    assert!(html.contains("name=\"ended\" value=\"1\"")); // HTMX filtering keeps ended rows
     assert!(html.contains("Sam Lee"));
     assert!(html.contains("/role/77777777-7777-7777-7777-777777777778"));
     assert!(html.contains("chip-vacant"));  // vacant chip for the unassigned role
@@ -1814,6 +1834,7 @@ fn team_page_lists_members_by_reporting_line_with_vacancies() {
     let tera = tera();
     let mut team = sample_team();
     team["vacantRoles"] = json!([{"id": "99999999-9999-9999-9999-999999999999", "titleEnglish": "Advisor", "titleFrench": "Conseiller"}]);
+    team["vacantRoleCount"] = json!(1);
     let members = json!([
         {"id": "77777777-7777-7777-7777-777777777777", "titleEnglish": "Lead", "titleFrench": "Chef", "depth": 0, "vacant": false, "effort": 9,
          "militaryOccupation": null, "rank": null, "occupationalGroup": "EC", "occupationalLevel": 6,
@@ -1947,12 +1968,14 @@ fn org_tier_page_compares_sub_units_and_links_up_the_hierarchy() {
         let mut ctx = base_context(lang, "operator");
         ctx.insert("org_tier", &tier);
         ctx.insert("domain_summary", &json!([{"domain": "STRATEGY", "count": 3}]));
-        ctx.insert("tier_vacancies", &1);
         let html = tera.render("org_tier/org_tier.html", &ctx).unwrap();
-        // Breadcrumb: organization, then parent tier
+        // Breadcrumb: organization, then every ancestor tier from the root down
         let crumbs = &html[html.find("<gcds-breadcrumbs").unwrap()..html.find("</gcds-breadcrumbs>").unwrap()];
-        assert!(crumbs.contains(&format!("/{}/organization/11111111-1111-1111-1111-111111111111", lang)));
-        assert!(crumbs.contains(&format!("/{}/org_tier/33333333-3333-3333-3333-333333333333", lang)));
+        let org = crumbs.find(&format!("/{}/organization/11111111-1111-1111-1111-111111111111", lang)).unwrap();
+        let root = crumbs.find(&format!("/{}/org_tier/30000000-0000-0000-0000-000000000000", lang)).unwrap();
+        let parent = crumbs.find(&format!("/{}/org_tier/33333333-3333-3333-3333-333333333333", lang)).unwrap();
+        assert!(org < root && root < parent, "breadcrumb runs org › root › parent");
+        assert!(!crumbs.contains("/org_tier/22222222"), "the current tier is not repeated");
         // Organization linked from the meta strip too
         assert!(html.contains(org_name));
         // Sub-units: child tier and team rows, vacant count drills into the team
@@ -1976,15 +1999,15 @@ fn person_page_shows_role_fit_and_ranked_job_matches() {
         "militaryOccupation": null, "rank": null, "occupationalGroup": "EC", "occupationalLevel": 5, "effort": 6, "work": [],
         "team": {"id": "66666666-6666-6666-6666-666666666666", "nameEnglish": "Test Team", "nameFrench": "Équipe test",
                  "organization": {"id": "11111111-1111-1111-1111-111111111111", "nameEn": "Test Organization", "nameFr": "Organisation test"},
-                 "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Test Tier", "nameFr": "Niveau test"},
+                 "organizationLevel": {"id": "22222222-2222-2222-2222-222222222222", "nameEn": "Test Tier", "nameFr": "Niveau test", "ancestors": []},
                  "owner": {"id": "o1", "person": null}},
     }]);
-    let fit = json!({"met": 1, "total": 2, "pct": 50, "rows": [
+    let fit = json!({"met": 1, "total": 2, "rows": [
         {"name": "Threat Analysis", "domain": "CYBER_SECURITY", "required": "EXPERT", "held": "EXPERT", "validated": true, "met": true},
         {"name": "Forecasting", "domain": "DATA_ANALYTICS_AND_AI", "required": "EXPERT", "held": null, "validated": false, "met": false},
     ]});
     let matches = json!([{"role": {"id": "dddddddd-dddd-dddd-dddd-dddddddddddd", "titleEnglish": "Senior Analyst", "titleFrench": "Analyste principal",
-        "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null, "requirements": []}, "fit": fit}]);
+        "militaryOccupation": null, "rank": null, "occupationalGroup": null, "occupationalLevel": null, "requirements": []}, "pct": 40, "fit": fit}]);
 
     let mut ctx = base_context("en", "operator");
     ctx.insert("person", &person);
@@ -1993,7 +2016,7 @@ fn person_page_shows_role_fit_and_ranked_job_matches() {
     let html = tera.render("person/person.html", &ctx).unwrap();
     assert!(html.contains("1 of 2 requirements met"));
     assert!(html.contains("none held"));
-    assert!(html.contains("50% match"));
+    assert!(html.contains("40% match")); // the API's matchScore, not the met ratio
     assert!(html.contains("Senior Analyst"));
     // Breadcrumb climbs through the current role: org › tier › team › role
     let crumbs = &html[html.find("<gcds-breadcrumbs").unwrap()..html.find("</gcds-breadcrumbs>").unwrap()];

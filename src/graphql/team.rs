@@ -30,9 +30,11 @@ pub async fn get_team_by_id(id: UUID, bearer: String, api_url: &str, client: Arc
 )]
 pub struct AllTeams;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn all_teams(
     search: Option<String>,
     include_retired: bool,
+    organization_id: Option<String>,
     limit: Option<i64>,
     offset: i64,
     bearer: String,
@@ -42,6 +44,7 @@ pub async fn all_teams(
     post_graphql::<AllTeams>(&client, api_url, &bearer, all_teams::Variables {
         search,
         include_retired,
+        organization_id,
         limit,
         offset,
     }).await

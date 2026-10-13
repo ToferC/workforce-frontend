@@ -4,7 +4,7 @@
 {% import "macros/labels.html" as labels %}
 {% import "macros/page.html" as page %}
 
-{% block breadcrumb %}{{ page::trail(lang=lang, org=org_tier.organization, tier=org_tier.parentOrganizationTier) }}{% endblock breadcrumb %}
+{% block breadcrumb %}{{ page::trail(lang=lang, org=org_tier.organization, tiers=org_tier.ancestors) }}{% endblock breadcrumb %}
 
 {% block title %}
     <title>{{ labels::name(obj=org_tier, lang=lang) }} — {{ fluent(key="org-tier", lang=lang) }}</title>
@@ -85,9 +85,8 @@
         {{ viz::stat_tile(value=org_tier.headcount, label=fluent(key="headcount", lang=lang)) }}
         {% set util = viz::utilization(effort=org_tier.totalEffort, headcount=org_tier.headcount) %}
         {{ viz::stat_tile(value=util, label=fluent(key="utilization", lang=lang), hint=fluent(key="utilization-hint", lang=lang)) }}
-        {% set vacancies = tier_vacancies | default(value=0) %}
-        {% if vacancies > 0 %}{% set vacancy_tone = "warning" %}{% else %}{% set vacancy_tone = "" %}{% endif %}
-        {{ viz::stat_tile(value=vacancies, label=fluent(key="vacant-roles", lang=lang), tone=vacancy_tone, hint=fluent(key="in-direct-teams", lang=lang)) }}
+        {% if org_tier.vacantRoleCount > 0 %}{% set vacancy_tone = "warning" %}{% else %}{% set vacancy_tone = "" %}{% endif %}
+        {{ viz::stat_tile(value=org_tier.vacantRoleCount, label=fluent(key="vacant-roles", lang=lang), tone=vacancy_tone, hint=fluent(key="in-tier-subtree", lang=lang)) }}
         {% if budget %}
         {% set lapse = budget.lapseCents | money(lang=lang, compact=true) %}
         {% if budget.lapseCents > 0 %}{% set lapse_tone = "warning" %}{% else %}{% set lapse_tone = "" %}{% endif %}
@@ -138,7 +137,7 @@
                             {% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}
                         </td>
                         <td class="num">{{ child.headcount | default(value="—") }}</td>
-                        <td class="num">&mdash;</td>
+                        <td class="num">{{ child.vacantRoleCount | default(value="—") }}</td>
                         <td class="num">{% if child.headcount is defined %}{{ viz::utilization(effort=child.totalEffort, headcount=child.headcount) }}{% else %}&mdash;{% endif %}</td>
                         {% if child_finances %}
                         {% if child.id in child_finances %}
@@ -152,7 +151,7 @@
                     </tr>
                     {% endfor %}
                     {% for team in org_tier.teams %}
-                    {% set team_vacant = team.vacantRoles | default(value=[]) | length %}
+                    {% set team_vacant = team.vacantRoleCount | default(value=0) %}
                     <tr>
                         <td>
                             <i class="bi bi-people text-muted" aria-hidden="true"></i>

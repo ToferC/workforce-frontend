@@ -155,9 +155,10 @@ pub fn level_weight(level: &str) -> i64 {
 
 /// How well a set of capabilities covers a role's requirements, matched by
 /// skill name. The held level is the validated level when there is one,
-/// otherwise the self-identified level. Shared by the person page's current
-/// roles and job matches so both read the same way:
-/// `{rows: [{name, domain, required, held, validated, met}], met, total, pct}`.
+/// otherwise the self-identified level — the API's matching rule. Lays out the
+/// person page's current roles and job matches (whose ranking and score come
+/// from the API's `fuzzyMatches`) so both read the same way:
+/// `{rows: [{name, domain, required, held, validated, met}], met, total}`.
 pub fn requirement_fit(requirements: &serde_json::Value, capabilities: &serde_json::Value) -> serde_json::Value {
     let caps = capabilities.as_array().map(Vec::as_slice).unwrap_or_default();
     let rows: Vec<serde_json::Value> = requirements.as_array().into_iter().flatten().map(|req| {
@@ -177,8 +178,7 @@ pub fn requirement_fit(requirements: &serde_json::Value, capabilities: &serde_js
     }).collect();
     let total = rows.len();
     let met = rows.iter().filter(|r| r["met"] == true).count();
-    let pct = if total == 0 { 100 } else { met * 100 / total };
-    serde_json::json!({"rows": rows, "met": met, "total": total, "pct": pct})
+    serde_json::json!({"rows": rows, "met": met, "total": total})
 }
 
 /// Short, localized label for an API enum value — the Rust twin of

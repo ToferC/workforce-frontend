@@ -16,6 +16,11 @@ query OrgTierById($id:UUID!) {
       nameEn
       nameFr
     }
+    ancestors {
+      id
+      nameEn
+      nameFr
+    }
     owner {
       id
       person {
@@ -32,6 +37,7 @@ query OrgTierById($id:UUID!) {
       retiredAt
       headcount
       totalEffort
+      vacantRoleCount
       owner {
         id
         person {
@@ -43,6 +49,7 @@ query OrgTierById($id:UUID!) {
     }
     headcount
     totalEffort
+    vacantRoleCount
     capabilityCounts {
       name
       domain
@@ -55,9 +62,7 @@ query OrgTierById($id:UUID!) {
       nameFrench
       headcount
       totalEffort
-      vacantRoles {
-        id
-      }
+      vacantRoleCount
       owner {
         id
         person {

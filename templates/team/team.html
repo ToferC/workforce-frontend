@@ -3,7 +3,7 @@
 {% import "macros/labels.html" as labels %}
 {% import "macros/page.html" as page %}
 
-{% block breadcrumb %}{{ page::trail(lang=lang, org=team.organization, tier=team.organizationLevel) }}{% endblock breadcrumb %}
+{% block breadcrumb %}{{ page::trail(lang=lang, org=team.organization, tiers=team.organizationLevel.ancestors | concat(with=team.organizationLevel)) }}{% endblock breadcrumb %}
 
 {% block title %}
     <title>{{ labels::name(obj=team, lang=lang) }} — {{ fluent(key="team", lang=lang )}}</title>
@@ -11,10 +11,9 @@
 
 {% block content %}
 {% set is_operator = role == "operator" or role == "admin" %}
-{# The API reports an active team's retiredAt as the "Still Active" sentinel. #}
-{% set retired = team.retiredAt and team.retiredAt != "Still Active" %}
+{% set retired = team.retiredAt %}
 {% set members = members | default(value=[]) %}
-{% set vacancies = team.vacantRoles | length %}
+{% set vacancies = team.vacantRoleCount %}
 <div class="col-12 px-md-4 px-2 py-4">
     <div class="hero-section mb-4">
         <div class="entity-header__bar">
