@@ -11,19 +11,33 @@
             <h1 class="h3 mb-0"><i class="bi bi-people" aria-hidden="true"></i> {{ fluent(key="teams", lang=lang) }}</h1>
             <span>
                 {% if show_retired %}
-                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/teams">{{ fluent(key="hide-retired", lang=lang) }}</a>
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/teams?org={{ selected_org }}">{{ fluent(key="hide-retired", lang=lang) }}</a>
                 {% else %}
-                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/teams?retired=1">{{ fluent(key="show-retired", lang=lang) }}</a>
+                <a class="btn btn-outline-secondary btn-sm" href="/{{ lang }}/teams?org={{ selected_org }}&retired=1">{{ fluent(key="show-retired", lang=lang) }}</a>
                 {% endif %}
             </span>
         </div>
         <div class="card-body">
-            <label class="form-label small mb-1" for="teams-q">{{ fluent(key="search-placeholder", lang=lang) }}</label>
-            <input type="search" id="teams-q" class="form-control mb-3" name="q" value="{{ q }}"
-                placeholder="{{ fluent(key="search-placeholder", lang=lang) }}"
-                hx-get="/{{ lang }}/teams{% if show_retired %}?retired=1{% endif %}"
-                hx-trigger="keyup changed delay:300ms, search"
-                hx-target="#team-list" hx-swap="outerHTML">
+            <form id="team-filters" class="d-flex flex-wrap align-items-end mb-3" style="gap:.5rem"
+                  hx-get="/{{ lang }}/teams"
+                  hx-trigger="change, keyup changed delay:300ms, search"
+                  hx-target="#team-list" hx-swap="outerHTML">
+                {% if show_retired %}<input type="hidden" name="retired" value="1">{% endif %}
+                <div class="flex-grow-1" style="min-width:200px">
+                    <label class="form-label small mb-1" for="teams-q">{{ fluent(key="search-placeholder", lang=lang) }}</label>
+                    <input type="search" id="teams-q" class="form-control" name="q" value="{{ q }}"
+                        placeholder="{{ fluent(key="search-placeholder", lang=lang) }}">
+                </div>
+                <div style="min-width:160px">
+                    <label class="form-label small mb-1" for="teams-org">{{ fluent(key="organization", lang=lang) }}</label>
+                    <select id="teams-org" class="form-control" name="org">
+                        <option value="">{{ fluent(key="all-organizations", lang=lang) }}</option>
+                        {% for o in organizations %}
+                        <option value="{{ o.id }}"{% if o.id == selected_org %} selected{% endif %}>{{ labels::name(obj=o, lang=lang) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
             {% include "team/team_list.html" %}
         </div>
     </div>

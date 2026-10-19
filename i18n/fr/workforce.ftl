@@ -436,6 +436,8 @@ roles = Rôles
 org-tiers = Niveaux organisationnels
 show-retired = Afficher les retirés
 hide-retired = Masquer les retirés
+show-ended = Afficher les terminés
+hide-ended = Masquer les terminés
 
 ## Index search
 search-placeholder = Rechercher par nom…
@@ -930,7 +932,6 @@ more-actions = Plus
 show-by-skill = Afficher par compétence
 sub-units = Sous-unités
 no-sub-units = Aucun niveau enfant ni équipe pour l'instant.
-in-direct-teams = Dans les équipes relevant directement de ce niveau
 high-load = Charge élevée
 edit-role = Modifier le rôle
 fill-this-role = Pourvoir ce rôle
@@ -941,3 +942,4 @@ requirement-met = Satisfaite :
 requirement-gap = Écart :
 current-roles = Rôles actuels
 job-matches-help = Rôles que cette personne pourrait occuper, du plus adapté au moins adapté.
+in-tier-subtree = Dans ce niveau et tous les niveaux inférieurs

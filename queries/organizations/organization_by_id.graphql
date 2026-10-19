@@ -8,6 +8,9 @@ query OrganizationById($id:UUID!) {
     orgType
     url
     retiredAt
+    headcount
+    totalEffort
+    vacantRoleCount
     topOrgTier {
       id
       nameEn
@@ -15,6 +18,7 @@ query OrganizationById($id:UUID!) {
       primaryDomain
       headcount
       totalEffort
+      vacantRoleCount
       owner {
         id
         person {

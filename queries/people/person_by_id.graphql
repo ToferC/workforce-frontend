@@ -69,6 +69,7 @@ query PersonById($id:UUID!) {
           nameEn
           nameFr
           primaryDomain
+          ancestors { id nameEn nameFr }
         }
         owner {
           id
@@ -120,23 +121,26 @@ query PersonById($id:UUID!) {
         }
       }
     }
-    findMatches {
-      id
-      titleEnglish
-      titleFrench
-      militaryOccupation
-      rank
-      occupationalGroup
-      occupationalLevel
-      team {
+    fuzzyMatches {
+      matchScore
+      role {
         id
-        nameEnglish
-        nameFrench
-      }
-      requirements {
-        nameEn
-        domain
-        requiredLevel
+        titleEnglish
+        titleFrench
+        militaryOccupation
+        rank
+        occupationalGroup
+        occupationalLevel
+        team {
+          id
+          nameEnglish
+          nameFrench
+        }
+        requirements {
+          nameEn
+          domain
+          requiredLevel
+        }
       }
     }
     affiliations {

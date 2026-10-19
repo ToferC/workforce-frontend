@@ -10,6 +10,7 @@ query TeamById($id:UUID!) {
       id
       nameEn
       nameFr
+      ancestors { id nameEn nameFr }
     }
     organization {
       id
@@ -18,6 +19,7 @@ query TeamById($id:UUID!) {
     }
     headcount
     totalEffort
+    vacantRoleCount
     capabilityCounts {
       name
       domain

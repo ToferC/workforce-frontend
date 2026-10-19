@@ -12,7 +12,7 @@ use crate::graphql::{get_role_by_id, get_role_matches, all_roles, all_organizati
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_confirm, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_confirm, render_page, session_bearer, active_organizations_by_name};
 
 /// Rank enum values, kept in sync with the API schema.
 pub const RANKS: [&str; 17] = [
@@ -1226,6 +1226,9 @@ pub struct RoleIndexParams {
     /// "filled" | "vacant" | "" (all). Whether the role has an incumbent.
     #[serde(default)]
     pub status: String,
+    /// "1" also lists ended (inactive) roles.
+    #[serde(default)]
+    pub ended: String,
     #[serde(default)]
     pub page: String,
 }
@@ -1252,24 +1255,20 @@ pub async fn role_index(
     let search = { let q = params.q.trim(); if q.is_empty() { None } else { Some(q.to_string()) } };
     let org_filter = if selected_org.is_empty() { None } else { Some(selected_org.clone()) };
     let status_filter = if selected_status.is_empty() { None } else { Some(selected_status.clone()) };
+    let show_ended = params.ended == "1";
     let page = params.page.trim().parse::<i64>().unwrap_or(1).max(1);
     let offset = (page - 1) * ROLES_PAGE_SIZE;
 
-    // The API filters (search + org + filled/vacant) and paginates
+    // The API filters (search + org + filled/vacant + ended) and paginates
     // server-side; the org dropdown is independent, so fetch it concurrently.
     let (roles_res, orgs_res) = futures::join!(
-        all_roles(search, org_filter, status_filter, Some(ROLES_PAGE_SIZE), offset, bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_roles(search, org_filter, status_filter, show_ended, Some(ROLES_PAGE_SIZE), offset, bearer.clone(), &data.api_url, Arc::clone(&data.client)),
         all_organizations(bearer, &data.api_url, Arc::clone(&data.client)),
     );
     let (roles, total) = match roles_res {
         Ok(r) => (r.all_roles, r.roles_count),
         Err(_) => (Vec::new(), 0),
     };
-
-    // Organization filter options, active orgs only, sorted by name.
-    let mut organizations = orgs_res.map(|r| r.all_organizations).unwrap_or_default();
-    organizations.retain(|o| o.retired_at.is_none());
-    organizations.sort_by(|a, b| a.name_en.to_lowercase().cmp(&b.name_en.to_lowercase()));
 
     let total_pages = ((total + ROLES_PAGE_SIZE - 1) / ROLES_PAGE_SIZE).max(1);
 
@@ -1280,9 +1279,10 @@ pub async fn role_index(
     ctx.insert("has_prev", &(page > 1));
     ctx.insert("has_next", &(page < total_pages));
     ctx.insert("q", &params.q);
-    ctx.insert("organizations", &organizations);
+    ctx.insert("organizations", &active_organizations_by_name(orgs_res.map(|r| r.all_organizations).unwrap_or_default()));
     ctx.insert("selected_org", &selected_org);
     ctx.insert("selected_status", &selected_status);
+    ctx.insert("show_ended", &show_ended);
 
     let template = if is_htmx(&req) { "role/role_list.html" } else { "role/role_index.html" };
     render_page(&data, template, &ctx)

@@ -8,7 +8,7 @@
 {# Up the hierarchy through the person's first current role. #}
 {% if person.activeRoles %}
 {% set r = person.activeRoles | first %}
-{{ page::trail(lang=lang, org=r.team.organization | default(value=person.organization), tier=r.team.organizationLevel | default(value=false), team=r.team, role=r) }}
+{{ page::trail(lang=lang, org=r.team.organization | default(value=person.organization), tiers=r.team.organizationLevel.ancestors | concat(with=r.team.organizationLevel), team=r.team, role=r) }}
 {% else %}
 {{ page::trail(lang=lang, section="people", org=person.organization) }}
 {% endif %}
@@ -244,7 +244,7 @@
                     <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
                         <div>
                             <a href="/{{ lang }}/role/{{ m.role.id }}" class="fw-semibold">{{ labels::name(obj=m.role, lang=lang) }}</a>
-                            <span class="badge bg-light text-dark border ms-1">{{ fluent(key="match-pct", pct=m.fit.pct, lang=lang) }}</span>
+                            <span class="badge bg-light text-dark border ms-1">{{ fluent(key="match-pct", pct=m.pct, lang=lang) }}</span>
                             <div class="small text-muted">
                                 {{ viz::classification(mo=m.role.militaryOccupation, rank=m.role.rank, group=m.role.occupationalGroup, level=m.role.occupationalLevel) }}
                                 {% if m.role.team %}&middot; <a href="/{{ lang }}/team/{{ m.role.team.id }}">{{ labels::name(obj=m.role.team, lang=lang) }}</a>{% endif %}

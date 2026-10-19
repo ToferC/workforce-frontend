@@ -73,7 +73,6 @@ fn requirement_fit_prefers_validated_levels() {
     let fit = frontend::requirement_fit(&reqs, &caps);
     assert_eq!(fit["met"], 1);
     assert_eq!(fit["total"], 3);
-    assert_eq!(fit["pct"], 33);
     assert_eq!(fit["rows"][0]["held"], "EXPERIENCED");
     assert_eq!(fit["rows"][0]["validated"], true);
     assert_eq!(fit["rows"][2]["held"], serde_json::Value::Null);

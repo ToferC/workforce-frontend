@@ -6,10 +6,10 @@ use serde_json::json;
 
 use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
-use crate::graphql::{get_team_by_id, all_teams, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership, restore_team};
+use crate::graphql::{get_team_by_id, all_teams, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership, restore_team, all_organizations};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{parent_tier_options, skill_domain_options, OwnerForm};
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer, active_organizations_by_name};
 
 #[derive(Deserialize, Debug)]
 pub struct TeamForm {
@@ -612,6 +612,9 @@ pub struct IndexParams {
     pub retired: String,
     #[serde(default)]
     pub q: String,
+    /// Organization UUID to filter by; empty means all organizations.
+    #[serde(default)]
+    pub org: String,
     #[serde(default)]
     pub page: String,
 }
@@ -639,14 +642,20 @@ pub async fn team_index(
         let q = params.q.trim();
         if q.is_empty() { None } else { Some(q.to_string()) }
     };
+    let selected_org = params.org.trim().to_string();
+    let org_filter = if selected_org.is_empty() { None } else { Some(selected_org.clone()) };
     // 1-based page from the query string, clamped to >= 1.
     let page = params.page.trim().parse::<i64>().unwrap_or(1).max(1);
     let offset = (page - 1) * TEAMS_PAGE_SIZE;
 
-    // The API filters (search + retired) and paginates server-side, so we only
-    // fetch the current page plus the total count for the page controls.
-    let r = all_teams(search, show_retired, Some(TEAMS_PAGE_SIZE), offset, bearer, &data.api_url, Arc::clone(&data.client)).await;
-    let (teams, total) = match r {
+    // The API filters (search + retired + org) and paginates server-side, so we
+    // only fetch the current page plus the total count for the page controls;
+    // the org dropdown is independent, so fetch it concurrently.
+    let (teams_res, orgs_res) = futures::join!(
+        all_teams(search, show_retired, org_filter, Some(TEAMS_PAGE_SIZE), offset, bearer.clone(), &data.api_url, Arc::clone(&data.client)),
+        all_organizations(bearer, &data.api_url, Arc::clone(&data.client)),
+    );
+    let (teams, total) = match teams_res {
         Ok(r) => (r.all_teams, r.teams_count),
         Err(_) => (Vec::new(), 0),
     };
@@ -661,6 +670,8 @@ pub async fn team_index(
     ctx.insert("has_next", &(page < total_pages));
     ctx.insert("q", &params.q);
     ctx.insert("show_retired", &show_retired);
+    ctx.insert("organizations", &active_organizations_by_name(orgs_res.map(|r| r.all_organizations).unwrap_or_default()));
+    ctx.insert("selected_org", &selected_org);
 
     let template = if is_htmx(&req) { "team/team_list.html" } else { "team/team_index.html" };
     render_page(&data, template, &ctx)

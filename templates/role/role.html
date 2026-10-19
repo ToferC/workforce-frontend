@@ -6,7 +6,7 @@
 {% import "macros/labels.html" as labels %}
 {% import "macros/page.html" as page %}
 
-{% block breadcrumb %}{{ page::trail(lang=lang, org=role_record.team.organization | default(value=false), tier=role_record.team.organizationLevel | default(value=false), team=role_record.team) }}{% endblock breadcrumb %}
+{% block breadcrumb %}{{ page::trail(lang=lang, org=role_record.team.organization | default(value=false), tiers=role_record.team.organizationLevel.ancestors | concat(with=role_record.team.organizationLevel), team=role_record.team) }}{% endblock breadcrumb %}
 
 {% block title %}
     <title>{{ labels::name(obj=role_record, lang=lang) }} — {{ fluent(key="role", lang=lang )}}</title>

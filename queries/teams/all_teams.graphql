@@ -1,5 +1,5 @@
-query AllTeams($search: String, $includeRetired: Boolean!, $limit: Int, $offset: Int!) {
-  allTeams(search: $search, includeRetired: $includeRetired, limit: $limit, offset: $offset) {
+query AllTeams($search: String, $includeRetired: Boolean!, $organizationId: UUID, $limit: Int, $offset: Int!) {
+  allTeams(search: $search, includeRetired: $includeRetired, organizationId: $organizationId, limit: $limit, offset: $offset) {
     id
     nameEnglish
     nameFrench
@@ -8,7 +8,7 @@ query AllTeams($search: String, $includeRetired: Boolean!, $limit: Int, $offset:
     organizationLevel { id nameEn nameFr }
     owner { id person { id givenName familyName } }
     headcount
-    vacantRoles { id }
+    vacantRoleCount
   }
-  teamsCount(search: $search, includeRetired: $includeRetired)
+  teamsCount(search: $search, includeRetired: $includeRetired, organizationId: $organizationId)
 }

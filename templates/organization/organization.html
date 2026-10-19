@@ -69,9 +69,11 @@
 
     {# At a glance: size, load and money for the whole organization. #}
     <div class="stat-row">
-        {{ viz::stat_tile(value=org_headcount, label=fluent(key="headcount", lang=lang)) }}
-        {% set util = viz::utilization(effort=org_effort, headcount=org_headcount) %}
+        {{ viz::stat_tile(value=organization.headcount, label=fluent(key="headcount", lang=lang)) }}
+        {% set util = viz::utilization(effort=organization.totalEffort, headcount=organization.headcount) %}
         {{ viz::stat_tile(value=util, label=fluent(key="utilization", lang=lang), hint=fluent(key="utilization-hint", lang=lang)) }}
+        {% if organization.vacantRoleCount > 0 %}{% set vacancy_tone = "warning" %}{% else %}{% set vacancy_tone = "" %}{% endif %}
+        {{ viz::stat_tile(value=organization.vacantRoleCount, label=fluent(key="vacant-roles", lang=lang), tone=vacancy_tone) }}
         {% if org_finances %}
         {% set projected = org_finances.projectedCents | money(lang=lang, compact=true) %}
         {% set budget_hint = fluent(key="of-budget", amount=org_finances.budgetedCents | money(lang=lang, compact=true), lang=lang) %}
@@ -102,6 +104,7 @@
                         <th scope="col">{{ fluent(key="org-tier", lang=lang) }}</th>
                         <th scope="col">{{ fluent(key="owner", lang=lang) }}</th>
                         <th scope="col" class="num">{{ fluent(key="headcount", lang=lang) }}</th>
+                        <th scope="col" class="num">{{ fluent(key="vacant", lang=lang) }}</th>
                         <th scope="col" class="num">{{ fluent(key="utilization", lang=lang) }}</th>
                         {% if tier_finances %}
                         <th scope="col" class="num">{{ fluent(key="fy-projected", lang=lang) }}</th>
@@ -122,6 +125,7 @@
                             {% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}
                         </td>
                         <td class="num">{{ ot.headcount }}</td>
+                        <td class="num">{{ ot.vacantRoleCount }}</td>
                         <td class="num">{{ viz::utilization(effort=ot.totalEffort, headcount=ot.headcount) }}</td>
                         {% if tier_finances %}
                         {% if ot.id in tier_finances %}

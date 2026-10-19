@@ -231,11 +231,17 @@ All nine phases below are implemented on this branch, plus a reusable label temp
   - The transfer-confirmation modal and page used `viz::` without importing it. `tests/template_imports.rs` now guards against this.
   - `.progress` was never re-implemented after the Bootstrap reduction, so every effort meter rendered as text only.
 
-Still open, because each needs the API:
+Done with the API support in ToferC/workforce_analytics#63:
 
-- An organization filter for `allTeams`, and a retired filter for `allRoles`.
-- A vacancy roll-up for a tier's whole subtree. Today the tier shows vacancies only for its direct teams.
-- Overload across a person's roles on the team table. It is flagged per role today.
+- The teams index filters by organization (`allTeams(organizationId:)`), and the roles index has a "show ended" toggle (`allRoles(includeEnded:)`).
+- Vacancies come from the API's `vacantRoleCount`: a tier counts its whole subtree, an organization counts all its tiers, and the team index no longer fetches every vacant role to count it. Organization headcount and effort are the API's own roll-ups, not a sum of top tiers.
+- Breadcrumbs show the full tier chain from `OrgTier.ancestors`.
+- `Team.retiredAt` is a nullable timestamp; the `"Still Active"` sentinel checks are gone.
+- Person job matches come from `Person.fuzzyMatches`, ranked and scored by the API. `requirement_fit` only lays out the per-requirement rows.
+
+Still open:
+
+- Overload across a person's roles on the team table. It is flagged per role today. No API change is needed: fetch `Role.person.activeEffort` in the team query.
 
 ## 5. Suggested sequencing
 

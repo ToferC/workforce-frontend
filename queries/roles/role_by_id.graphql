@@ -37,6 +37,7 @@ query RoleById($id:UUID!) {
         nameEn
         nameFr
         primaryDomain
+        ancestors { id nameEn nameFr }
       }
       owner {
         id

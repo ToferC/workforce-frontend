@@ -18,6 +18,7 @@
             <tr>
                 <td>
                     <a href="/{{ lang }}/role/{{ r.id }}" class="fw-semibold">{{ labels::name(obj=r, lang=lang) }}</a>
+                    {% if r.active == "INACTIVE" %}{{ viz::retired_chip(lang=lang, label_key="role-ended") }}{% endif %}
                     <div class="small text-muted">{{ viz::classification(mo=r.militaryOccupation, rank=r.rank, group=r.occupationalGroup, level=r.occupationalLevel) }}</div>
                 </td>
                 <td>{% if r.person %}<a href="/{{ lang }}/person/{{ r.person.id }}">{{ r.person.givenName }} {{ r.person.familyName }}</a>{% else %}{{ viz::vacancy_chip(lang=lang) }}{% endif %}</td>
@@ -32,7 +33,7 @@
 
     {% if total_pages > 1 %}
     {% set q_enc = q | urlencode %}
-    {% set qs = "q=" ~ q_enc ~ "&org=" ~ selected_org ~ "&status=" ~ selected_status %}
+    {% set qs = "q=" ~ q_enc ~ "&org=" ~ selected_org ~ "&status=" ~ selected_status %}{% if show_ended %}{% set qs = qs ~ "&ended=1" %}{% endif %}
     <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="{{ fluent(key='pagination', lang=lang) }}">
         <span class="text-muted small">{{ fluent(key="page", lang=lang) }} {{ page }} / {{ total_pages }} ({{ total }})</span>
         <span class="btn-group">

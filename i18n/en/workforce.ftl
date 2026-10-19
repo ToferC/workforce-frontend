@@ -436,6 +436,8 @@ roles = Roles
 org-tiers = Organization Tiers
 show-retired = Show retired
 hide-retired = Hide retired
+show-ended = Show ended
+hide-ended = Hide ended
 
 ## Index search
 search-placeholder = Search by name…
@@ -930,7 +932,6 @@ more-actions = More
 show-by-skill = Show counts by skill
 sub-units = Sub-units
 no-sub-units = No child tiers or teams yet.
-in-direct-teams = In teams directly under this tier
 high-load = High load
 edit-role = Edit role
 fill-this-role = Fill this role
@@ -941,3 +942,4 @@ requirement-met = Met:
 requirement-gap = Gap:
 current-roles = Current roles
 job-matches-help = Roles this person could fill, best fit first.
+in-tier-subtree = Across this tier and every tier below it
