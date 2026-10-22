@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
+{% import "macros/page.html" as page %}
+
+{% block breadcrumb %}{{ page::trail(lang=lang, section="teams", team=team) }}{% endblock breadcrumb %}
 
 {% block title %}
     <title>{{ fluent(key="assign-owner", lang=lang) }}</title>

@@ -98,7 +98,8 @@ pub async fn login_form_input(
             );
         }
         // Network failure or empty response from the API — not the user's fault.
-        Err(ApiError::Request(_)) | Err(ApiError::MissingData) => {
+        // (Login never goes through `guarded`, so StaleForm can't occur here.)
+        Err(ApiError::Request(_)) | Err(ApiError::MissingData) | Err(ApiError::StaleForm) => {
             return back_to_login(
                 "danger",
                 by_lang(

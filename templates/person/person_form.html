@@ -76,27 +76,28 @@
 
                 <div class="row">
                     <div class="col-12 col-sm-6">
-                        {{ forms::text_input(name="email", label=label_email, value=person.email, type="email") }}
+                        {{ forms::text_input(name="email", label=label_email, value=person.email, type="email", error=field_errors.email | default(value="")) }}
                     </div>
                     <div class="col-12 col-sm-6">
-                        {{ forms::text_input(name="phone", label=label_phone, value=person.phone) }}
+                        {{ forms::text_input(name="phone", label=label_phone, value=person.phone, error=field_errors.phone | default(value="")) }}
                     </div>
                 </div>
 
-                {{ forms::text_input(name="work_address", label=label_address, value=person.workAddress) }}
+                {{ forms::text_input(name="work_address", label=label_address, value=person.workAddress, required=false) }}
 
+                {# Two columns at most: GCDS labels and fields are too wide for four. #}
                 <div class="row">
-                    <div class="col-12 col-sm-6 col-lg-5">
-                        {{ forms::text_input(name="city", label=label_city, value=person.city) }}
+                    <div class="col-12 col-sm-6">
+                        {{ forms::text_input(name="city", label=label_city, value=person.city, required=false) }}
                     </div>
-                    <div class="col-6 col-lg-3">
-                        {{ forms::text_input(name="province", label=label_province, value=person.province) }}
+                    <div class="col-12 col-sm-6">
+                        {{ forms::text_input(name="province", label=label_province, value=person.province, required=false) }}
                     </div>
-                    <div class="col-6 col-lg-2">
-                        {{ forms::text_input(name="postal_code", label=label_postal, value=person.postalCode) }}
+                    <div class="col-12 col-sm-6">
+                        {{ forms::text_input(name="postal_code", label=label_postal, value=person.postalCode, required=false) }}
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-2">
-                        {{ forms::text_input(name="country", label=label_country, value=person.country) }}
+                    <div class="col-12 col-sm-6">
+                        {{ forms::text_input(name="country", label=label_country, value=person.country, required=false) }}
                     </div>
                 </div>
 
@@ -111,10 +112,10 @@
 
                 <div class="row">
                     <div class="col-md-6">
-                        {{ forms::text_input(name="peoplesoft_id", label=label_peoplesoft, value=person.peoplesoftId, required=false) }}
+                        {{ forms::text_input(name="peoplesoft_id", label=label_peoplesoft, value=person.peoplesoftId, required=false, error=field_errors.peoplesoft_id | default(value="")) }}
                     </div>
                     <div class="col-md-6">
-                        {{ forms::text_input(name="orcid_id", label=label_orcid, value=person.orcidId, required=false) }}
+                        {{ forms::text_input(name="orcid_id", label=label_orcid, value=person.orcidId, required=false, error=field_errors.orcid_id | default(value="")) }}
                     </div>
                 </div>
 

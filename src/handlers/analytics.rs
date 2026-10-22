@@ -352,7 +352,8 @@ pub async fn analytics_section_gaps(
 /// actually sits; ?by=team keeps the full-resolution view.
 const COVERAGE_ROLLUP_TIER_LEVEL: i64 = 2;
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct CoverageParams {
     /// "team" switches to the detailed per-team heatmap; anything else (or
     /// absent) aggregates at COVERAGE_ROLLUP_TIER_LEVEL.
@@ -1049,7 +1050,8 @@ pub async fn analytics_supply_demand(
 
 /// Fiscal-year financials rolled up the org-tier tree: allocation vs
 /// projected spend per L1, with an L1 -> L2 -> L3 drill-down table.
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct FinancialsParams {
     /// Starting year of the fiscal year to view (e.g. 2027 for FY 2027-28);
     /// omitted = the current one, resolved by the API.
@@ -1077,7 +1079,7 @@ pub async fn analytics_financials(
     let rows = match org_tier_financials(3, None, params.fy, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.org_tier_financials,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return super::utility::redirect_to(format!("/{}/analytics", &lang));
         },
     };

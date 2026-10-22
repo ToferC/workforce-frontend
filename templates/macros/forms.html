@@ -8,8 +8,8 @@
    (<gcds-input>, <gcds-textarea>, <gcds-select>). These are form-associated
    custom elements, so they submit exactly like native fields under the same
    `name` — plain POST + redirect and HTMX form serialization are unchanged.
-   date_input and checkbox stay native (GCDS has no single-boolean checkbox and
-   the native date field already submits the YYYY-MM-DD the handlers expect).
+   date_input renders <gcds-date-input>, which also submits YYYY-MM-DD;
+   checkbox stays native (GCDS has no single-boolean checkbox).
 
    Each input macro accepts an optional `error` string. Pass server-side
    validation messages through it to render an associated <gcds-error-message>;
@@ -30,7 +30,7 @@
 
 {# `field_id` overrides the element id (defaults to `name`); pass it when the
    same field name appears in two forms on one page so ids stay unique. #}
-{% macro text_input(name, label, value="", required=true, type="text", help="", placeholder="", error="", field_id="") %}
+{% macro text_input(name, label, value="", required=true, type="text", help="", placeholder="", error="", field_id="", step="") %}
 <gcds-input
     input-id="{% if field_id %}{{ field_id }}{% else %}{{ name }}{% endif %}"
     name="{{ name }}"
@@ -39,6 +39,7 @@
     value="{{ value }}"
     {% if required %}required="true"{% endif %}
     {% if help %}hint="{{ help }}"{% endif %}
+    {% if step %}step="{{ step }}"{% endif %}
     {% if error %}error-message="{{ error }}"{% endif %}>
 </gcds-input>
 {% endmacro text_input %}
@@ -79,23 +80,54 @@
        default so picking any real option is an index change that fires
        `change` (without this, a select with a single option never fires the
        event and the value is never committed). Optional selects keep a
-       choosable blank. #}
-    {% if blank_label %}<option value=""{% if required %} disabled{% endif %}{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>{% endif %}
+       choosable blank.
+       A required select with nothing chosen always gets a prompt: without one
+       the browser shows the first option as if chosen while the component's
+       value stays empty, so Save fails on a field that looks filled. #}
+    {% if blank_label %}<option value=""{% if required %} disabled{% endif %}{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>
+    {% elif required and selected == "" %}<option value="" disabled selected>—</option>{% endif %}
     {% for option in options %}
     <option value="{{ option.value }}"{% if option.value == selected %} selected{% endif %}>{% if label_kind %}{{ labels::enum_label(kind=label_kind, value=option.value, lang=lang) }}{% else %}{{ option.label }}{% endif %}</option>
     {% endfor %}
 </gcds-select>
 {% endmacro select %}
 
-{# Native date field: already accessible and submits YYYY-MM-DD, which the
-   handlers parse. Kept native to avoid changing the submitted value format. #}
-{% macro date_input(name, label, value="", required=false, field_id="") %}
-{% set the_id = field_id | default(value="") %}
-{% if not the_id %}{% set the_id = name %}{% endif %}
-<div class="mb-3">
-    <label class="form-label" for="{{ the_id }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
-    <input type="date" class="form-control" id="{{ the_id }}" name="{{ name }}" value="{{ value }}"{% if required %} required{% endif %}>
+{# A select for long lists (hundreds of roles or tiers): a native <select>
+   with a filter box above it that narrows the options as you type. The
+   filter is added by static/js/forms.js; without JS it stays hidden and the
+   select works as is. Same options/selected/required/blank_label contract
+   as `select`; `filter_label` is the box's placeholder. #}
+{% macro filter_select(name, label, options, filter_label, selected="", required=true, blank_label="", help="", lang="en") %}
+<div class="mb-3 filter-select">
+    <label class="form-label fw-semibold" for="{{ name }}">{{ label }}{% if required %} <span class="fw-normal">({{ fluent(key="required-suffix", lang=lang) }})</span>{% endif %}</label>
+    {% if help %}<p class="form-text mt-0" id="{{ name }}-hint">{{ help }}</p>{% endif %}
+    <input type="search" class="form-control mb-1" data-filter-for="{{ name }}" placeholder="{{ filter_label }}" aria-label="{{ filter_label }}" aria-controls="{{ name }}" autocomplete="off" hidden>
+    <select class="form-select" id="{{ name }}" name="{{ name }}"{% if required %} required{% endif %}{% if help %} aria-describedby="{{ name }}-hint"{% endif %}>
+        {% if blank_label %}<option value=""{% if required %} disabled{% endif %}{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>
+        {% elif required and selected == "" %}<option value="" disabled selected>—</option>{% endif %}
+        {% for option in options %}
+        <option value="{{ option.value }}"{% if option.value == selected %} selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+    </select>
 </div>
+{% endmacro filter_select %}
+
+{# GCDS date field (month select, day, year). It submits YYYY-MM-DD under
+   `name`, exactly like the native field it replaced, and omits the field
+   when left empty. `value` may be a date or an API timestamp
+   ("2026-01-01T00:00:00"); only the date part is used. `field_id` is kept
+   for callers that render the same name twice on a page. #}
+{% macro date_input(name, label, value="", required=false, field_id="", error="", hint="") %}
+<gcds-date-input
+    name="{{ name }}"
+    legend="{{ label }}"
+    format="full"
+    {% if field_id %}id="{{ field_id }}"{% endif %}
+    {% if value %}value="{{ value | truncate(length=10, end="") }}"{% endif %}
+    {% if required %}required="true"{% endif %}
+    {% if hint %}hint="{{ hint }}"{% endif %}
+    {% if error %}error-message="{{ error }}"{% endif %}>
+</gcds-date-input>
 {% endmacro date_input %}
 
 {% macro checkbox(name, label, checked=false) %}
@@ -108,7 +140,7 @@
 {% macro submit_row(label, cancel_url="", cancel_label="") %}
 <div class="mb-3 mt-3">
     <button type="submit" class="btn btn-primary">{{ label }}</button>
-    {% if cancel_url %}<a class="btn btn-secondary" href="{{ cancel_url | safe }}">{{ cancel_label }}</a>{% endif %}
+    {% if cancel_url %}<a class="btn btn-outline-secondary ms-2" href="{{ cancel_url | safe }}">{{ cancel_label }}</a>{% endif %}
 </div>
 {% endmacro submit_row %}
 
@@ -117,7 +149,7 @@
    /person_options as the user types. Degrades to the plain text-name field
    the server already resolves when JS is unavailable. #}
 <div class="form-group mb-3">
-    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="fw-normal">({{ fluent(key="required-suffix", lang=lang) }})</span>{% endif %}</label>
     <input class="form-control" type="text" id="{{ name }}" name="{{ name }}" value="{{ value }}"
            list="{{ name }}-options" autocomplete="off"
            {% if required %}required{% endif %}

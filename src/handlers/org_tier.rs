@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{org_tier_financials, all_org_tiers, get_org_tier_by_id, get_org_tiers_by_org_id, create_org_tier, update_org_tier, create_org_ownership, get_org_ownership_by_tier_id, update_org_ownership, restore_org_tier};
 use crate::security::{self, MinimumRole};
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer, check_csrf, Csrf, guarded, api_error_flash, field_errors};
 
 /// SkillDomain enum values, kept in sync with the API schema. Used to
 /// populate the primary domain select on tier forms.
@@ -43,24 +43,26 @@ pub fn skill_domain_options() -> serde_json::Value {
         .collect::<Vec<serde_json::Value>>())
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct OrgTierForm {
     pub csrf_token: String,
     pub organization_id: String,
     pub name_en: String,
     pub name_fr: String,
-    pub tier_level: i64,
     pub primary_domain: String,
     #[serde(default)]
     pub parent_tier: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RetireForm {
     pub csrf_token: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct NewTierParams {
     pub organization: String,
     #[serde(default)]
@@ -74,6 +76,7 @@ pub struct NewTierParams {
 /// excluding one (a tier cannot be its own parent). Also used by the
 /// team form's org-tier select.
 pub async fn parent_tier_options(
+    lang: &str,
     organization_id: &str,
     exclude_tier_id: Option<&str>,
     bearer: &str,
@@ -91,11 +94,22 @@ pub async fn parent_tier_options(
         .filter(|tier| Some(tier.id.as_str()) != exclude_tier_id)
         .map(|tier| json!({
             "value": tier.id,
-            "label": format!("{} (level {})", tier.name_en, tier.tier_level),
+            "label": format!("{} ({} {})", by_lang(lang, &tier.name_en, &tier.name_fr), by_lang(lang, "level", "niveau"), tier.tier_level),
         }))
         .collect();
 
     Ok(json!(options))
+}
+
+/// A tier's level follows from its parent: one below it, or 1 for a top
+/// tier. Computed on save instead of typed, so it can't contradict the
+/// hierarchy.
+async fn level_below(organization_id: &str, parent_tier: &str, bearer: &str, data: &AppData) -> Result<i64, crate::graphql::ApiError> {
+    if parent_tier.is_empty() {
+        return Ok(1);
+    }
+    let tiers = get_org_tiers_by_org_id(organization_id.to_string(), bearer.to_string(), &data.api_url, Arc::clone(&data.client)).await?;
+    Ok(tiers.org_tiers_by_org_id.iter().find(|t| t.id == parent_tier).map_or(1, |t| t.tier_level + 1))
 }
 
 fn org_tier_from_form(form: &OrgTierForm, id: Option<&str>) -> serde_json::Value {
@@ -103,7 +117,6 @@ fn org_tier_from_form(form: &OrgTierForm, id: Option<&str>) -> serde_json::Value
         "id": id,
         "nameEn": form.name_en,
         "nameFr": form.name_fr,
-        "tierLevel": form.tier_level,
         "primaryDomain": form.primary_domain,
         "organization": {"id": form.organization_id},
         "parentOrganizationTier": if form.parent_tier.is_empty() {
@@ -114,7 +127,8 @@ fn org_tier_from_form(form: &OrgTierForm, id: Option<&str>) -> serde_json::Value
     })
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct OrgTierIndexParams {
     #[serde(default)]
     pub retired: String,
@@ -188,7 +202,7 @@ pub async fn org_tier_by_id(
     let r = match r {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/org_tiers", &lang));
         },
     };
@@ -262,10 +276,10 @@ pub async fn create_org_tier_form(
         Err(response) => return response,
     };
 
-    let parent_options = match parent_tier_options(&params.organization, None, &auth.bearer, &data).await {
+    let parent_options = match parent_tier_options(&lang, &params.organization, None, &auth.bearer, &data).await {
         Ok(options) => options,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/organization/{}", &lang, &params.organization));
         },
     };
@@ -305,14 +319,16 @@ pub async fn create_org_tier_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/org_tier/new?organization={}", &lang, &form.organization_id));
     }
 
+    let level = level_below(&form.organization_id, &form.parent_tier, &auth.bearer, &data).await;
     let new_tier = create_org_tier::NewOrgTier {
         organization_id: form.organization_id.clone(),
-        tier_level: form.tier_level,
+        tier_level: *level.as_ref().unwrap_or(&1),
         name_en: form.name_en.trim().to_string(),
         name_fr: form.name_fr.trim().to_string(),
         // The generated enum deserializes unknown values to Other(..),
@@ -322,7 +338,11 @@ pub async fn create_org_tier_post(
         parent_tier: if form.parent_tier.is_empty() { None } else { Some(form.parent_tier.clone()) },
     };
 
-    match create_org_tier(new_tier, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    let result = match level {
+        Err(e) => Err(e),
+        Ok(_) => guarded(&csrf, create_org_tier(new_tier, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await,
+    };
+    match result {
         Ok(response) => {
             if is_htmx(&req) {
                 // In the builder: re-render the parent node (or tell the
@@ -342,21 +362,22 @@ pub async fn create_org_tier_post(
             // Flash renders only on full pages; the inline partial shows
             // the error itself via form_error
             if !is_htmx(&req) {
-                security::add_flash(&session, "danger", &e.to_string());
+                security::add_flash(&session, "danger", &e.user_message(&lang));
             }
 
-            let parent_options = parent_tier_options(&form.organization_id, None, &auth.bearer, &data)
+            let parent_options = parent_tier_options(&lang, &form.organization_id, None, &auth.bearer, &data)
                 .await
                 .unwrap_or_else(|_| json!([]));
 
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors(&e, &lang));
             ctx.insert("edit", &false);
             ctx.insert("org_tier", &org_tier_from_form(&form, None));
             ctx.insert("parent_tier_options", &parent_options);
             ctx.insert("skill_domains", &skill_domain_options());
 
             let template = if is_htmx(&req) {
-                ctx.insert("form_error", &e.to_string());
+                ctx.insert("form_error", &e.user_message(&lang));
                 "org_chart/add_tier_form.html"
             } else {
                 "org_tier/org_tier_form.html"
@@ -385,13 +406,13 @@ pub async fn edit_org_tier_form(
     let r = match get_org_tier_by_id(org_tier_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
 
     let parent_options = parent_tier_options(
-        &r.org_tier_by_id.organization.id,
+        &lang, &r.org_tier_by_id.organization.id,
         Some(&org_tier_id),
         &auth.bearer,
         &data,
@@ -422,23 +443,29 @@ pub async fn edit_org_tier_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/org_tier/{}/edit", &lang, &org_tier_id));
     }
 
+    let level = level_below(&form.organization_id, &form.parent_tier, &auth.bearer, &data).await;
     let tier_data = update_org_tier::OrgTierData {
         id: org_tier_id.clone(),
         name_en: Some(form.name_en.trim().to_string()),
         name_fr: Some(form.name_fr.trim().to_string()),
-        tier_level: Some(form.tier_level),
+        tier_level: level.as_ref().ok().copied(),
         primary_domain: Some(serde_json::from_value(json!(form.primary_domain))
             .expect("SkillDomain deserialization is infallible")),
         parent_tier: if form.parent_tier.is_empty() { None } else { Some(form.parent_tier.clone()) },
         retired_at: None,
     };
 
-    match update_org_tier(tier_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    let result = match level {
+        Err(e) => Err(e),
+        Ok(_) => guarded(&csrf, update_org_tier(tier_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await,
+    };
+    match result {
         Ok(response) => {
             security::add_flash(
                 &session,
@@ -448,13 +475,14 @@ pub async fn edit_org_tier_post(
             redirect_to(format!("/{}/org_tier/{}", &lang, response.update_org_tier.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
 
-            let parent_options = parent_tier_options(&form.organization_id, Some(&org_tier_id), &auth.bearer, &data)
+            let parent_options = parent_tier_options(&lang, &form.organization_id, Some(&org_tier_id), &auth.bearer, &data)
                 .await
                 .unwrap_or_else(|_| json!([]));
 
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("org_tier", &org_tier_from_form(&form, Some(&org_tier_id)));
             ctx.insert("parent_tier_options", &parent_options);
@@ -483,7 +511,7 @@ pub async fn retire_org_tier_form(
     let r = match get_org_tier_by_id(org_tier_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -534,14 +562,15 @@ pub async fn retire_org_tier_post(
             );
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
         },
     };
 
     redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct OwnerForm {
     pub csrf_token: String,
     /// Id of the manager Role that owns this tier/team. Ownership now attaches
@@ -567,7 +596,7 @@ pub async fn assign_org_owner_form(
     let r = match get_org_tier_by_id(org_tier_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -626,7 +655,7 @@ pub async fn assign_org_owner_post(
     };
     match result {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id))
@@ -655,7 +684,7 @@ pub async fn restore_org_tier_post(
 
     match restore_org_tier(org_tier_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Organization tier restored.", "Niveau organisationnel restauré.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id))

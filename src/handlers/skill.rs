@@ -9,9 +9,10 @@ use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{all_skills, get_skill_by_id, create_skill, update_skill};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize, SKILL_DOMAINS};
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer, check_csrf, Csrf, guarded, api_error_flash};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct SkillForm {
     pub csrf_token: String,
     pub name_en: String,
@@ -35,7 +36,8 @@ fn skill_from_form(form: &SkillForm, id: Option<&str>) -> serde_json::Value {
 }
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct SkillIndexParams {
     #[serde(default)]
     pub retired: String,
@@ -126,7 +128,8 @@ pub async fn skill_picker_data(
     (json!(domains), json!(groups))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct SkillOptionsParams {
     #[serde(default)]
     pub domain: String,
@@ -184,7 +187,7 @@ pub async fn skill_by_id(
     let r = match get_skill_by_id(skill_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/skills", &lang));
         },
     };
@@ -232,7 +235,8 @@ pub async fn create_skill_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/skill/new", &lang));
     }
@@ -245,14 +249,15 @@ pub async fn create_skill_post(
         domain: serde_json::from_value(json!(form.domain)).expect("SkillDomain deserialization is infallible"),
     };
 
-    match create_skill(new_skill, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_skill(new_skill, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Skill created.", "Compétence créée."));
             redirect_to(format!("/{}/skill/{}", &lang, response.create_skill.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &false);
             ctx.insert("skill", &skill_from_form(&form, None));
             ctx.insert("skill_domains", &skill_domain_options());
@@ -279,7 +284,7 @@ pub async fn edit_skill_form(
     let r = match get_skill_by_id(skill_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/skills", &lang));
         },
     };
@@ -308,7 +313,8 @@ pub async fn edit_skill_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/skill/{}/edit", &lang, &skill_id));
     }
@@ -322,14 +328,15 @@ pub async fn edit_skill_post(
         description_fr: Some(form.description_fr.trim().to_string()),
     };
 
-    match update_skill(skill_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, update_skill(skill_data, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Skill updated.", "Compétence mise à jour."));
             redirect_to(format!("/{}/skill/{}", &lang, response.update_skill.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("skill", &skill_from_form(&form, Some(&skill_id)));
             ctx.insert("skill_domains", &skill_domain_options());

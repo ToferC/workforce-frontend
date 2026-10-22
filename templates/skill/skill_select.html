@@ -3,7 +3,7 @@
    Expects: skill_options : [{value, label}] (skills in the chosen domain). #}
 <div class="mb-3">
     <label class="form-label" for="skill_id">
-        {{ fluent(key="skill", lang=lang) }} <span class="text-danger">*</span>
+        {{ fluent(key="skill", lang=lang) }} <span class="fw-normal">({{ fluent(key="required-suffix", lang=lang) }})</span>
     </label>
     <select class="form-select" id="skill_id" name="skill_id" required{% if skill_options | length == 0 %} disabled{% endif %}>
         {% if skill_options | length == 0 %}

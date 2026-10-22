@@ -56,15 +56,15 @@
                 {# The API cannot move a team to another tier after creation #}
                 <input type="hidden" name="org_tier_id" value="{{ team.organizationLevel.id }}">
                 {% else %}
-                {{ forms::select(name="org_tier_id", label=label_tier, options=org_tier_options, selected=team.organizationLevel.id, blank_label=fluent(key="select-an-org-tier", lang=lang)) }}
+                {{ forms::filter_select(name="org_tier_id", label=label_tier, options=org_tier_options, filter_label=fluent(key="filter-tiers", lang=lang), selected=team.organizationLevel.id, blank_label=fluent(key="select-an-org-tier", lang=lang), lang=lang) }}
                 {% endif %}
 
                 <div class="row">
                     <div class="col-md-6">
-                        {{ forms::text_input(name="name_en", label=label_name_en, value=team.nameEnglish) }}
+                        {{ forms::text_input(name="name_en", label=label_name_en, value=team.nameEnglish, error=field_errors.name_en | default(value="")) }}
                     </div>
                     <div class="col-md-6">
-                        {{ forms::text_input(name="name_fr", label=label_name_fr, value=team.nameFrench) }}
+                        {{ forms::text_input(name="name_fr", label=label_name_fr, value=team.nameFrench, error=field_errors.name_fr | default(value="")) }}
                     </div>
                 </div>
 

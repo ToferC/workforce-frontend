@@ -25,6 +25,90 @@ pub fn csrf_failure_flash(session: &Session, lang: &str) {
     );
 }
 
+/// Result of a form post's CSRF check.
+pub enum Csrf {
+    Valid,
+    /// The token no longer matches (an expired session or a long-open tab),
+    /// but the post came from this site: re-render the form with what was
+    /// typed and a fresh token, saving nothing.
+    Stale,
+    /// The post came from another site: refuse it without echoing its values,
+    /// so a forged request can't pre-fill a form for someone to confirm.
+    CrossSite,
+}
+
+pub fn check_csrf(session: &Session, req: &HttpRequest, token: &str) -> Csrf {
+    if security::verify_csrf_token(session, token) {
+        Csrf::Valid
+    } else if same_origin(req) {
+        Csrf::Stale
+    } else {
+        Csrf::CrossSite
+    }
+}
+
+/// Whether the request's Origin (or, failing that, Referer) is this host.
+fn same_origin(req: &HttpRequest) -> bool {
+    let header = req.headers().get("Origin").or_else(|| req.headers().get("Referer"));
+    let Some(url) = header.and_then(|v| v.to_str().ok()).and_then(|v| reqwest::Url::parse(v).ok()) else {
+        return false;
+    };
+    let origin_host = match url.port() {
+        Some(port) => format!("{}:{}", url.host_str().unwrap_or(""), port),
+        None => url.host_str().unwrap_or("").to_string(),
+    };
+    origin_host == req.connection_info().host()
+}
+
+/// Run a form's mutation only when its CSRF token is valid. A stale token
+/// yields `ApiError::StaleForm` without calling the API, so the handler's
+/// ordinary error path re-renders the form as typed.
+pub async fn guarded<T>(
+    csrf: &Csrf,
+    call: impl std::future::Future<Output = Result<T, crate::graphql::ApiError>>,
+) -> Result<T, crate::graphql::ApiError> {
+    match csrf {
+        Csrf::Valid => call.await,
+        _ => Err(crate::graphql::ApiError::StaleForm),
+    }
+}
+
+/// Field name -> message, shown beside the field by the form macros' `error`
+/// parameter. `generate_basic_context` inserts an empty one as `field_errors`.
+pub type FieldErrors = std::collections::HashMap<&'static str, String>;
+
+/// Report a failed API call on a form: a flash with the plain-language
+/// message, plus the field errors to render beside the offending inputs.
+pub fn api_error_flash(session: &Session, lang: &str, error: &crate::graphql::ApiError) -> FieldErrors {
+    security::add_flash(session, "danger", &error.user_message(lang));
+    field_errors(error, lang)
+}
+
+/// The field errors an API error carries (none for most).
+pub fn field_errors(error: &crate::graphql::ApiError, lang: &str) -> FieldErrors {
+    error.field_error(lang).into_iter().map(|(field, message)| (field, message.to_string())).collect()
+}
+
+/// Error handler for form posts that don't deserialize (a missing or
+/// malformed field). Without it actix answers with a bare-text 400 that has
+/// no page or way back; this sends the person back to the form they came
+/// from, with a message.
+pub fn form_parse_error(err: actix_web::error::UrlencodedError, req: &HttpRequest) -> actix_web::Error {
+    use actix_session::SessionExt;
+    println!("Form parse error on {}: {}", req.path(), err);
+    let lang = if req.path().starts_with("/fr/") { "fr" } else { "en" };
+    security::add_flash(
+        &req.get_session(),
+        "danger",
+        by_lang(lang,
+            "The form couldn't be read, so nothing was saved. Check the fields and try again.",
+            "Le formulaire n'a pas pu être lu; rien n'a été enregistré. Vérifiez les champs et réessayez."),
+    );
+    let referer = req.headers().get("Referer").and_then(|v| v.to_str().ok()).filter(|_| same_origin(req));
+    let back = referer.map(str::to_string).unwrap_or_else(|| format!("/{}", lang));
+    actix_web::error::InternalError::from_response(err, redirect_to(back)).into()
+}
+
 /// True when the request came from HTMX and should get a partial back.
 pub fn is_htmx(req: &HttpRequest) -> bool {
     req.headers().get("HX-Request").is_some()

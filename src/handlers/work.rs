@@ -12,7 +12,7 @@ use super::org_tier::{skill_domain_options, humanize};
 use super::task::{work_status_options, priority_options, parse_date};
 use super::team::team_role_options;
 use super::capability::CAPABILITY_LEVELS;
-use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer, check_csrf, Csrf, guarded, api_error_flash};
 
 fn capability_level_options() -> serde_json::Value {
     json!(CAPABILITY_LEVELS.iter().map(|l| json!({"value": l, "label": humanize(l)})).collect::<Vec<serde_json::Value>>())
@@ -20,7 +20,8 @@ fn capability_level_options() -> serde_json::Value {
 
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct WorkForm {
     pub csrf_token: String,
     // Create only (fixed on edit; the API can't move work between tasks/roles)
@@ -50,7 +51,8 @@ pub struct WorkForm {
     pub blocked_on_role_id: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct AssignWorkForm {
     pub csrf_token: String,
     pub role_id: String,
@@ -59,7 +61,8 @@ pub struct AssignWorkForm {
 }
 
 /// Proposal 3 — posting a comment or flag on a work item.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct WorkUpdateForm {
     pub csrf_token: String,
     pub body: String,
@@ -70,7 +73,8 @@ pub struct WorkUpdateForm {
 
 /// Minimal CSRF form for the resolve-flag button. `return_to` lets the manager
 /// stay on the flags queue after resolving instead of bouncing to the work page.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct CsrfOnlyForm {
     pub csrf_token: String,
     #[serde(default)]
@@ -150,7 +154,8 @@ fn work_from_form(form: &WorkForm, id: Option<&str>) -> serde_json::Value {
     })
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct WorkSkillOptionsParams {
     #[serde(default)]
     pub domain: String,
@@ -199,7 +204,7 @@ pub async fn work_by_id(
     let r = match get_work_by_id(work_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/work", &lang));
         },
     };
@@ -268,7 +273,8 @@ pub async fn create_work_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/role/{}/work/new", &lang, &role_id));
     }
@@ -292,13 +298,13 @@ pub async fn create_work_post(
         due_date: parse_date(&form.due_date),
     };
 
-    match create_work(new_work, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_work(new_work, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Work created.", "Travail créé."));
             redirect_to(format!("/{}/work/{}", &lang, response.create_work.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
             let (tasks_res, skills) = futures::join!(
                 all_tasks(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
                 skill_options_for_domain(&form.domain, &auth.bearer, &data),
@@ -307,6 +313,7 @@ pub async fn create_work_post(
                 .map(|r| json!(r.all_tasks.iter().map(|t| json!({"value": t.id, "label": t.title})).collect::<Vec<_>>()))
                 .unwrap_or_else(|_| json!([]));
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &false);
             ctx.insert("vacant", &false);
             ctx.insert("role_id", &role_id);
@@ -379,7 +386,8 @@ pub async fn create_vacant_work_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/task/{}/work/new", &lang, &task_id));
     }
@@ -404,18 +412,19 @@ pub async fn create_vacant_work_post(
         due_date: parse_date(&form.due_date),
     };
 
-    match create_work(new_work, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_work(new_work, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Work created.", "Travail créé."));
             redirect_to(format!("/{}/work/{}", &lang, response.create_work.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
             let (skills, role_options) = futures::join!(
                 skill_options_for_domain(&form.domain, &auth.bearer, &data),
                 task_team_role_options(&task_id, &auth.bearer, &data),
             );
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &false);
             ctx.insert("vacant", &true);
             ctx.insert("task_id", &task_id);
@@ -452,7 +461,7 @@ pub async fn edit_work_form(
     let r = match get_work_by_id(work_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -497,7 +506,8 @@ pub async fn edit_work_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/work/{}/edit", &lang, &work_id));
     }
@@ -521,18 +531,19 @@ pub async fn edit_work_post(
         blocked_on_role_id: if form.blocked_on_role_id.trim().is_empty() { None } else { Some(form.blocked_on_role_id.clone()) },
     };
 
-    match update_work(work_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, update_work(work_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Work updated.", "Travail mis à jour."));
             redirect_to(format!("/{}/work/{}", &lang, response.update_work.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
             let (skills, blocked_role_options) = futures::join!(
                 skill_options_for_domain(&form.domain, &auth.bearer, &data),
                 super::product::role_options(&auth.bearer, &data),
             );
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("skill_id", &form.skill_id);
             ctx.insert("domain", &form.domain);
@@ -567,7 +578,7 @@ pub async fn assign_work_form(
     let work = match get_work_by_id(work_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.work_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -673,13 +684,14 @@ pub async fn assign_work_post(
             redirect_to(format!("/{}/work/{}", &lang, response.update_work.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             redirect_to(format!("/{}/work/{}/assign", &lang, &work_id))
         },
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct WorkIndexParams {
     #[serde(default)]
     pub status: String,
@@ -886,7 +898,7 @@ pub async fn add_work_update_post(
             security::add_flash(&session, "success", by_lang(&lang, "Update posted.", "Mise à jour publiée."));
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
         },
     }
     redirect_to(format!("/{}/work/{}", &lang, &work_id))
@@ -917,7 +929,7 @@ pub async fn resolve_work_flag_post(
 
     match resolve_work_update_flag(update_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Flag resolved.", "Signalement résolu.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     }
     // Return to the flags queue when the resolve came from there; otherwise the
     // work page. Only same-site paths are honoured (guard against open redirect).
@@ -958,7 +970,8 @@ pub async fn flags_queue(
 }
 
 /// Proposal 7a — form for adding a dependency (this work is blocked by another).
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct WorkDependencyForm {
     pub csrf_token: String,
     pub depends_on_work_id: String,
@@ -988,7 +1001,7 @@ pub async fn add_work_dependency_post(
     }
     match add_work_dependency(work_id.clone(), form.depends_on_work_id.trim().to_string(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Dependency added.", "Dépendance ajoutée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     }
     redirect_to(format!("/{}/work/{}", &lang, &work_id))
 }
@@ -1013,7 +1026,7 @@ pub async fn remove_work_dependency_post(
     }
     match remove_work_dependency(work_id.clone(), depends_on_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Dependency removed.", "Dépendance retirée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     }
     redirect_to(format!("/{}/work/{}", &lang, &work_id))
 }

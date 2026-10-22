@@ -12,7 +12,7 @@ use crate::graphql::{get_role_by_id, get_role_matches, all_roles, all_organizati
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_confirm, render_page, session_bearer, active_organizations_by_name};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_confirm, render_page, session_bearer, active_organizations_by_name, check_csrf, Csrf, guarded, api_error_flash};
 
 /// Rank enum values, kept in sync with the API schema.
 pub const RANKS: [&str; 17] = [
@@ -52,7 +52,8 @@ fn enum_options(values: &[&str]) -> serde_json::Value {
         .collect::<Vec<serde_json::Value>>())
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RoleForm {
     pub csrf_token: String,
     pub organization_id: String,
@@ -77,7 +78,8 @@ pub struct RoleForm {
     pub person_name: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RoleStatusForm {
     pub csrf_token: String,
     // Checkbox: present ("true") when checked, absent otherwise
@@ -90,7 +92,8 @@ pub struct RoleStatusForm {
     pub end_date: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct EndRoleForm {
     pub csrf_token: String,
 }
@@ -104,7 +107,8 @@ const MATCH_LIMIT: i64 = 10;
 
 /// Query params for the HTMX-driven match panel: the two sliders post their
 /// values here so the panel re-renders without a full page load.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct MatchParams {
     #[serde(default)]
     pub min_coverage: Option<f64>,
@@ -112,7 +116,8 @@ pub struct MatchParams {
     pub max_gap_per_req: Option<i64>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct NewRoleParams {
     pub team: String,
     #[serde(default)]
@@ -165,7 +170,7 @@ pub async fn role_by_id(
     let r = match get_role_by_id(role_id.clone(), bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/roles", &lang));
         },
     };
@@ -263,7 +268,7 @@ pub async fn role_by_id(
             },
             // Don't blow up the whole page if matching fails; the panel just
             // renders empty with the error noted in the template fallback.
-            Err(e) => ctx.insert("match_error", &e.to_string()),
+            Err(e) => ctx.insert("match_error", &e.user_message(&lang)),
         }
         ctx.insert("min_coverage_pct", &((DEFAULT_MIN_COVERAGE * 100.0).round() as i64));
         ctx.insert("max_gap_per_req", &DEFAULT_MAX_GAP_PER_REQ);
@@ -334,7 +339,7 @@ pub async fn role_matches(
             ctx.insert("match_external_full", &m.external_full_matches);
             ctx.insert("match_external_partial", &m.external_partial_matches);
         },
-        Err(e) => ctx.insert("match_error", &e.to_string()),
+        Err(e) => ctx.insert("match_error", &e.user_message(&lang)),
     }
 
     render_page(&data, "role/_matches.html", &ctx)
@@ -362,7 +367,7 @@ pub async fn create_role_form(
     let team = match get_team_by_id(params.team.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.team_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -407,7 +412,8 @@ pub async fn create_role_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/role/new?team={}", &lang, &form.team_id));
     }
@@ -465,7 +471,7 @@ pub async fn create_role_post(
                     ).to_string());
                 }
             },
-            Err(e) => form_error = Some(e.to_string()),
+            Err(e) => form_error = Some(e.user_message(&lang)),
         }
     }
 
@@ -516,7 +522,7 @@ pub async fn create_role_post(
             reports_to: None,
         };
 
-        match create_role(new_role, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+        match guarded(&csrf, create_role(new_role, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
             Ok(response) => {
                 if is_htmx(&req) {
                     // In the builder: re-render the tier node so the new
@@ -532,7 +538,7 @@ pub async fn create_role_post(
                 );
                 return redirect_to(format!("/{}/role/{}", &lang, response.create_role.id));
             },
-            Err(e) => form_error = Some(e.to_string()),
+            Err(e) => form_error = Some(e.user_message(&lang)),
         }
     }
 
@@ -585,7 +591,7 @@ pub async fn edit_role_form(
     let r = match get_role_by_id(role_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -641,7 +647,7 @@ pub async fn edit_role_post(
             );
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
         },
     };
 
@@ -666,7 +672,7 @@ pub async fn end_role_form(
     let r = match get_role_by_id(role_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -716,14 +722,15 @@ pub async fn end_role_post(
             );
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
         },
     };
 
     redirect_to(format!("/{}/role/{}", &lang, &role_id))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct AssignRoleForm {
     pub csrf_token: String,
     /// Direct id from matcher/person-page buttons; empty when assigning by
@@ -738,12 +745,14 @@ pub struct AssignRoleForm {
     pub reassign_work_to: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct TransferPreviewParams {
     pub person_id: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct OfferRoleForm {
     pub csrf_token: String,
     pub person_id: String,
@@ -774,7 +783,7 @@ pub async fn transfer_preview(
     let role = match get_role_by_id(role_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.role_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/role/{}", &lang, &role_id));
         },
     };
@@ -782,7 +791,7 @@ pub async fn transfer_preview(
     let person = match get_person_by_id(params.person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.person_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/role/{}", &lang, &role_id));
         },
     };
@@ -904,7 +913,7 @@ pub async fn assign_role_post(
             }
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
         },
     };
 
@@ -938,7 +947,7 @@ pub async fn vacate_role_post(
             security::add_flash(&session, "success", by_lang(&lang, "Role vacated.", "Rôle libéré."));
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
         },
     };
 
@@ -996,25 +1005,28 @@ pub async fn offer_role_post(
             );
             crate::notifications::send_offer_email(to.as_deref(), "New transfer offer to review", &html).await;
         },
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     }
 
     redirect_to(format!("/{}/role/{}", &lang, &role_id))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RequirementForm {
     pub csrf_token: String,
     pub skill_id: String,
     pub required_level: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RequirementRetireForm {
     pub csrf_token: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RequirementEditForm {
     pub csrf_token: String,
     pub required_level: String,
@@ -1075,7 +1087,7 @@ pub async fn create_requirement_post(
     let skill = match get_skill_by_id(form.skill_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.skill_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/role/{}/requirement/new", &lang, &role_id));
         },
     };
@@ -1091,7 +1103,7 @@ pub async fn create_requirement_post(
 
     match create_requirement(new_requirement, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Requirement added.", "Exigence ajoutée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/role/{}", &lang, &role_id))
@@ -1129,7 +1141,7 @@ pub async fn retire_requirement_post(
 
     match update_requirement(requirement_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Requirement retired.", "Exigence retirée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/role/{}", &lang, &role_id))
@@ -1153,7 +1165,7 @@ pub async fn edit_requirement_form(
     let role = match get_role_by_id(role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.role_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/role/{}", &lang, &role_id));
         },
     };
@@ -1210,13 +1222,14 @@ pub async fn edit_requirement_post(
 
     match update_requirement(requirement_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Requirement updated.", "Exigence mise à jour.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/role/{}", &lang, &role_id))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RoleIndexParams {
     #[serde(default)]
     pub q: String,
@@ -1309,7 +1322,7 @@ pub async fn vacate_role_form(
     let role_rec = match get_role_by_id(role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.role_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/roles", &lang));
         },
     };
@@ -1369,7 +1382,7 @@ pub async fn retire_requirement_form(
     let role_rec = match get_role_by_id(role_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.role_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/roles", &lang));
         },
     };

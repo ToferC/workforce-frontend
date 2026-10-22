@@ -38,7 +38,7 @@ pub async fn org_chart_builder(
     let organization = match get_organization_by_id(organization_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.organization_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return HttpResponse::Found()
                 .append_header(("Location", format!("/{}", &lang)))
                 .finish();
@@ -48,7 +48,7 @@ pub async fn org_chart_builder(
     let tiers = match get_org_tiers_by_org_id(organization_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.org_tiers_by_org_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return HttpResponse::Found()
                 .append_header(("Location", format!("/{}/organization/{}", &lang, &organization_id)))
                 .finish();
@@ -370,7 +370,7 @@ pub async fn org_chart_explore(
     let organization = match get_organization_by_id(organization_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.organization_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return HttpResponse::Found()
                 .append_header(("Location", format!("/{}", &lang)))
                 .finish();
@@ -380,7 +380,7 @@ pub async fn org_chart_explore(
     let tiers = match get_org_tiers_by_org_id(organization_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.org_tiers_by_org_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return HttpResponse::Found()
                 .append_header(("Location", format!("/{}/organization/{}", &lang, &organization_id)))
                 .finish();

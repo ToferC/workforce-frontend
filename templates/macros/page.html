@@ -7,14 +7,16 @@
       Organization › Tier › … › Tier › Team › Role. Pass whichever ancestors the
       page has (any may be omitted or null); `tiers` is the tier chain ordered
       root first — a tier's `ancestors`, plus the tier itself when the page sits
-      below it (`tier.ancestors | concat(with=tier)`). `section` names an index route whose
+      below it (`tier.ancestors | concat(with=tier)`). `parent_label` and
+      `parent_href` add one last crumb for the record a sub-form belongs to
+      (the person a capability is added to). `section` names an index route whose
       Fluent key matches it ("organizations", "people", …) for records with no
       ancestor. The current page is not repeated — its <h1> names it.
       Use inside {% block breadcrumb %}.
 #}
 {% import "macros/labels.html" as labels %}
 
-{% macro trail(lang, section="", org=false, tiers=false, team=false, role=false) %}
+{% macro trail(lang, section="", org=false, tiers=false, team=false, role=false, parent_label="", parent_href="") %}
 <div class="container pt-2">
     <gcds-breadcrumbs hide-canada-link="true">
         <gcds-breadcrumbs-item href="/{{ lang }}">{{ fluent(key="home", lang=lang) }}</gcds-breadcrumbs-item>
@@ -23,6 +25,7 @@
         {% if tiers %}{% for tier in tiers %}<gcds-breadcrumbs-item href="/{{ lang }}/org_tier/{{ tier.id }}">{{ labels::name(obj=tier, lang=lang) }}</gcds-breadcrumbs-item>{% endfor %}{% endif %}
         {% if team %}<gcds-breadcrumbs-item href="/{{ lang }}/team/{{ team.id }}">{{ labels::name(obj=team, lang=lang) }}</gcds-breadcrumbs-item>{% endif %}
         {% if role %}<gcds-breadcrumbs-item href="/{{ lang }}/role/{{ role.id }}">{{ labels::name(obj=role, lang=lang) }}</gcds-breadcrumbs-item>{% endif %}
+        {% if parent_label %}<gcds-breadcrumbs-item href="{{ parent_href }}">{{ parent_label }}</gcds-breadcrumbs-item>{% endif %}
     </gcds-breadcrumbs>
 </div>
 {% endmacro trail %}

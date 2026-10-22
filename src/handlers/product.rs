@@ -13,7 +13,7 @@ use crate::graphql::{
 use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::task::{work_status_options, priority_options};
-use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer, check_csrf, Csrf, guarded, api_error_flash, field_errors, FieldErrors};
 
 
 
@@ -46,7 +46,8 @@ pub async fn organization_options_json(bearer: &str, data: &AppData) -> serde_js
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct ProductForm {
     pub csrf_token: String,
     // Create only — org is immutable after creation (API has no organizationId in ProductData)
@@ -117,7 +118,7 @@ pub async fn product_by_id(
     let r = match get_product_by_id(product_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/products", &lang));
         },
     };
@@ -174,14 +175,16 @@ pub async fn create_product_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/product/new", &lang));
     }
 
-    let render_error = |message: String, id: Option<Identity>, org_opts: serde_json::Value, role_opts: serde_json::Value| {
+    let render_error = |message: String, errors: FieldErrors, id: Option<Identity>, org_opts: serde_json::Value, role_opts: serde_json::Value| {
         security::add_flash(&session, "danger", &message);
         let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+        ctx.insert("field_errors", &errors);
         ctx.insert("edit", &false);
         ctx.insert("product", &product_from_form(&form, None));
         ctx.insert("organization_options", &org_opts);
@@ -207,7 +210,7 @@ pub async fn create_product_post(
             .expect("Priority deserialization is infallible"),
     };
 
-    match create_product(new_product, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_product(new_product, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Product created.", "Produit créé."));
             redirect_to(format!("/{}/product/{}", &lang, response.create_product.id))
@@ -215,7 +218,7 @@ pub async fn create_product_post(
         Err(e) => {
             let org_opts = organization_options_json(&auth.bearer, &data).await;
             let role_opts = role_options(&auth.bearer, &data).await;
-            render_error(e.to_string(), id, org_opts, role_opts)
+            render_error(e.user_message(&lang), field_errors(&e, &lang), id, org_opts, role_opts)
         },
     }
 }
@@ -238,7 +241,7 @@ pub async fn edit_product_form(
     let r = match get_product_by_id(product_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/products", &lang));
         },
     };
@@ -270,7 +273,8 @@ pub async fn edit_product_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/product/{}/edit", &lang, &product_id));
     }
@@ -291,14 +295,15 @@ pub async fn edit_product_post(
             .expect("Priority deserialization is infallible")),
     };
 
-    match update_product(product_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, update_product(product_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Product updated.", "Produit mis à jour."));
             redirect_to(format!("/{}/product/{}", &lang, response.update_product.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("product", &product_from_form(&form, Some(&product_id)));
             ctx.insert("role_options", &role_options(&auth.bearer, &data).await);

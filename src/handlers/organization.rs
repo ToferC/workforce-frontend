@@ -8,10 +8,11 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_organization_by_id, all_organizations, create_organization, update_organization, restore_organization, org_tier_financials};
 use crate::security::{self, MinimumRole};
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer, check_csrf, Csrf, guarded, api_error_flash};
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct OrgIndexParams {
     #[serde(default)]
     pub retired: String,
@@ -63,7 +64,8 @@ pub async fn organization_index(
     render_page(&data, template, &ctx)
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct OrganizationForm {
     pub csrf_token: String,
     pub name_en: String,
@@ -74,7 +76,8 @@ pub struct OrganizationForm {
     pub url: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RetireForm {
     pub csrf_token: String,
 }
@@ -95,7 +98,7 @@ pub async fn organization_by_id(
     let r = match get_organization_by_id(organization_id, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/organizations", &lang));
         },
     };
@@ -159,6 +162,32 @@ fn blank_organization() -> serde_json::Value {
 
 /// Rebuild the template's organization object from a submitted form so the
 /// user's input is preserved when re-rendering after an error.
+/// Choices for the organization type: the common kinds, plus the record's
+/// current value when it is something else, so editing never drops it.
+/// Values stay the plain English words already stored.
+fn org_type_options(lang: &str, current: &str) -> serde_json::Value {
+    const TYPES: [(&str, &str); 6] = [
+        ("Government", "Gouvernement"), ("Military", "Militaire"), ("Academic", "Universitaire"),
+        ("Industry", "Industrie"), ("Non-profit", "Organisme sans but lucratif"), ("Other", "Autre"),
+    ];
+    let mut options: Vec<serde_json::Value> = TYPES.iter()
+        .map(|(en, fr)| json!({"value": en, "label": by_lang(lang, en, fr)}))
+        .collect();
+    if !current.is_empty() && !TYPES.iter().any(|(en, _)| *en == current) {
+        options.push(json!({"value": current, "label": current}));
+    }
+    json!(options)
+}
+
+/// The French acronym is optional; an organization without one uses the
+/// English acronym in French too.
+fn acronym_fr(form: &OrganizationForm) -> String {
+    match form.acronym_fr.trim() {
+        "" => form.acronym_en.trim().to_string(),
+        fr => fr.to_string(),
+    }
+}
+
 fn organization_from_form(form: &OrganizationForm, id: Option<&str>) -> serde_json::Value {
     json!({
         "id": id,
@@ -190,6 +219,7 @@ pub async fn create_organization_form(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &false);
     ctx.insert("organization", &blank_organization());
+    ctx.insert("org_types", &org_type_options(&lang, ""));
 
     render_page(&data, "organization/organization_form.html", &ctx)
 }
@@ -210,7 +240,8 @@ pub async fn create_organization_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/organization/new", &lang));
     }
@@ -219,12 +250,12 @@ pub async fn create_organization_post(
         name_en: form.name_en.trim().to_string(),
         name_fr: form.name_fr.trim().to_string(),
         acronym_en: form.acronym_en.trim().to_string(),
-        acronym_fr: form.acronym_fr.trim().to_string(),
+        acronym_fr: acronym_fr(&form),
         org_type: form.org_type.trim().to_string(),
         url: form.url.trim().to_string(),
     };
 
-    match create_organization(new_organization, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_organization(new_organization, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             // The API seeds a starter Executive tier with a vacant "Head" role
             // (see createOrganization). Point the operator straight at the org
@@ -242,11 +273,13 @@ pub async fn create_organization_post(
             redirect_to(format!("/{}/organization/{}/org_chart", &lang, response.create_organization.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
 
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &false);
             ctx.insert("organization", &organization_from_form(&form, None));
+            ctx.insert("org_types", &org_type_options(&lang, &form.org_type));
 
             render_page(&data, "organization/organization_form.html", &ctx)
         },
@@ -271,13 +304,14 @@ pub async fn edit_organization_form(
     let r = match get_organization_by_id(organization_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &true);
+    ctx.insert("org_types", &org_type_options(&lang, &r.organization_by_id.org_type));
     ctx.insert("organization", &r.organization_by_id);
 
     render_page(&data, "organization/organization_form.html", &ctx)
@@ -299,7 +333,8 @@ pub async fn edit_organization_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/organization/{}/edit", &lang, &organization_id));
     }
@@ -309,13 +344,13 @@ pub async fn edit_organization_post(
         name_en: Some(form.name_en.trim().to_string()),
         name_fr: Some(form.name_fr.trim().to_string()),
         acronym_en: Some(form.acronym_en.trim().to_string()),
-        acronym_fr: Some(form.acronym_fr.trim().to_string()),
+        acronym_fr: Some(acronym_fr(&form)),
         org_type: Some(form.org_type.trim().to_string()),
         url: Some(form.url.trim().to_string()),
         retired_at: None,
     };
 
-    match update_organization(organization_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, update_organization(organization_data, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(
                 &session,
@@ -325,11 +360,13 @@ pub async fn edit_organization_post(
             redirect_to(format!("/{}/organization/{}", &lang, response.update_organization.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
 
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("organization", &organization_from_form(&form, Some(&organization_id)));
+            ctx.insert("org_types", &org_type_options(&lang, &form.org_type));
 
             render_page(&data, "organization/organization_form.html", &ctx)
         },
@@ -354,7 +391,7 @@ pub async fn retire_organization_form(
     let r = match get_organization_by_id(organization_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -407,7 +444,7 @@ pub async fn retire_organization_post(
             );
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
         },
     };
 
@@ -437,7 +474,7 @@ pub async fn restore_organization_post(
 
     match restore_organization(organization_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Organization restored.", "Organisation restaurée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/organization/{}", &lang, &organization_id))

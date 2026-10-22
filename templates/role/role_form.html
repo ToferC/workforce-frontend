@@ -52,10 +52,10 @@
 
                 <div class="row">
                     <div class="col-md-6">
-                        {{ forms::text_input(name="title_en", label=label_title_en, value=role_form.titleEnglish) }}
+                        {{ forms::text_input(name="title_en", label=label_title_en, value=role_form.titleEnglish, error=field_errors.title_en | default(value="")) }}
                     </div>
                     <div class="col-md-6">
-                        {{ forms::text_input(name="title_fr", label=label_title_fr, value=role_form.titleFrench) }}
+                        {{ forms::text_input(name="title_fr", label=label_title_fr, value=role_form.titleFrench, error=field_errors.title_fr | default(value="")) }}
                     </div>
                 </div>
 
@@ -135,7 +135,7 @@
 
                 <div class="row">
                     <div class="col-md-6">
-                        {{ forms::text_input(name="effort", label=label_effort, value=role_form.effort, type="number", help=help_effort) }}
+                        {{ forms::text_input(name="effort", label=label_effort, value=role_form.effort, type="number", step="any", help=help_effort) }}
                     </div>
                     <div class="col-md-6">
                         {{ forms::date_input(name="start_date", label=label_start, value=role_form.startDate, required=true) }}

@@ -9,9 +9,10 @@ use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_team_by_id, all_teams, create_team, update_team, create_team_ownership, get_team_ownership_by_team_id, update_team_ownership, restore_team, all_organizations};
 use crate::security::{self, MinimumRole};
 use super::org_tier::{parent_tier_options, skill_domain_options, OwnerForm};
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer, active_organizations_by_name};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer, active_organizations_by_name, check_csrf, Csrf, guarded, api_error_flash, field_errors};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct TeamForm {
     pub csrf_token: String,
     pub organization_id: String,
@@ -26,12 +27,14 @@ pub struct TeamForm {
     pub primary_domain: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RetireForm {
     pub csrf_token: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct NewTeamParams {
     pub organization: String,
     #[serde(default)]
@@ -154,7 +157,7 @@ pub async fn team_by_id(
     let r = match get_team_by_id(team_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/teams", &lang));
         },
     };
@@ -247,10 +250,10 @@ pub async fn create_team_form(
         Err(response) => return response,
     };
 
-    let tier_options = match parent_tier_options(&params.organization, None, &auth.bearer, &data).await {
+    let tier_options = match parent_tier_options(&lang, &params.organization, None, &auth.bearer, &data).await {
         Ok(options) => options,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/organization/{}", &lang, &params.organization));
         },
     };
@@ -290,7 +293,8 @@ pub async fn create_team_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/team/new?organization={}", &lang, &form.organization_id));
     }
@@ -306,7 +310,7 @@ pub async fn create_team_post(
         description_fr: form.description_fr.trim().to_string(),
     };
 
-    match create_team(new_team, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_team(new_team, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             if is_htmx(&req) {
                 // In the builder: re-render the tier node so the new team appears
@@ -326,21 +330,22 @@ pub async fn create_team_post(
             // the error itself via form_error. Queue the flash before
             // generate_basic_context drains the queue.
             if !is_htmx(&req) {
-                security::add_flash(&session, "danger", &e.to_string());
+                security::add_flash(&session, "danger", &e.user_message(&lang));
             }
 
-            let tier_options = parent_tier_options(&form.organization_id, None, &auth.bearer, &data)
+            let tier_options = parent_tier_options(&lang, &form.organization_id, None, &auth.bearer, &data)
                 .await
                 .unwrap_or_else(|_| json!([]));
 
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors(&e, &lang));
             ctx.insert("edit", &false);
             ctx.insert("team", &team_from_form(&form, None));
             ctx.insert("org_tier_options", &tier_options);
             ctx.insert("skill_domains", &skill_domain_options());
 
             let template = if is_htmx(&req) {
-                ctx.insert("form_error", &e.to_string());
+                ctx.insert("form_error", &e.user_message(&lang));
                 "org_chart/add_team_form.html"
             } else {
                 "team/team_form.html"
@@ -369,7 +374,7 @@ pub async fn edit_team_form(
     let r = match get_team_by_id(team_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -398,7 +403,8 @@ pub async fn edit_team_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/team/{}/edit", &lang, &team_id));
     }
@@ -419,7 +425,7 @@ pub async fn edit_team_post(
         retired_at: None,
     };
 
-    match update_team(team_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, update_team(team_data, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(
                 &session,
@@ -429,9 +435,10 @@ pub async fn edit_team_post(
             redirect_to(format!("/{}/team/{}", &lang, response.update_team.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
 
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("team", &team_from_form(&form, Some(&team_id)));
             ctx.insert("skill_domains", &skill_domain_options());
@@ -459,7 +466,7 @@ pub async fn retire_team_form(
     let r = match get_team_by_id(team_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -510,7 +517,7 @@ pub async fn retire_team_post(
             );
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
         },
     };
 
@@ -535,7 +542,7 @@ pub async fn assign_team_owner_form(
     let r = match get_team_by_id(team_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -600,13 +607,14 @@ pub async fn assign_team_owner_post(
     };
     match result {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Owner assigned.", "Responsable assigné.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/team/{}", &lang, &team_id))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct IndexParams {
     #[serde(default)]
     pub retired: String,
@@ -700,7 +708,7 @@ pub async fn restore_team_post(
 
     match restore_team(team_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Team restored.", "Équipe restaurée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/team/{}", &lang, &team_id))

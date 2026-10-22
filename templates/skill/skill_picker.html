@@ -31,7 +31,7 @@
         <div id="skill-select-wrapper">
             <div class="mb-3">
                 <label class="form-label" for="skill_id">
-                    {{ fluent(key="skill", lang=lang) }} <span class="text-danger">*</span>
+                    {{ fluent(key="skill", lang=lang) }} <span class="fw-normal">({{ fluent(key="required-suffix", lang=lang) }})</span>
                 </label>
                 <select class="form-select" id="skill_id" name="skill_id" required>
                     {% for group in skill_groups %}

@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
+{% import "macros/page.html" as page %}
+
+{% block breadcrumb %}{{ page::trail(lang=lang, parent_label=fluent(key="manage-users", lang=lang), parent_href="/" ~ lang ~ "/admin/users") }}{% endblock breadcrumb %}
 
 {% block title %}
     <title>{% if edit %}{{ fluent(key="edit-user", lang=lang) }}{% else %}{{ fluent(key="new-user", lang=lang) }}{% endif %}</title>
@@ -26,7 +29,7 @@
                 {{ forms::error_summary() }}
 
                 {{ forms::text_input(name="name", label=fluent(key="name", lang=lang), value=user.name) }}
-                {{ forms::text_input(name="email", label=fluent(key="email", lang=lang), value=user.email, type="email") }}
+                {{ forms::text_input(name="email", label=fluent(key="email", lang=lang), value=user.email, type="email", error=field_errors.email | default(value="")) }}
 
                 {% if edit %}
                 <div class="mb-3">
@@ -36,7 +39,7 @@
                 </div>
                 {% else %}
                 <div class="mb-3">
-                    <label class="form-label" for="password">{{ fluent(key="password", lang=lang) }} <span class="text-danger">*</span></label>
+                    <label class="form-label" for="password">{{ fluent(key="password", lang=lang) }} <span class="fw-normal">({{ fluent(key="required-suffix", lang=lang) }})</span></label>
                     <input class="form-control" id="password" name="password" type="password" minlength="8" required>
                 </div>
                 {% endif %}

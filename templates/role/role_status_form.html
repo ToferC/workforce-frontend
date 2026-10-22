@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
+{% import "macros/page.html" as page %}
+
+{% block breadcrumb %}{{ page::trail(lang=lang, org=role_record.team.organization | default(value=false), tiers=role_record.team.organizationLevel.ancestors | default(value=[]) | concat(with=role_record.team.organizationLevel), team=role_record.team, role=role_record) }}{% endblock breadcrumb %}
 
 {% block title %}
     <title>{{ fluent(key="edit-role-status", lang=lang) }}</title>
@@ -31,13 +34,14 @@
         <div class="card-body">
             <form method="post" action="/{{ lang }}/role/{{ role_record.id }}/edit">
                 {{ forms::csrf(token=csrf_token) }}
+                {{ forms::error_summary() }}
 
                 <div class="row">
                     <div class="col-md-6">
-                        {{ forms::text_input(name="title_en", label=label_title_en, value=role_record.titleEnglish) }}
+                        {{ forms::text_input(name="title_en", label=label_title_en, value=role_record.titleEnglish, error=field_errors.title_en | default(value="")) }}
                     </div>
                     <div class="col-md-6">
-                        {{ forms::text_input(name="title_fr", label=label_title_fr, value=role_record.titleFrench) }}
+                        {{ forms::text_input(name="title_fr", label=label_title_fr, value=role_record.titleFrench, error=field_errors.title_fr | default(value="")) }}
                     </div>
                 </div>
 

@@ -91,6 +91,7 @@ async fn main() -> std::io::Result<()> {
             // Friendly bilingual 404 for any unmatched route (links back home).
             .default_service(web::route().to(handlers::default_404))
             .app_data(data.clone())
+            .app_data(web::FormConfig::default().error_handler(handlers::form_parse_error))
             .wrap(IdentityMiddleware::default())
             .wrap(
                 SessionMiddleware::builder(

@@ -21,7 +21,8 @@ use super::utility::{redirect_to, csrf_failure_flash, render_page};
 
 
 /// A decision on an offer: just a CSRF token and an optional note.
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
+#[serde(default)]
 pub struct OfferDecisionForm {
     pub csrf_token: String,
     pub note: Option<String>,
@@ -46,7 +47,7 @@ pub async fn manage_panel(
     let incoming = match incoming_role_offers(auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.incoming_role_offers,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             Vec::new()
         }
     };
@@ -54,7 +55,7 @@ pub async fn manage_panel(
     let outgoing = match outgoing_role_offers(auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.outgoing_role_offers,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             Vec::new()
         }
     };
@@ -85,7 +86,7 @@ pub async fn activity_view(
     let events = match recent_audit_events(100, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.recent_audit_events,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             Vec::new()
         }
     };
@@ -133,7 +134,7 @@ pub async fn accept_offer_post(
             );
             crate::notifications::send_offer_email(to.as_deref(), "Your transfer offer was accepted", &html).await;
         },
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     }
     redirect_to(format!("/{}/manage", &lang))
 }
@@ -170,7 +171,7 @@ pub async fn decline_offer_post(
             );
             crate::notifications::send_offer_email(to.as_deref(), "Your transfer offer was declined", &html).await;
         },
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     }
     redirect_to(format!("/{}/manage", &lang))
 }
@@ -207,7 +208,7 @@ pub async fn withdraw_offer_post(
             );
             crate::notifications::send_offer_email(to.as_deref(), "Transfer offer withdrawn", &html).await;
         },
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     }
     redirect_to(format!("/{}/manage", &lang))
 }

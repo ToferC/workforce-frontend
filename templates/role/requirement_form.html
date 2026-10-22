@@ -2,6 +2,9 @@
 {% import "macros/viz.html" as viz %}
 {% import "macros/forms.html" as forms %}
 {% import "macros/labels.html" as labels %}
+{% import "macros/page.html" as page %}
+
+{% block breadcrumb %}{{ page::trail(lang=lang, section="roles", parent_label=fluent(key="role", lang=lang), parent_href="/" ~ lang ~ "/role/" ~ role_id) }}{% endblock breadcrumb %}
 
 {% block title %}
     {% if edit %}

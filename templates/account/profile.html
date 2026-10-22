@@ -29,8 +29,8 @@
                     <div class="col-md-6">{{ forms::text_input(name="family_name", label=label_family, value=me.person.familyName) }}</div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6">{{ forms::text_input(name="email", label=label_email, value=me.person.email, type="email") }}</div>
-                    <div class="col-md-6">{{ forms::text_input(name="phone", label=label_phone, value=me.person.phone) }}</div>
+                    <div class="col-md-6">{{ forms::text_input(name="email", label=label_email, value=me.person.email, type="email", error=field_errors.email | default(value="")) }}</div>
+                    <div class="col-md-6">{{ forms::text_input(name="phone", label=label_phone, value=me.person.phone, error=field_errors.phone | default(value="")) }}</div>
                 </div>
                 {{ forms::text_input(name="work_address", label=fluent(key="work-address", lang=lang), value=me.person.workAddress) }}
                 <div class="row">
