@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
+{% import "macros/page.html" as page %}
+
+{% block breadcrumb %}{{ page::trail(lang=lang, section="people", parent_label=person.givenName ~ " " ~ person.familyName, parent_href="/" ~ lang ~ "/person/" ~ person.id) }}{% endblock breadcrumb %}
 
 {% block title %}
     <title>{{ fluent(key="add-affiliation", lang=lang) }}</title>

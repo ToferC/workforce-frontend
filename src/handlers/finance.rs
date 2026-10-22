@@ -8,7 +8,7 @@ use serde_json::json;
 
 use crate::{generate_basic_context, by_lang, AppData};
 use crate::graphql::{
-    create_contract, update_contract, delete_contract, get_contract_by_id,
+    create_contract, update_contract, delete_contract, get_contract_by_id, get_task_by_id,
     all_pay_rates, create_pay_rate, set_budget_allocation,
 };
 use crate::handlers::utility::{redirect_to, csrf_failure_flash, session_bearer, render_page, render_confirm, check_csrf, Csrf, guarded, api_error_flash, FieldErrors};
@@ -115,14 +115,21 @@ pub struct ContractForm {
 
 /// The contract form (create when `contract` has no id, edit otherwise),
 /// filled from `contract`. Shared by the GET handlers and every failed post,
-/// so a rejected submission comes back exactly as typed.
-fn render_contract_form(
+/// so a rejected submission comes back exactly as typed. The task's title
+/// names what the contract belongs to.
+async fn render_contract_form(
     data: &AppData,
     mut ctx: tera::Context,
+    bearer: &str,
     task_id: &str,
     contract: serde_json::Value,
     errors: &FieldErrors,
 ) -> actix_web::HttpResponse {
+    let task_title = get_task_by_id(task_id.to_string(), bearer.to_string(), &data.api_url, Arc::clone(&data.client))
+        .await
+        .map(|r| r.task_by_id.title)
+        .unwrap_or_default();
+    ctx.insert("task_title", &task_title);
     ctx.insert("task_id", task_id);
     ctx.insert("contract", &contract);
     ctx.insert("contract_statuses", &enum_options(&CONTRACT_STATUSES));
@@ -186,14 +193,15 @@ pub async fn create_contract_form(
     let (lang, task_id) = path_params.into_inner();
     let session = req.get_session();
 
-    if let Err(response) = security::require_role(&session, &lang, MinimumRole::Operator) {
-        return response;
-    }
+    let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
+        Ok(auth) => auth,
+        Err(response) => return response,
+    };
 
     let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     let today = chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string();
     let contract = json!({"startDate": today, "status": "ACTIVE"});
-    render_contract_form(&data, ctx, &task_id, contract, &FieldErrors::new())
+    render_contract_form(&data, ctx, &auth.bearer, &task_id, contract, &FieldErrors::new()).await
 }
 
 #[post("/{lang}/task/{task_id}/contract/new")]
@@ -235,7 +243,7 @@ pub async fn create_contract_post(
                 status: serde_json::from_value(json!(form.status))
                     .unwrap_or(create_contract::ContractStatus::ACTIVE),
             };
-            match guarded(&csrf, create_contract(new_contract, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
+            match guarded(&csrf, create_contract(new_contract, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
                 Ok(_) => {
                     security::add_flash(&session, "success",
                         by_lang(&lang, "Contract recorded.", "Contrat enregistré."));
@@ -247,7 +255,7 @@ pub async fn create_contract_post(
     };
 
     let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
-    render_contract_form(&data, ctx, &task_id, contract_from_form(&form, None), &errors)
+    render_contract_form(&data, ctx, &auth.bearer, &task_id, contract_from_form(&form, None), &errors).await
 }
 
 #[get("/{lang}/contract/{contract_id}/edit")]
@@ -265,7 +273,7 @@ pub async fn edit_contract_form(
         Err(response) => return response,
     };
 
-    let contract = match get_contract_by_id(contract_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    let contract = match get_contract_by_id(contract_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.contract_by_id,
         Err(e) => {
             security::add_flash(&session, "danger", &e.user_message(&lang));
@@ -284,7 +292,7 @@ pub async fn edit_contract_form(
         "totalValueDollars": format!("{:.2}", contract.total_value_cents as f64 / 100.0),
         "status": format!("{:?}", contract.status),
     });
-    render_contract_form(&data, ctx, &contract.task_id, values, &FieldErrors::new())
+    render_contract_form(&data, ctx, &auth.bearer, &contract.task_id, values, &FieldErrors::new()).await
 }
 
 /// Hidden on the edit form so a failed post can re-render it (and its
@@ -336,7 +344,7 @@ pub async fn edit_contract_post(
                 total_value_cents: Some(cents),
                 status: serde_json::from_value(json!(form.status)).ok(),
             };
-            match guarded(&csrf, update_contract(update, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
+            match guarded(&csrf, update_contract(update, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
                 Ok(r) => {
                     security::add_flash(&session, "success",
                         by_lang(&lang, "Contract updated.", "Contrat mis à jour."));
@@ -348,7 +356,7 @@ pub async fn edit_contract_post(
     };
 
     let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
-    render_contract_form(&data, ctx, &task_id, contract_from_form(&form, Some(&contract_id)), &errors)
+    render_contract_form(&data, ctx, &auth.bearer, &task_id, contract_from_form(&form, Some(&contract_id)), &errors).await
 }
 
 #[get("/{lang}/contract/{contract_id}/delete")]
@@ -366,7 +374,7 @@ pub async fn delete_contract_form(
         Err(response) => return response,
     };
 
-    let contract = match get_contract_by_id(contract_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    let contract = match get_contract_by_id(contract_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.contract_by_id,
         Err(e) => {
             security::add_flash(&session, "danger", &e.user_message(&lang));

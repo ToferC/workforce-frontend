@@ -57,8 +57,8 @@ fn inputs_render_step_and_field_errors() {
     );
     assert!(html.contains(r#"step="any""#));
     assert!(html.contains(r#"error-message="Already in use""#));
-    assert!(html.contains("Too early") && html.contains(r#"aria-invalid="true""#));
-    assert_eq!(html.matches("error-message=").count(), 1, "fields without an error stay clean");
+    assert!(html.contains(r#"<gcds-date-input"#) && html.contains(r#"error-message="Too early""#));
+    assert_eq!(html.matches("error-message=").count(), 2, "fields without an error stay clean");
 }
 
 #[test]
@@ -74,4 +74,10 @@ fn filter_select_keeps_a_native_select_usable_without_js() {
     assert!(html.contains(r#"<select class="form-select" id="owner" name="owner" required"#));
     assert!(html.contains(r#"<option value="r2" selected>Analyst</option>"#));
     assert!(html.contains("(obligatoire)"));
+}
+
+#[test]
+fn date_input_shows_the_date_part_of_an_api_timestamp() {
+    let html = render(r#"{{ forms::date_input(name="start", label="Start", value="2026-01-31T00:00:00", required=true) }}"#, Context::new());
+    assert!(html.contains(r#"value="2026-01-31""#) && html.contains(r#"required="true""#));
 }

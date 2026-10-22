@@ -8,8 +8,8 @@
    (<gcds-input>, <gcds-textarea>, <gcds-select>). These are form-associated
    custom elements, so they submit exactly like native fields under the same
    `name` — plain POST + redirect and HTMX form serialization are unchanged.
-   date_input and checkbox stay native (GCDS has no single-boolean checkbox and
-   the native date field already submits the YYYY-MM-DD the handlers expect).
+   date_input renders <gcds-date-input>, which also submits YYYY-MM-DD;
+   checkbox stays native (GCDS has no single-boolean checkbox).
 
    Each input macro accepts an optional `error` string. Pass server-side
    validation messages through it to render an associated <gcds-error-message>;
@@ -112,16 +112,22 @@
 </div>
 {% endmacro filter_select %}
 
-{# Native date field: already accessible and submits YYYY-MM-DD, which the
-   handlers parse. Kept native to avoid changing the submitted value format. #}
-{% macro date_input(name, label, value="", required=false, field_id="", error="") %}
-{% set the_id = field_id | default(value="") %}
-{% if not the_id %}{% set the_id = name %}{% endif %}
-<div class="mb-3">
-    <label class="form-label" for="{{ the_id }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
-    {% if error %}<p class="text-danger fw-semibold mb-1" id="{{ the_id }}-error"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> {{ error }}</p>{% endif %}
-    <input type="date" class="form-control" id="{{ the_id }}" name="{{ name }}" value="{{ value }}"{% if required %} required{% endif %}{% if error %} aria-invalid="true" aria-describedby="{{ the_id }}-error"{% endif %}>
-</div>
+{# GCDS date field (month select, day, year). It submits YYYY-MM-DD under
+   `name`, exactly like the native field it replaced, and omits the field
+   when left empty. `value` may be a date or an API timestamp
+   ("2026-01-01T00:00:00"); only the date part is used. `field_id` is kept
+   for callers that render the same name twice on a page. #}
+{% macro date_input(name, label, value="", required=false, field_id="", error="", hint="") %}
+<gcds-date-input
+    name="{{ name }}"
+    legend="{{ label }}"
+    format="full"
+    {% if field_id %}id="{{ field_id }}"{% endif %}
+    {% if value %}value="{{ value | truncate(length=10, end="") }}"{% endif %}
+    {% if required %}required="true"{% endif %}
+    {% if hint %}hint="{{ hint }}"{% endif %}
+    {% if error %}error-message="{{ error }}"{% endif %}>
+</gcds-date-input>
 {% endmacro date_input %}
 
 {% macro checkbox(name, label, checked=false) %}
@@ -134,7 +140,7 @@
 {% macro submit_row(label, cancel_url="", cancel_label="") %}
 <div class="mb-3 mt-3">
     <button type="submit" class="btn btn-primary">{{ label }}</button>
-    {% if cancel_url %}<a class="btn btn-secondary" href="{{ cancel_url | safe }}">{{ cancel_label }}</a>{% endif %}
+    {% if cancel_url %}<a class="btn btn-outline-secondary ms-2" href="{{ cancel_url | safe }}">{{ cancel_label }}</a>{% endif %}
 </div>
 {% endmacro submit_row %}
 
@@ -143,7 +149,7 @@
    /person_options as the user types. Degrades to the plain text-name field
    the server already resolves when JS is unavailable. #}
 <div class="form-group mb-3">
-    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <label class="form-label" for="{{ name }}">{{ label }}{% if required %} <span class="fw-normal">({{ fluent(key="required-suffix", lang=lang) }})</span>{% endif %}</label>
     <input class="form-control" type="text" id="{{ name }}" name="{{ name }}" value="{{ value }}"
            list="{{ name }}-options" autocomplete="off"
            {% if required %}required{% endif %}

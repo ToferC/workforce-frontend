@@ -1187,9 +1187,13 @@ fn contract_form_renders_create_and_edit() {
         {"value": "PLANNED", "label": "Planned"},
         {"value": "ACTIVE", "label": "Active"},
         {"value": "CLOSED", "label": "Closed"}]));
-    ctx.insert("today", "2026-07-11");
+    ctx.insert("contract", &json!({"startDate": "2026-07-11", "status": "ACTIVE"}));
+    ctx.insert("task_title", "Radar refit");
     let html = tera.render("finance/contract_form.html", &ctx).unwrap();
     assert!(html.contains("/en/task/a0000000-0000-0000-0000-000000000001/contract/new"));
+    // Names the task it belongs to, in the subtitle and the breadcrumb
+    let crumbs = &html[html.find("<gcds-breadcrumbs").unwrap()..html.find("</gcds-breadcrumbs>").unwrap()];
+    assert!(crumbs.contains("Radar refit") && html.contains("Task: <a href=\"/en/task/a0000000-0000-0000-0000-000000000001\">Radar refit</a>"));
     assert!(html.contains("name=\"reference_number\""));
     assert!(html.contains("name=\"total_value\""));
 
@@ -1200,6 +1204,7 @@ fn contract_form_renders_create_and_edit() {
         "id": "c0000000-0000-0000-0000-000000000001", "referenceNumber": "PSPC-2026-1234",
         "vendor": "Calian Group", "description": "Services", "startDate": "2026-05-01",
         "endDate": "2027-03-31", "totalValueDollars": "181500.00", "status": "ACTIVE"}));
+    ctx.insert("task_title", "Radar refit");
     ctx.insert("contract_statuses", &json!([
         {"value": "PLANNED", "label": "Planned"},
         {"value": "ACTIVE", "label": "Active"},

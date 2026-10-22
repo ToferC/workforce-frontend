@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% import "macros/forms.html" as forms %}
+{% import "macros/page.html" as page %}
+
+{% block breadcrumb %}{{ page::trail(lang=lang, section="tasks", parent_label=task_title, parent_href="/" ~ lang ~ "/task/" ~ task_id) }}{% endblock breadcrumb %}
 
 {% block title %}
     {% if contract.id %}
@@ -15,8 +18,9 @@
     <h1 class="mb-1"><i class="bi bi-receipt" aria-hidden="true"></i> {{ fluent(key="edit-contract", lang=lang) }}</h1>
     <p class="text-muted mb-4">{{ contract.referenceNumber }} — {{ contract.vendor }}</p>
     {% else %}
-    <h1 class="mb-4"><i class="bi bi-receipt" aria-hidden="true"></i> {{ fluent(key="add-contract", lang=lang) }}</h1>
+    <h1 class="mb-1"><i class="bi bi-receipt" aria-hidden="true"></i> {{ fluent(key="add-contract", lang=lang) }}</h1>
     {% endif %}
+    {% if task_title %}<p class="text-muted mb-4">{{ fluent(key="task", lang=lang) }}: <a href="/{{ lang }}/task/{{ task_id }}">{{ task_title }}</a></p>{% endif %}
 
     {% set label_reference = fluent(key="contract-reference", lang=lang) %}
     {% set label_vendor = fluent(key="contract-vendor", lang=lang) %}
