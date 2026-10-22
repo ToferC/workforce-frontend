@@ -92,6 +92,26 @@
 </gcds-select>
 {% endmacro select %}
 
+{# A select for long lists (hundreds of roles or tiers): a native <select>
+   with a filter box above it that narrows the options as you type. The
+   filter is added by static/js/forms.js; without JS it stays hidden and the
+   select works as is. Same options/selected/required/blank_label contract
+   as `select`; `filter_label` is the box's placeholder. #}
+{% macro filter_select(name, label, options, filter_label, selected="", required=true, blank_label="", help="", lang="en") %}
+<div class="mb-3 filter-select">
+    <label class="form-label fw-semibold" for="{{ name }}">{{ label }}{% if required %} <span class="fw-normal">({{ fluent(key="required-suffix", lang=lang) }})</span>{% endif %}</label>
+    {% if help %}<p class="form-text mt-0" id="{{ name }}-hint">{{ help }}</p>{% endif %}
+    <input type="search" class="form-control mb-1" data-filter-for="{{ name }}" placeholder="{{ filter_label }}" aria-label="{{ filter_label }}" aria-controls="{{ name }}" autocomplete="off" hidden>
+    <select class="form-select" id="{{ name }}" name="{{ name }}"{% if required %} required{% endif %}{% if help %} aria-describedby="{{ name }}-hint"{% endif %}>
+        {% if blank_label %}<option value=""{% if required %} disabled{% endif %}{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>
+        {% elif required and selected == "" %}<option value="" disabled selected>—</option>{% endif %}
+        {% for option in options %}
+        <option value="{{ option.value }}"{% if option.value == selected %} selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro filter_select %}
+
 {# Native date field: already accessible and submits YYYY-MM-DD, which the
    handlers parse. Kept native to avoid changing the submitted value format. #}
 {% macro date_input(name, label, value="", required=false, field_id="", error="") %}

@@ -60,3 +60,18 @@ fn inputs_render_step_and_field_errors() {
     assert!(html.contains("Too early") && html.contains(r#"aria-invalid="true""#));
     assert_eq!(html.matches("error-message=").count(), 1, "fields without an error stay clean");
 }
+
+#[test]
+fn filter_select_keeps_a_native_select_usable_without_js() {
+    let mut ctx = Context::new();
+    ctx.insert("options", &json!([{"value": "r1", "label": "Director General"}, {"value": "r2", "label": "Analyst"}]));
+    let html = render(
+        r#"{{ forms::filter_select(name="owner", label="Owner", options=options, filter_label="Filter", selected="r2", lang="fr") }}"#,
+        ctx,
+    );
+    // The filter box ships hidden; forms.js reveals it.
+    assert!(html.contains(r#"data-filter-for="owner""#) && html.contains(" hidden>"));
+    assert!(html.contains(r#"<select class="form-select" id="owner" name="owner" required"#));
+    assert!(html.contains(r#"<option value="r2" selected>Analyst</option>"#));
+    assert!(html.contains("(obligatoire)"));
+}

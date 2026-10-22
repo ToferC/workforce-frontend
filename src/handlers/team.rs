@@ -250,7 +250,7 @@ pub async fn create_team_form(
         Err(response) => return response,
     };
 
-    let tier_options = match parent_tier_options(&params.organization, None, &auth.bearer, &data).await {
+    let tier_options = match parent_tier_options(&lang, &params.organization, None, &auth.bearer, &data).await {
         Ok(options) => options,
         Err(e) => {
             security::add_flash(&session, "danger", &e.user_message(&lang));
@@ -333,7 +333,7 @@ pub async fn create_team_post(
                 security::add_flash(&session, "danger", &e.user_message(&lang));
             }
 
-            let tier_options = parent_tier_options(&form.organization_id, None, &auth.bearer, &data)
+            let tier_options = parent_tier_options(&lang, &form.organization_id, None, &auth.bearer, &data)
                 .await
                 .unwrap_or_else(|_| json!([]));
 

@@ -348,7 +348,7 @@ pub async fn create_person_form(
     ctx.insert("edit", &false);
     ctx.insert("person", &json!({
         "userEmail": "", "familyName": "", "givenName": "", "email": "", "phone": "",
-        "workAddress": "", "city": "", "province": "", "postalCode": "", "country": "",
+        "workAddress": "", "city": "", "province": "", "postalCode": "", "country": "Canada",
         "peoplesoftId": "", "orcidId": "", "personnelType": "",
         "organization": {"id": ""},
     }));

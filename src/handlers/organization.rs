@@ -162,6 +162,32 @@ fn blank_organization() -> serde_json::Value {
 
 /// Rebuild the template's organization object from a submitted form so the
 /// user's input is preserved when re-rendering after an error.
+/// Choices for the organization type: the common kinds, plus the record's
+/// current value when it is something else, so editing never drops it.
+/// Values stay the plain English words already stored.
+fn org_type_options(lang: &str, current: &str) -> serde_json::Value {
+    const TYPES: [(&str, &str); 6] = [
+        ("Government", "Gouvernement"), ("Military", "Militaire"), ("Academic", "Universitaire"),
+        ("Industry", "Industrie"), ("Non-profit", "Organisme sans but lucratif"), ("Other", "Autre"),
+    ];
+    let mut options: Vec<serde_json::Value> = TYPES.iter()
+        .map(|(en, fr)| json!({"value": en, "label": by_lang(lang, en, fr)}))
+        .collect();
+    if !current.is_empty() && !TYPES.iter().any(|(en, _)| *en == current) {
+        options.push(json!({"value": current, "label": current}));
+    }
+    json!(options)
+}
+
+/// The French acronym is optional; an organization without one uses the
+/// English acronym in French too.
+fn acronym_fr(form: &OrganizationForm) -> String {
+    match form.acronym_fr.trim() {
+        "" => form.acronym_en.trim().to_string(),
+        fr => fr.to_string(),
+    }
+}
+
 fn organization_from_form(form: &OrganizationForm, id: Option<&str>) -> serde_json::Value {
     json!({
         "id": id,
@@ -193,6 +219,7 @@ pub async fn create_organization_form(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &false);
     ctx.insert("organization", &blank_organization());
+    ctx.insert("org_types", &org_type_options(&lang, ""));
 
     render_page(&data, "organization/organization_form.html", &ctx)
 }
@@ -223,7 +250,7 @@ pub async fn create_organization_post(
         name_en: form.name_en.trim().to_string(),
         name_fr: form.name_fr.trim().to_string(),
         acronym_en: form.acronym_en.trim().to_string(),
-        acronym_fr: form.acronym_fr.trim().to_string(),
+        acronym_fr: acronym_fr(&form),
         org_type: form.org_type.trim().to_string(),
         url: form.url.trim().to_string(),
     };
@@ -252,6 +279,7 @@ pub async fn create_organization_post(
             ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &false);
             ctx.insert("organization", &organization_from_form(&form, None));
+            ctx.insert("org_types", &org_type_options(&lang, &form.org_type));
 
             render_page(&data, "organization/organization_form.html", &ctx)
         },
@@ -283,6 +311,7 @@ pub async fn edit_organization_form(
 
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     ctx.insert("edit", &true);
+    ctx.insert("org_types", &org_type_options(&lang, &r.organization_by_id.org_type));
     ctx.insert("organization", &r.organization_by_id);
 
     render_page(&data, "organization/organization_form.html", &ctx)
@@ -315,7 +344,7 @@ pub async fn edit_organization_post(
         name_en: Some(form.name_en.trim().to_string()),
         name_fr: Some(form.name_fr.trim().to_string()),
         acronym_en: Some(form.acronym_en.trim().to_string()),
-        acronym_fr: Some(form.acronym_fr.trim().to_string()),
+        acronym_fr: Some(acronym_fr(&form)),
         org_type: Some(form.org_type.trim().to_string()),
         url: Some(form.url.trim().to_string()),
         retired_at: None,
@@ -337,6 +366,7 @@ pub async fn edit_organization_post(
             ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("organization", &organization_from_form(&form, Some(&organization_id)));
+            ctx.insert("org_types", &org_type_options(&lang, &form.org_type));
 
             render_page(&data, "organization/organization_form.html", &ctx)
         },

@@ -83,20 +83,20 @@
                     </div>
                 </div>
 
-                {{ forms::text_input(name="work_address", label=label_address, value=person.workAddress) }}
+                {{ forms::text_input(name="work_address", label=label_address, value=person.workAddress, required=false) }}
 
                 <div class="row">
                     <div class="col-12 col-sm-6 col-lg-5">
-                        {{ forms::text_input(name="city", label=label_city, value=person.city) }}
+                        {{ forms::text_input(name="city", label=label_city, value=person.city, required=false) }}
                     </div>
                     <div class="col-6 col-lg-3">
-                        {{ forms::text_input(name="province", label=label_province, value=person.province) }}
+                        {{ forms::text_input(name="province", label=label_province, value=person.province, required=false) }}
                     </div>
                     <div class="col-6 col-lg-2">
-                        {{ forms::text_input(name="postal_code", label=label_postal, value=person.postalCode) }}
+                        {{ forms::text_input(name="postal_code", label=label_postal, value=person.postalCode, required=false) }}
                     </div>
                     <div class="col-12 col-sm-6 col-lg-2">
-                        {{ forms::text_input(name="country", label=label_country, value=person.country) }}
+                        {{ forms::text_input(name="country", label=label_country, value=person.country, required=false) }}
                     </div>
                 </div>
 

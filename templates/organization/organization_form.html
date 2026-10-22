@@ -32,7 +32,6 @@
     {% set label_acronym_en = fluent(key="acronym-english", lang=lang) %}
     {% set label_acronym_fr = fluent(key="acronym-french", lang=lang) %}
     {% set label_org_type = fluent(key="organization-type", lang=lang) %}
-    {% set help_org_type = fluent(key="organization-type-helper", lang=lang) %}
     {% set label_url = fluent(key="website-url", lang=lang) %}
     {% set label_save = fluent(key="save-button", lang=lang) %}
     {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
@@ -65,13 +64,13 @@
                         {{ forms::text_input(name="acronym_en", label=label_acronym_en, value=organization.acronymEn, error=field_errors.acronym_en | default(value="")) }}
                     </div>
                     <div class="col-md-6">
-                        {{ forms::text_input(name="acronym_fr", label=label_acronym_fr, value=organization.acronymFr, error=field_errors.acronym_fr | default(value="")) }}
+                        {{ forms::text_input(name="acronym_fr", label=label_acronym_fr, value=organization.acronymFr, error=field_errors.acronym_fr | default(value=""), required=false, help=fluent(key="acronym-french-helper", lang=lang)) }}
                     </div>
                 </div>
 
-                {{ forms::text_input(name="org_type", label=label_org_type, value=organization.orgType, help=help_org_type) }}
+                {{ forms::select(name="org_type", label=label_org_type, options=org_types, selected=organization.orgType) }}
 
-                {{ forms::text_input(name="url", label=label_url, value=organization.url, type="url") }}
+                {{ forms::text_input(name="url", label=label_url, value=organization.url, type="url", required=false) }}
 
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>

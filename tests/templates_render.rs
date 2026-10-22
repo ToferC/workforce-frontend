@@ -71,6 +71,7 @@ fn organization_form_renders_for_create() {
             "nameEn": "", "nameFr": "", "acronymEn": "", "acronymFr": "",
             "orgType": "", "url": "",
         }));
+        ctx.insert("org_types", &json!([{"value": "Government", "label": "Government"}, {"value": "test", "label": "test"}]));
         let html = tera.render("organization/organization_form.html", &ctx).unwrap();
         assert!(html.contains("/organization/new"));
         assert!(html.contains("name=\"csrf_token\" value=\"test-csrf-token\""));
@@ -84,6 +85,7 @@ fn organization_form_renders_for_edit() {
         let mut ctx = base_context(lang, "operator");
         ctx.insert("edit", &true);
         ctx.insert("organization", &sample_organization());
+        ctx.insert("org_types", &json!([{"value": "Government", "label": "Government"}, {"value": "test", "label": "test"}]));
         let html = tera.render("organization/organization_form.html", &ctx).unwrap();
         assert!(html.contains("/organization/11111111-1111-1111-1111-111111111111/edit"));
         assert!(html.contains("value=\"Test Organization\""));

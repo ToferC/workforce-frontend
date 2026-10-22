@@ -32,3 +32,31 @@
         }
     });
 })();
+
+// Filter boxes for long selects (forms::filter_select): typing narrows the
+// options to those containing every typed word; the current choice and the
+// prompt always stay visible.
+(function () {
+    function setUp(input) {
+        var select = document.getElementById(input.getAttribute('data-filter-for'));
+        if (!select) { return; }
+        input.hidden = false;
+        input.addEventListener('input', function () {
+            var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+            Array.prototype.forEach.call(select.options, function (option) {
+                var text = option.textContent.toLowerCase();
+                var keep = option.value === '' || option.selected || words.every(function (w) { return text.indexOf(w) !== -1; });
+                option.hidden = !keep;
+            });
+        });
+    }
+    function init(root) {
+        (root || document).querySelectorAll('input[data-filter-for]').forEach(setUp);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { init(); });
+    } else {
+        init();
+    }
+    document.addEventListener('htmx:load', function (event) { init(event.target); });
+})();

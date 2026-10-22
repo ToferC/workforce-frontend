@@ -30,7 +30,6 @@
     {% set label_name_en = fluent(key="name-english", lang=lang) %}
     {% set label_name_fr = fluent(key="name-french", lang=lang) %}
     {% set label_tier_level = fluent(key="tier-level", lang=lang) %}
-    {% set help_tier_level = fluent(key="tier-level-helper", lang=lang) %}
     {% set label_domain = fluent(key="primary-domain", lang=lang) %}
     {% set label_parent = fluent(key="parent-tier", lang=lang) %}
     {% set blank_parent = fluent(key="none-top-tier", lang=lang) %}
@@ -69,14 +68,17 @@
 
                 <div class="row">
                     <div class="col-md-4">
-                        {{ forms::text_input(name="tier_level", label=label_tier_level, value=org_tier.tierLevel, type="number", help=help_tier_level) }}
+                        <div class="mb-3">
+                            <p class="fw-semibold mb-1">{{ label_tier_level }}{% if org_tier.id and org_tier.tierLevel %}: {{ org_tier.tierLevel }}{% endif %}</p>
+                            <p class="text-muted small mb-0">{{ fluent(key="tier-level-derived", lang=lang) }}</p>
+                        </div>
                     </div>
                     <div class="col-md-8">
                         {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, selected=org_tier.primaryDomain, label_kind="domain", lang=lang) }}
                     </div>
                 </div>
 
-                {{ forms::select(name="parent_tier", label=label_parent, options=parent_tier_options, selected=selected_parent, required=false, blank_label=blank_parent) }}
+                {{ forms::filter_select(name="parent_tier", label=label_parent, options=parent_tier_options, filter_label=fluent(key="filter-tiers", lang=lang), selected=selected_parent, required=false, blank_label=blank_parent, lang=lang) }}
 
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>

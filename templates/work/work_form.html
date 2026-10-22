@@ -79,7 +79,7 @@
                         <p class="small text-muted mb-2"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ fluent(key="blocked-help", lang=lang) }}</p>
                         {{ forms::textarea(name="blocked_reason", label=fluent(key="blocked-reason", lang=lang), value=work.blockedReason | default(value=""), required=false) }}
                         {% if blocked_role_options is defined %}
-                        {{ forms::select(name="blocked_on_role_id", label=fluent(key="blocked-on-role", lang=lang), options=blocked_role_options, selected=work.blockedOnRole.id | default(value=""), required=false, blank_label=fluent(key="blocked-on-none", lang=lang)) }}
+                        {{ forms::filter_select(name="blocked_on_role_id", label=fluent(key="blocked-on-role", lang=lang), options=blocked_role_options, filter_label=fluent(key="filter-roles", lang=lang), selected=work.blockedOnRole.id | default(value=""), required=false, blank_label=fluent(key="blocked-on-none", lang=lang), lang=lang) }}
                         {% endif %}
                     </div>
                 </div>
