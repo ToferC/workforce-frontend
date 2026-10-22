@@ -50,7 +50,7 @@ pub async fn admin_users(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     match all_users(auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => ctx.insert("users", &r.all_users),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     render_page(&data, "admin/users.html", &ctx)
@@ -80,7 +80,8 @@ pub async fn admin_user_new_form(
     render_page(&data, "admin/user_form.html", &ctx)
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct UserCreateForm {
     pub csrf_token: String,
     pub name: String,
@@ -123,7 +124,7 @@ pub async fn admin_user_create(
             redirect_to(format!("/{}/admin/users", &lang))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             redirect_to(format!("/{}/admin/users/new", &lang))
         },
     }
@@ -148,7 +149,7 @@ pub async fn admin_user_edit_form(
     let r = match get_user_by_id(user_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/admin/users", &lang));
         },
     };
@@ -162,7 +163,8 @@ pub async fn admin_user_edit_form(
     render_page(&data, "admin/user_form.html", &ctx)
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct UserEditForm {
     pub csrf_token: String,
     pub name: String,
@@ -203,14 +205,15 @@ pub async fn admin_user_update(
 
     match update_user(user_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "User updated.", "Utilisateur mis à jour.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
     redirect_to(format!("/{}/admin/users", &lang))
 }
 
 // ── Lifecycle actions ────────────────────────────────────────────────────────
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct CsrfOnlyForm {
     pub csrf_token: String,
 }
@@ -243,7 +246,7 @@ pub async fn admin_user_invite(
                 &format!("Invitation émise. Lien d'activation : {}", link),
             ));
         },
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
     redirect_to(format!("/{}/admin/users", &lang))
 }
@@ -269,7 +272,7 @@ pub async fn admin_user_disable(
 
     match disable_user(user_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "User disabled.", "Utilisateur désactivé.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
     redirect_to(format!("/{}/admin/users", &lang))
 }
@@ -295,7 +298,7 @@ pub async fn admin_user_enable(
 
     match enable_user(user_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "User enabled.", "Utilisateur activé.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
     redirect_to(format!("/{}/admin/users", &lang))
 }
@@ -319,7 +322,7 @@ pub async fn admin_flags(
     let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
     match record_flags(auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => ctx.insert("flags", &r.record_flags),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     render_page(&data, "admin/flags.html", &ctx)
@@ -346,7 +349,7 @@ pub async fn admin_flag_resolve(
 
     match resolve_record_flag(flag_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Flag resolved.", "Signalement résolu.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
     redirect_to(format!("/{}/admin/flags", &lang))
 }

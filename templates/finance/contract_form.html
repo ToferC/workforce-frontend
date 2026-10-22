@@ -2,7 +2,7 @@
 {% import "macros/forms.html" as forms %}
 
 {% block title %}
-    {% if contract %}
+    {% if contract.id %}
     <title>{{ fluent(key="edit-contract", lang=lang) }}</title>
     {% else %}
     <title>{{ fluent(key="add-contract", lang=lang) }}</title>
@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="col-12 col-md-8 px-md-4 px-2 py-4">
-    {% if contract %}
+    {% if contract.id %}
     <h1 class="mb-1"><i class="bi bi-receipt" aria-hidden="true"></i> {{ fluent(key="edit-contract", lang=lang) }}</h1>
     <p class="text-muted mb-4">{{ contract.referenceNumber }} — {{ contract.vendor }}</p>
     {% else %}
@@ -32,31 +32,22 @@
 
     <div class="card shadow-lg">
         <div class="card-body">
-            {% if contract %}
+            {% if contract.id %}
             <form method="post" action="/{{ lang }}/contract/{{ contract.id }}/edit">
+                <input type="hidden" name="task_id" value="{{ task_id }}">
             {% else %}
             <form method="post" action="/{{ lang }}/task/{{ task_id }}/contract/new">
             {% endif %}
                 {{ forms::csrf(token=csrf_token) }}
                 {{ forms::error_summary() }}
 
-                {% if contract %}
-                {{ forms::text_input(name="reference_number", label=label_reference, value=contract.referenceNumber) }}
-                {{ forms::text_input(name="vendor", label=label_vendor, value=contract.vendor) }}
-                {{ forms::textarea(name="description", label=label_description, value=contract.description, required=false) }}
-                {{ forms::date_input(name="start_date", label=label_start, value=contract.startDate, required=true) }}
-                {{ forms::date_input(name="end_date", label=label_end, value=contract.endDate, required=true) }}
-                {{ forms::text_input(name="total_value", label=label_value, value=contract.totalValueDollars, help=help_value) }}
-                {{ forms::select(name="status", label=label_status, options=contract_statuses, selected=contract.status, label_kind="status", lang=lang) }}
-                {% else %}
-                {{ forms::text_input(name="reference_number", label=label_reference, placeholder="PSPC-2026-1234") }}
-                {{ forms::text_input(name="vendor", label=label_vendor) }}
-                {{ forms::textarea(name="description", label=label_description, required=false) }}
-                {{ forms::date_input(name="start_date", label=label_start, value=today, required=true) }}
-                {{ forms::date_input(name="end_date", label=label_end, required=true) }}
-                {{ forms::text_input(name="total_value", label=label_value, help=help_value) }}
-                {{ forms::select(name="status", label=label_status, options=contract_statuses, selected="ACTIVE", label_kind="status", lang=lang) }}
-                {% endif %}
+                {{ forms::text_input(name="reference_number", label=label_reference, value=contract.referenceNumber | default(value=""), placeholder="PSPC-2026-1234", error=field_errors.reference_number | default(value="")) }}
+                {{ forms::text_input(name="vendor", label=label_vendor, value=contract.vendor | default(value="")) }}
+                {{ forms::textarea(name="description", label=label_description, value=contract.description | default(value=""), required=false) }}
+                {{ forms::date_input(name="start_date", label=label_start, value=contract.startDate | default(value=""), required=true, error=field_errors.start_date | default(value="")) }}
+                {{ forms::date_input(name="end_date", label=label_end, value=contract.endDate | default(value=""), required=true, error=field_errors.end_date | default(value="")) }}
+                {{ forms::text_input(name="total_value", label=label_value, value=contract.totalValueDollars | default(value=""), help=help_value, error=field_errors.total_value | default(value="")) }}
+                {{ forms::select(name="status", label=label_status, options=contract_statuses, selected=contract.status | default(value=""), label_kind="status", lang=lang) }}
 
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>

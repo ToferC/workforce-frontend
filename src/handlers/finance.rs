@@ -11,7 +11,7 @@ use crate::graphql::{
     create_contract, update_contract, delete_contract, get_contract_by_id,
     all_pay_rates, create_pay_rate, set_budget_allocation,
 };
-use crate::handlers::utility::{redirect_to, csrf_failure_flash, session_bearer, render_page, render_confirm};
+use crate::handlers::utility::{redirect_to, csrf_failure_flash, session_bearer, render_page, render_confirm, check_csrf, Csrf, guarded, api_error_flash, FieldErrors};
 use crate::security::{self, MinimumRole};
 use super::role::{RANKS, OCCUPATIONAL_GROUPS};
 use super::admin::CsrfOnlyForm;
@@ -98,16 +98,82 @@ fn parse_form_date(input: &str) -> Option<chrono::NaiveDateTime> {
 // Contracts (under a task)
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct ContractForm {
     pub csrf_token: String,
     pub reference_number: String,
     pub vendor: String,
+    /// Optional: an empty field is not submitted at all.
+    #[serde(default)]
     pub description: String,
     pub start_date: String,
     pub end_date: String,
     pub total_value: String,
     pub status: String,
+}
+
+/// The contract form (create when `contract` has no id, edit otherwise),
+/// filled from `contract`. Shared by the GET handlers and every failed post,
+/// so a rejected submission comes back exactly as typed.
+fn render_contract_form(
+    data: &AppData,
+    mut ctx: tera::Context,
+    task_id: &str,
+    contract: serde_json::Value,
+    errors: &FieldErrors,
+) -> actix_web::HttpResponse {
+    ctx.insert("task_id", task_id);
+    ctx.insert("contract", &contract);
+    ctx.insert("contract_statuses", &enum_options(&CONTRACT_STATUSES));
+    ctx.insert("field_errors", errors);
+    render_page(data, "finance/contract_form.html", &ctx)
+}
+
+fn contract_from_form(form: &ContractForm, id: Option<&str>) -> serde_json::Value {
+    json!({
+        "id": id,
+        "referenceNumber": form.reference_number,
+        "vendor": form.vendor,
+        "description": form.description,
+        "startDate": form.start_date,
+        "endDate": form.end_date,
+        "totalValueDollars": form.total_value,
+        "status": form.status,
+    })
+}
+
+/// Parsed dates and value, or the message for each field that is wrong.
+fn validate_contract(form: &ContractForm, lang: &str) -> Result<(chrono::NaiveDateTime, chrono::NaiveDateTime, i64), FieldErrors> {
+    let (start, end, cents) = (
+        parse_form_date(&form.start_date),
+        parse_form_date(&form.end_date),
+        dollars_to_cents(&form.total_value, lang),
+    );
+    let mut errors = FieldErrors::new();
+    if start.is_none() {
+        errors.insert("start_date", by_lang(lang, "Enter a valid start date.", "Entrez une date de début valide.").to_string());
+    }
+    if end.is_none() {
+        errors.insert("end_date", by_lang(lang, "Enter a valid end date.", "Entrez une date de fin valide.").to_string());
+    }
+    if cents.is_none() {
+        errors.insert("total_value", by_lang(lang, "Enter the value as a number, for example 125000.50.", "Entrez la valeur sous forme de nombre, par exemple 125000,50.").to_string());
+    }
+    match (start, end, cents) {
+        (Some(start), Some(end), Some(_)) if end < start => {
+            errors.insert("end_date", by_lang(lang, "The end date cannot precede the start date.", "La date de fin ne peut pas précéder la date de début.").to_string());
+            Err(errors)
+        },
+        (Some(start), Some(end), Some(cents)) => Ok((start, end, cents)),
+        _ => Err(errors),
+    }
+}
+
+fn invalid_form_flash(session: &actix_session::Session, lang: &str) {
+    security::add_flash(session, "danger", by_lang(lang,
+        "Some fields need attention. Nothing was saved.",
+        "Certains champs sont à corriger. Rien n'a été enregistré."));
 }
 
 #[get("/{lang}/task/{task_id}/contract/new")]
@@ -124,18 +190,16 @@ pub async fn create_contract_form(
         return response;
     }
 
-    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
-    ctx.insert("task_id", &task_id);
-    ctx.insert("contract_statuses", &enum_options(&CONTRACT_STATUSES));
-    ctx.insert("today", &chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string());
-
-    render_page(&data, "finance/contract_form.html", &ctx)
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    let today = chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string();
+    let contract = json!({"startDate": today, "status": "ACTIVE"});
+    render_contract_form(&data, ctx, &task_id, contract, &FieldErrors::new())
 }
 
 #[post("/{lang}/task/{task_id}/contract/new")]
 pub async fn create_contract_post(
     data: web::Data<AppData>,
-    _id: Option<Identity>,
+    id: Option<Identity>,
     path_params: web::Path<(String, String)>,
     form: web::Form<ContractForm>,
     req: HttpRequest,
@@ -148,48 +212,42 @@ pub async fn create_contract_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/task/{}/contract/new", &lang, &task_id));
     }
 
-    let (start, end, cents) = (
-        parse_form_date(&form.start_date),
-        parse_form_date(&form.end_date),
-        dollars_to_cents(&form.total_value, &lang),
-    );
-    let (Some(start), Some(end), Some(cents)) = (start, end, cents) else {
-        security::add_flash(&session, "danger", by_lang(&lang,
-            "Enter valid start and end dates and a contract value.",
-            "Entrez des dates de début et de fin valides ainsi qu'une valeur de contrat."));
-        return redirect_to(format!("/{}/task/{}/contract/new", &lang, &task_id));
-    };
-    if end < start {
-        security::add_flash(&session, "danger", by_lang(&lang,
-            "The end date cannot precede the start date.",
-            "La date de fin ne peut pas précéder la date de début."));
-        return redirect_to(format!("/{}/task/{}/contract/new", &lang, &task_id));
-    }
-
-    let new_contract = create_contract::NewContract {
-        task_id: task_id.clone(),
-        reference_number: form.reference_number.trim().to_string(),
-        vendor: form.vendor.trim().to_string(),
-        description: form.description.trim().to_string(),
-        start_date: start,
-        end_date: end,
-        total_value_cents: cents,
-        status: serde_json::from_value(json!(form.status))
-            .unwrap_or(create_contract::ContractStatus::ACTIVE),
+    let errors = match validate_contract(&form, &lang) {
+        Err(errors) => {
+            invalid_form_flash(&session, &lang);
+            errors
+        },
+        Ok((start, end, cents)) => {
+            let new_contract = create_contract::NewContract {
+                task_id: task_id.clone(),
+                reference_number: form.reference_number.trim().to_string(),
+                vendor: form.vendor.trim().to_string(),
+                description: form.description.trim().to_string(),
+                start_date: start,
+                end_date: end,
+                total_value_cents: cents,
+                status: serde_json::from_value(json!(form.status))
+                    .unwrap_or(create_contract::ContractStatus::ACTIVE),
+            };
+            match guarded(&csrf, create_contract(new_contract, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
+                Ok(_) => {
+                    security::add_flash(&session, "success",
+                        by_lang(&lang, "Contract recorded.", "Contrat enregistré."));
+                    return redirect_to(format!("/{}/task/{}", &lang, &task_id));
+                },
+                Err(e) => api_error_flash(&session, &lang, &e),
+            }
+        },
     };
 
-    match create_contract(new_contract, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
-        Ok(_) => security::add_flash(&session, "success",
-            by_lang(&lang, "Contract recorded.", "Contrat enregistré.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
-    };
-
-    redirect_to(format!("/{}/task/{}", &lang, &task_id))
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    render_contract_form(&data, ctx, &task_id, contract_from_form(&form, None), &errors)
 }
 
 #[get("/{lang}/contract/{contract_id}/edit")]
@@ -210,14 +268,13 @@ pub async fn edit_contract_form(
     let contract = match get_contract_by_id(contract_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.contract_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/tasks", &lang));
         },
     };
 
-    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
-    ctx.insert("task_id", &contract.task_id);
-    ctx.insert("contract", &json!({
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    let values = json!({
         "id": contract.id,
         "referenceNumber": contract.reference_number,
         "vendor": contract.vendor,
@@ -226,75 +283,72 @@ pub async fn edit_contract_form(
         "endDate": contract.end_date.format("%Y-%m-%d").to_string(),
         "totalValueDollars": format!("{:.2}", contract.total_value_cents as f64 / 100.0),
         "status": format!("{:?}", contract.status),
-    }));
-    ctx.insert("contract_statuses", &enum_options(&CONTRACT_STATUSES));
+    });
+    render_contract_form(&data, ctx, &contract.task_id, values, &FieldErrors::new())
+}
 
-    render_page(&data, "finance/contract_form.html", &ctx)
+/// Hidden on the edit form so a failed post can re-render it (and its
+/// Cancel link) without another API round trip.
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
+pub struct ContractEditForm {
+    #[serde(flatten)]
+    pub contract: ContractForm,
+    pub task_id: String,
 }
 
 #[post("/{lang}/contract/{contract_id}/edit")]
 pub async fn edit_contract_post(
     data: web::Data<AppData>,
-    _id: Option<Identity>,
+    id: Option<Identity>,
     path_params: web::Path<(String, String)>,
-    form: web::Form<ContractForm>,
+    form: web::Form<ContractEditForm>,
     req: HttpRequest,
 ) -> impl Responder {
     let (lang, contract_id) = path_params.into_inner();
     let session = req.get_session();
+    let ContractEditForm { contract: form, task_id } = form.into_inner();
 
     let auth = match security::require_role(&session, &lang, MinimumRole::Operator) {
         Ok(auth) => auth,
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/contract/{}/edit", &lang, &contract_id));
     }
 
-    let (start, end, cents) = (
-        parse_form_date(&form.start_date),
-        parse_form_date(&form.end_date),
-        dollars_to_cents(&form.total_value, &lang),
-    );
-    let (Some(start), Some(end), Some(cents)) = (start, end, cents) else {
-        security::add_flash(&session, "danger", by_lang(&lang,
-            "Enter valid start and end dates and a contract value.",
-            "Entrez des dates de début et de fin valides ainsi qu'une valeur de contrat."));
-        return redirect_to(format!("/{}/contract/{}/edit", &lang, &contract_id));
-    };
-    if end < start {
-        security::add_flash(&session, "danger", by_lang(&lang,
-            "The end date cannot precede the start date.",
-            "La date de fin ne peut pas précéder la date de début."));
-        return redirect_to(format!("/{}/contract/{}/edit", &lang, &contract_id));
-    }
-
-    let update = update_contract::ContractUpdate {
-        id: contract_id.clone(),
-        reference_number: Some(form.reference_number.trim().to_string()),
-        vendor: Some(form.vendor.trim().to_string()),
-        description: Some(form.description.trim().to_string()),
-        start_date: Some(start),
-        end_date: Some(end),
-        total_value_cents: Some(cents),
-        status: serde_json::from_value(json!(form.status)).ok(),
-    };
-
-    let task_id = match update_contract(update, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
-        Ok(r) => {
-            security::add_flash(&session, "success",
-                by_lang(&lang, "Contract updated.", "Contrat mis à jour."));
-            r.update_contract.task_id
+    let errors = match validate_contract(&form, &lang) {
+        Err(errors) => {
+            invalid_form_flash(&session, &lang);
+            errors
         },
-        Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
-            return redirect_to(format!("/{}/contract/{}/edit", &lang, &contract_id));
+        Ok((start, end, cents)) => {
+            let update = update_contract::ContractUpdate {
+                id: contract_id.clone(),
+                reference_number: Some(form.reference_number.trim().to_string()),
+                vendor: Some(form.vendor.trim().to_string()),
+                description: Some(form.description.trim().to_string()),
+                start_date: Some(start),
+                end_date: Some(end),
+                total_value_cents: Some(cents),
+                status: serde_json::from_value(json!(form.status)).ok(),
+            };
+            match guarded(&csrf, update_contract(update, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
+                Ok(r) => {
+                    security::add_flash(&session, "success",
+                        by_lang(&lang, "Contract updated.", "Contrat mis à jour."));
+                    return redirect_to(format!("/{}/task/{}", &lang, r.update_contract.task_id));
+                },
+                Err(e) => api_error_flash(&session, &lang, &e),
+            }
         },
     };
 
-    redirect_to(format!("/{}/task/{}", &lang, &task_id))
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    render_contract_form(&data, ctx, &task_id, contract_from_form(&form, Some(&contract_id)), &errors)
 }
 
 #[get("/{lang}/contract/{contract_id}/delete")]
@@ -315,7 +369,7 @@ pub async fn delete_contract_form(
     let contract = match get_contract_by_id(contract_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.contract_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/tasks", &lang));
         },
     };
@@ -367,7 +421,7 @@ pub async fn delete_contract_post(
     match delete_contract(contract_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success",
             by_lang(&lang, "Contract deleted.", "Contrat supprimé.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     match task_id {
@@ -385,7 +439,8 @@ pub async fn delete_contract_post(
 /// `#[serde(default)]`: an untouched form-associated GCDS component submits
 /// no value at all (not an empty string), and without the default actix
 /// rejects the whole POST with an opaque "missing field" parse error.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct CivilianRateForm {
     pub csrf_token: String,
     #[serde(default)]
@@ -398,7 +453,8 @@ pub struct CivilianRateForm {
     pub effective_date: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct MilitaryRateForm {
     pub csrf_token: String,
     #[serde(default)]
@@ -427,7 +483,7 @@ pub async fn pay_rates_admin(
     let rates = match all_pay_rates(bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.pay_rates,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -512,7 +568,7 @@ async fn submit_pay_rate(
     match create_pay_rate(new_rate, bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(session, "success",
             by_lang(lang, "Pay rate added.", "Taux de rémunération ajouté.")),
-        Err(e) => security::add_flash(session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(session, "danger", &e.user_message(lang)),
     };
     redirect_to(format!("/{}/admin/pay_rates", lang))
 }
@@ -623,7 +679,8 @@ pub async fn pay_rate_military_post(
 // Budget allocations (org tiers)
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct BudgetForm {
     pub csrf_token: String,
     pub amount: String,
@@ -669,7 +726,7 @@ pub async fn set_org_tier_budget_post(
     match set_budget_allocation(org_tier_id.clone(), Some(fiscal_year), cents, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success",
             by_lang(&lang, "Budget allocation saved.", "Allocation budgétaire enregistrée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/org_tier/{}", &lang, &org_tier_id))

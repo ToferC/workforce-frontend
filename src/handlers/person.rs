@@ -10,7 +10,7 @@ use crate::{AppData, generate_basic_context, by_lang, level_weight, enum_label, 
 use crate::graphql::{get_people_by_name, get_person_by_id, get_user_by_email, get_me, create_person, update_person, all_organizations, all_people, create_affiliation, update_affiliation, create_language_data, restore_person};
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_confirm, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_confirm, render_page, session_bearer, check_csrf, Csrf, guarded, api_error_flash, field_errors, FieldErrors};
 
 /// PersonnelType enum values, kept in sync with the API schema.
 pub const PERSONNEL_TYPES: [&str; 5] = ["MILITARY", "CIVILIAN", "CONTRACTOR", "STUDENT", "OTHER"];
@@ -19,7 +19,8 @@ pub fn personnel_type_options() -> serde_json::Value {
     json!(PERSONNEL_TYPES.iter().map(|t| json!({"value": t, "label": humanize(t)})).collect::<Vec<serde_json::Value>>())
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct PersonForm {
     pub csrf_token: String,
     // Create only: the email of the user account this person links to
@@ -42,7 +43,8 @@ pub struct PersonForm {
     pub personnel_type: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RetireForm {
     pub csrf_token: String,
 }
@@ -93,7 +95,7 @@ pub async fn resolve_person_by_name(name: &str, bearer: &str, lang: &str, data: 
                     "Plusieurs personnes correspondent à ce nom — veuillez utiliser le prénom et le nom complets.").to_string())
             }
         },
-        Err(e) => Err(e.to_string()),
+        Err(e) => Err(e.user_message(lang)),
     }
 }
 
@@ -133,7 +135,7 @@ pub async fn person_by_name(
     let people = match get_people_by_name(name, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/people", &lang));
         },
     };
@@ -160,7 +162,7 @@ pub async fn person_by_id(
     let r = match get_person_by_id(person_id.clone(), bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/people", &lang));
         },
     };
@@ -278,7 +280,8 @@ pub async fn person_by_id(
     render_page(&data, "person/person.html", &ctx)
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct GrantAccessForm {
     pub csrf_token: String,
 }
@@ -320,7 +323,7 @@ pub async fn grant_access_post(
                 ),
             );
         },
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
@@ -371,15 +374,17 @@ pub async fn create_person_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/person/new", &lang));
     }
 
-    let render_error = |ctx_error: String, id: Option<Identity>, organization_options: serde_json::Value| {
+    let render_error = |ctx_error: String, errors: FieldErrors, id: Option<Identity>, organization_options: serde_json::Value| {
         // Flash must be queued before generate_basic_context drains the queue
         security::add_flash(&session, "danger", &ctx_error);
         let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+        ctx.insert("field_errors", &errors);
         ctx.insert("edit", &false);
         ctx.insert("person", &person_from_form(&form, None));
         ctx.insert("organization_options", &organization_options);
@@ -396,7 +401,8 @@ pub async fn create_person_post(
             "Une adresse courriel est requise — elle devient l'identifiant du compte de la personne.",
         ).to_string();
         let options = organization_options(&auth.bearer, &data).await;
-        return render_error(message, id, options);
+        let errors = FieldErrors::from([("email", message.clone())]);
+        return render_error(message, errors, id, options);
     }
 
     let new_person = create_person::NewPersonInput {
@@ -416,7 +422,7 @@ pub async fn create_person_post(
             .expect("PersonnelType deserialization is infallible"),
     };
 
-    match create_person(new_person, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_person(new_person, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(
                 &session,
@@ -427,7 +433,7 @@ pub async fn create_person_post(
         },
         Err(e) => {
             let options = organization_options(&auth.bearer, &data).await;
-            render_error(e.to_string(), id, options)
+            render_error(e.user_message(&lang), field_errors(&e, &lang), id, options)
         },
     }
 }
@@ -450,7 +456,7 @@ pub async fn edit_person_form(
     let r = match get_person_by_id(person_id, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -480,7 +486,8 @@ pub async fn edit_person_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/person/{}/edit", &lang, &person_id));
     }
@@ -506,7 +513,7 @@ pub async fn edit_person_post(
         retired_at: None,
     };
 
-    match update_person(person_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, update_person(person_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(
                 &session,
@@ -516,9 +523,10 @@ pub async fn edit_person_post(
             redirect_to(format!("/{}/person/{}", &lang, response.update_person.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
 
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("person", &person_from_form(&form, Some(&person_id)));
             ctx.insert("organization_options", &organization_options(&auth.bearer, &data).await);
@@ -547,7 +555,7 @@ pub async fn retire_person_form(
     let r = match get_person_by_id(person_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -608,14 +616,15 @@ pub async fn retire_person_post(
             );
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
         },
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct AffiliationForm {
     pub csrf_token: String,
     pub organization_id: String,
@@ -624,7 +633,8 @@ pub struct AffiliationForm {
     pub end_date: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct EndAffiliationForm {
     pub csrf_token: String,
 }
@@ -653,7 +663,7 @@ pub async fn create_affiliation_form(
     let person = match get_person_by_id(person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.person_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -691,7 +701,7 @@ pub async fn create_affiliation_post(
     let home_org_id = match get_person_by_id(person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.person_by_id.organization.id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/person/{}", &lang, &person_id));
         },
     };
@@ -706,7 +716,7 @@ pub async fn create_affiliation_post(
 
     match create_affiliation(new_affiliation, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Affiliation added.", "Affiliation ajoutée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
@@ -742,7 +752,7 @@ pub async fn end_affiliation_post(
 
     match update_affiliation(affiliation_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Affiliation ended.", "Affiliation terminée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
@@ -757,7 +767,8 @@ pub const LANGUAGE_NAMES: [&str; 10] = [
 /// LanguageLevel enum values (Canadian government scale; X = none).
 pub const LANGUAGE_LEVELS: [&str; 5] = ["A", "B", "C", "E", "X"];
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct LanguageForm {
     pub csrf_token: String,
     pub language_name: String,
@@ -815,7 +826,7 @@ pub async fn create_language_form(
     let person = match get_person_by_id(person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.person_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -859,14 +870,15 @@ pub async fn create_language_post(
 
     match create_language_data(new_language, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Language added.", "Langue ajoutée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
 }
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct PeopleIndexParams {
     #[serde(default)]
     pub retired: String,
@@ -972,7 +984,7 @@ pub async fn restore_person_post(
 
     match restore_person(person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Person restored.", "Personne restaurée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
@@ -997,7 +1009,7 @@ pub async fn end_affiliation_form(
     let person = match get_person_by_id(person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.person_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/people", &lang));
         },
     };
@@ -1026,7 +1038,8 @@ pub async fn end_affiliation_form(
     )
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct PersonOptionsParams {
     /// The typeahead sends the bound field's own name via hx-include, so
     /// accept the common field names as the query.

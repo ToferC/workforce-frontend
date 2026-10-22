@@ -23,10 +23,10 @@
 
     <div class="row">
         <div class="col-md-6">
-            {{ forms::text_input(name="name_en", label=label_name_en, value=org_tier.nameEn) }}
+            {{ forms::text_input(name="name_en", label=label_name_en, value=org_tier.nameEn, error=field_errors.name_en | default(value="")) }}
         </div>
         <div class="col-md-6">
-            {{ forms::text_input(name="name_fr", label=label_name_fr, value=org_tier.nameFr) }}
+            {{ forms::text_input(name="name_fr", label=label_name_fr, value=org_tier.nameFr, error=field_errors.name_fr | default(value="")) }}
         </div>
     </div>
     <div class="row">

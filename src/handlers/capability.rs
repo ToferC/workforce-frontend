@@ -19,14 +19,16 @@ pub fn level_options() -> serde_json::Value {
         .collect::<Vec<serde_json::Value>>())
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct CapabilityForm {
     pub csrf_token: String,
     pub skill_id: String,
     pub self_identified_level: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RetireForm {
     pub csrf_token: String,
 }
@@ -57,7 +59,7 @@ pub async fn capability_search(
     ).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -86,7 +88,7 @@ pub async fn create_capability_form(
     let person = match get_person_by_id(person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.person_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -127,14 +129,14 @@ pub async fn create_capability_post(
     let person = match get_person_by_id(person_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.person_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/person/{}", &lang, &person_id));
         },
     };
     let skill = match get_skill_by_id(form.skill_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.skill_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/person/{}/capability/new", &lang, &person_id));
         },
     };
@@ -151,7 +153,7 @@ pub async fn create_capability_post(
 
     match create_capability(new_capability, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Capability added.", "Capacité ajoutée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
@@ -187,13 +189,14 @@ pub async fn retire_capability_post(
 
     match update_capability(capability_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Capability retired.", "Capacité retirée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct ValidationForm {
     pub csrf_token: String,
     pub validated_level: String,
@@ -267,7 +270,7 @@ pub async fn validate_capability_post(
     let validator_id = match get_user_by_email(session_email, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.user_by_email.id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/person/{}", &lang, &person_id));
         },
     };
@@ -279,7 +282,7 @@ pub async fn validate_capability_post(
     };
     match create_validation(new_validation, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Validation recorded.", "Validation enregistrée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/person/{}", &lang, &person_id))
@@ -304,7 +307,7 @@ pub async fn retire_capability_form(
     let person = match get_person_by_id(person_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.person_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/people", &lang));
         },
     };

@@ -8,10 +8,11 @@ use std::sync::Arc;
 use crate::{AppData, generate_basic_context, by_lang};
 use crate::graphql::{get_organization_by_id, all_organizations, create_organization, update_organization, restore_organization, org_tier_financials};
 use crate::security::{self, MinimumRole};
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_page, session_bearer, check_csrf, Csrf, guarded, api_error_flash};
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct OrgIndexParams {
     #[serde(default)]
     pub retired: String,
@@ -63,7 +64,8 @@ pub async fn organization_index(
     render_page(&data, template, &ctx)
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct OrganizationForm {
     pub csrf_token: String,
     pub name_en: String,
@@ -74,7 +76,8 @@ pub struct OrganizationForm {
     pub url: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RetireForm {
     pub csrf_token: String,
 }
@@ -95,7 +98,7 @@ pub async fn organization_by_id(
     let r = match get_organization_by_id(organization_id, bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/organizations", &lang));
         },
     };
@@ -210,7 +213,8 @@ pub async fn create_organization_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/organization/new", &lang));
     }
@@ -224,7 +228,7 @@ pub async fn create_organization_post(
         url: form.url.trim().to_string(),
     };
 
-    match create_organization(new_organization, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_organization(new_organization, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             // The API seeds a starter Executive tier with a vacant "Head" role
             // (see createOrganization). Point the operator straight at the org
@@ -242,9 +246,10 @@ pub async fn create_organization_post(
             redirect_to(format!("/{}/organization/{}/org_chart", &lang, response.create_organization.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
 
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &false);
             ctx.insert("organization", &organization_from_form(&form, None));
 
@@ -271,7 +276,7 @@ pub async fn edit_organization_form(
     let r = match get_organization_by_id(organization_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -299,7 +304,8 @@ pub async fn edit_organization_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/organization/{}/edit", &lang, &organization_id));
     }
@@ -315,7 +321,7 @@ pub async fn edit_organization_post(
         retired_at: None,
     };
 
-    match update_organization(organization_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, update_organization(organization_data, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(
                 &session,
@@ -325,9 +331,10 @@ pub async fn edit_organization_post(
             redirect_to(format!("/{}/organization/{}", &lang, response.update_organization.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
 
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("organization", &organization_from_form(&form, Some(&organization_id)));
 
@@ -354,7 +361,7 @@ pub async fn retire_organization_form(
     let r = match get_organization_by_id(organization_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}", &lang));
         },
     };
@@ -407,7 +414,7 @@ pub async fn retire_organization_post(
             );
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
         },
     };
 
@@ -437,7 +444,7 @@ pub async fn restore_organization_post(
 
     match restore_organization(organization_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Organization restored.", "Organisation restaurée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/organization/{}", &lang, &organization_id))

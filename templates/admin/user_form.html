@@ -26,7 +26,7 @@
                 {{ forms::error_summary() }}
 
                 {{ forms::text_input(name="name", label=fluent(key="name", lang=lang), value=user.name) }}
-                {{ forms::text_input(name="email", label=fluent(key="email", lang=lang), value=user.email, type="email") }}
+                {{ forms::text_input(name="email", label=fluent(key="email", lang=lang), value=user.email, type="email", error=field_errors.email | default(value="")) }}
 
                 {% if edit %}
                 <div class="mb-3">

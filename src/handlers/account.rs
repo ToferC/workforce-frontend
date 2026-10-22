@@ -33,7 +33,8 @@ pub async fn activate_form(
     render_page(&data, "authentication/activate.html", &ctx)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
+#[serde(default)]
 pub struct ActivateForm {
     pub csrf_token: String,
     pub token: String,
@@ -72,7 +73,7 @@ pub async fn activate_post(
             redirect_to(format!("/{}/log_in", &lang))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             redirect_to(back)
         },
     }
@@ -99,13 +100,14 @@ pub async fn my_profile(
 
     match get_me(auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => ctx.insert("me", &r.me),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     render_page(&data, "account/profile.html", &ctx)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
+#[serde(default)]
 pub struct MyProfileForm {
     pub csrf_token: String,
     pub given_name: String,
@@ -156,13 +158,14 @@ pub async fn my_profile_post(
 
     match update_my_person(input, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Profile updated.", "Profil mis à jour.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/me", &lang))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
+#[serde(default)]
 pub struct FlagForm {
     pub csrf_token: String,
     pub message: String,
@@ -194,13 +197,14 @@ pub async fn flag_issue_post(
 
     match flag_record_issue(form.message.trim().to_string(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Thanks — your note was sent to an administrator.", "Merci — votre note a été envoyée à un administrateur.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     redirect_to(format!("/{}/me", &lang))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct MyCapabilityForm {
     pub csrf_token: String,
     pub skill_id: String,
@@ -267,7 +271,7 @@ pub async fn my_capability_post(
 
     match crate::graphql::add_my_capability(form.skill_id.clone(), level, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Capability added to your profile.", "Capacité ajoutée à votre profil.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     };
 
     // Land on the person page so the new capability is visible in context.

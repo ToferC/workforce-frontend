@@ -12,7 +12,7 @@ use crate::security::{self, MinimumRole};
 use super::org_tier::{skill_domain_options, humanize};
 use super::product::product_options;
 use super::team::team_role_options;
-use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer, check_csrf, Csrf, guarded, api_error_flash};
 
 /// WorkStatus enum values (used by both tasks and work).
 pub const WORK_STATUSES: [&str; 5] = ["PLANNING", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"];
@@ -33,7 +33,8 @@ pub fn parse_date(value: &str) -> Option<NaiveDateTime> {
 
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct TaskForm {
     pub csrf_token: String,
     pub title: String,
@@ -93,7 +94,7 @@ pub async fn task_index(
     let tasks = match all_tasks(bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.all_tasks,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             Vec::new()
         },
     };
@@ -118,7 +119,7 @@ pub async fn task_by_id(
     let r = match get_task_by_id(task_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/tasks", &lang));
         },
     };
@@ -177,7 +178,8 @@ pub async fn create_task_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/role/{}/task/new", &lang, &role_id));
     }
@@ -196,14 +198,15 @@ pub async fn create_task_post(
         product_id: if form.product_id.trim().is_empty() { None } else { Some(form.product_id.clone()) },
     };
 
-    match create_task(new_task, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_task(new_task, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Task created.", "Tâche créée."));
             redirect_to(format!("/{}/task/{}", &lang, response.create_task.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &false);
             ctx.insert("role_id", &role_id);
             ctx.insert("task", &task_from_form(&form, None));
@@ -237,7 +240,7 @@ pub async fn edit_task_form(
     let r = match task_res {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/tasks", &lang));
         },
     };
@@ -269,7 +272,8 @@ pub async fn edit_task_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/task/{}/edit", &lang, &task_id));
     }
@@ -290,14 +294,15 @@ pub async fn edit_task_post(
         product_id: if form.product_id.trim().is_empty() { None } else { Some(form.product_id.clone()) },
     };
 
-    match update_task(task_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, update_task(task_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Task updated.", "Tâche mise à jour."));
             redirect_to(format!("/{}/task/{}", &lang, response.update_task.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("task", &task_from_form(&form, Some(&task_id)));
             ctx.insert("skill_domains", &skill_domain_options());
@@ -333,7 +338,7 @@ pub async fn create_product_task_form(
     let product = match product_res {
         Ok(r) => r.product_by_id,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/products", &lang));
         },
     };
@@ -384,7 +389,7 @@ pub async fn create_team_task_form(
     let team = match team_res {
         Ok(r) => serde_json::to_value(&r.team_by_id).unwrap_or_else(|_| json!({})),
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/team/{}", &lang, &team_id));
         },
     };
@@ -425,7 +430,8 @@ pub async fn create_team_task_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/team/{}/task/new", &lang, &team_id));
     }
@@ -449,13 +455,13 @@ pub async fn create_team_task_post(
         product_id: if form.product_id.trim().is_empty() { None } else { Some(form.product_id.clone()) },
     };
 
-    match create_task(new_task, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_task(new_task, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Task created.", "Tâche créée."));
             redirect_to(format!("/{}/task/{}", &lang, response.create_task.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
             let (team_res, product_opts) = futures::join!(
                 get_team_by_id(team_id.clone(), auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)),
                 product_options(&auth.bearer, &data),
@@ -464,6 +470,7 @@ pub async fn create_team_task_post(
                 .map(|r| serde_json::to_value(&r.team_by_id).unwrap_or_else(|_| json!({})))
                 .unwrap_or_else(|_| json!({}));
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &false);
             ctx.insert("role_options", &team_role_options(&team));
             ctx.insert("form_action", &format!("/{}/team/{}/task/new", &lang, &team_id));
@@ -481,7 +488,8 @@ pub async fn create_team_task_post(
 // ── Approval workflow (Proposal 7b) ──────────────────────────────────────────
 
 /// CSRF-only form for the submit / approve actions.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct ApprovalActionForm {
     pub csrf_token: String,
     #[serde(default)]
@@ -489,7 +497,8 @@ pub struct ApprovalActionForm {
 }
 
 /// Reject form: CSRF + a required reason.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct RejectForm {
     pub csrf_token: String,
     #[serde(default)]
@@ -526,7 +535,7 @@ pub async fn submit_task_approval_post(
     }
     match submit_task_for_approval(task_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Task submitted for approval.", "Tâche soumise pour approbation.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     }
     approval_redirect(&form.return_to, &lang, &task_id)
 }
@@ -551,7 +560,7 @@ pub async fn approve_task_post(
     }
     match approve_task(task_id.clone(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Task approved.", "Tâche approuvée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     }
     approval_redirect(&form.return_to, &lang, &task_id)
 }
@@ -580,7 +589,7 @@ pub async fn reject_task_post(
     }
     match reject_task(task_id.clone(), form.reason.trim().to_string(), auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(_) => security::add_flash(&session, "success", by_lang(&lang, "Task rejected.", "Tâche rejetée.")),
-        Err(e) => security::add_flash(&session, "danger", &e.to_string()),
+        Err(e) => security::add_flash(&session, "danger", &e.user_message(&lang)),
     }
     approval_redirect(&form.return_to, &lang, &task_id)
 }

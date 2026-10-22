@@ -30,7 +30,7 @@
 
 {# `field_id` overrides the element id (defaults to `name`); pass it when the
    same field name appears in two forms on one page so ids stay unique. #}
-{% macro text_input(name, label, value="", required=true, type="text", help="", placeholder="", error="", field_id="") %}
+{% macro text_input(name, label, value="", required=true, type="text", help="", placeholder="", error="", field_id="", step="") %}
 <gcds-input
     input-id="{% if field_id %}{{ field_id }}{% else %}{{ name }}{% endif %}"
     name="{{ name }}"
@@ -39,6 +39,7 @@
     value="{{ value }}"
     {% if required %}required="true"{% endif %}
     {% if help %}hint="{{ help }}"{% endif %}
+    {% if step %}step="{{ step }}"{% endif %}
     {% if error %}error-message="{{ error }}"{% endif %}>
 </gcds-input>
 {% endmacro text_input %}
@@ -79,8 +80,12 @@
        default so picking any real option is an index change that fires
        `change` (without this, a select with a single option never fires the
        event and the value is never committed). Optional selects keep a
-       choosable blank. #}
-    {% if blank_label %}<option value=""{% if required %} disabled{% endif %}{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>{% endif %}
+       choosable blank.
+       A required select with nothing chosen always gets a prompt: without one
+       the browser shows the first option as if chosen while the component's
+       value stays empty, so Save fails on a field that looks filled. #}
+    {% if blank_label %}<option value=""{% if required %} disabled{% endif %}{% if selected == "" %} selected{% endif %}>{{ blank_label }}</option>
+    {% elif required and selected == "" %}<option value="" disabled selected>—</option>{% endif %}
     {% for option in options %}
     <option value="{{ option.value }}"{% if option.value == selected %} selected{% endif %}>{% if label_kind %}{{ labels::enum_label(kind=label_kind, value=option.value, lang=lang) }}{% else %}{{ option.label }}{% endif %}</option>
     {% endfor %}
@@ -89,12 +94,13 @@
 
 {# Native date field: already accessible and submits YYYY-MM-DD, which the
    handlers parse. Kept native to avoid changing the submitted value format. #}
-{% macro date_input(name, label, value="", required=false, field_id="") %}
+{% macro date_input(name, label, value="", required=false, field_id="", error="") %}
 {% set the_id = field_id | default(value="") %}
 {% if not the_id %}{% set the_id = name %}{% endif %}
 <div class="mb-3">
     <label class="form-label" for="{{ the_id }}">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
-    <input type="date" class="form-control" id="{{ the_id }}" name="{{ name }}" value="{{ value }}"{% if required %} required{% endif %}>
+    {% if error %}<p class="text-danger fw-semibold mb-1" id="{{ the_id }}-error"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> {{ error }}</p>{% endif %}
+    <input type="date" class="form-control" id="{{ the_id }}" name="{{ name }}" value="{{ value }}"{% if required %} required{% endif %}{% if error %} aria-invalid="true" aria-describedby="{{ the_id }}-error"{% endif %}>
 </div>
 {% endmacro date_input %}
 

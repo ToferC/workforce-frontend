@@ -57,3 +57,5 @@ sendgrid = "0.17.4"
 
 [build-dependencies]
 static-files = "0.3.1"
+[dev-dependencies]
+serde_urlencoded = "0.7"

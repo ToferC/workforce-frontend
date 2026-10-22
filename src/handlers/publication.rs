@@ -11,7 +11,7 @@ use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::person::{organization_options, resolve_person_by_name};
 use super::task::parse_date;
-use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer};
+use super::utility::{redirect_to, csrf_failure_flash, render_page, session_bearer, check_csrf, Csrf, guarded, api_error_flash, field_errors, FieldErrors};
 
 /// PublicationStatus enum values, kept in sync with the API schema.
 pub const PUBLICATION_STATUSES: [&str; 7] = ["PLANNING", "IN_PROGRESS", "DRAFT", "SUBMITTED", "PUBLISHED", "REJECTED", "CANCELLED"];
@@ -22,7 +22,8 @@ fn publication_status_options() -> serde_json::Value {
 
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct PublicationForm {
     pub csrf_token: String,
     // Create only (lead author & org are immutable in the API after creation)
@@ -71,7 +72,7 @@ pub async fn publication_index(
     let publications = match all_publications(bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r.all_publications,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             Vec::new()
         },
     };
@@ -96,7 +97,7 @@ pub async fn publication_by_id(
     let r = match get_publication_by_id(publication_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/publications", &lang));
         },
     };
@@ -149,14 +150,16 @@ pub async fn create_publication_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/publication/new", &lang));
     }
 
-    let render_error = |message: String, id: Option<Identity>, options: serde_json::Value| {
+    let render_error = |message: String, errors: FieldErrors, id: Option<Identity>, options: serde_json::Value| {
         security::add_flash(&session, "danger", &message);
         let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+        ctx.insert("field_errors", &errors);
         ctx.insert("edit", &false);
         ctx.insert("publication", &publication_from_form(&form, None));
         ctx.insert("organization_options", &options);
@@ -168,11 +171,12 @@ pub async fn create_publication_post(
         Ok(Some(person_id)) => person_id,
         Ok(None) => {
             let options = organization_options(&auth.bearer, &data).await;
-            return render_error(by_lang(&lang, "Enter the lead author's name.", "Entrez le nom de l'auteur principal.").to_string(), id, options);
+            let message = by_lang(&lang, "Enter the lead author's name.", "Entrez le nom de l'auteur principal.").to_string();
+            return render_error(message.clone(), FieldErrors::from([("lead_author_name", message)]), id, options);
         },
         Err(message) => {
             let options = organization_options(&auth.bearer, &data).await;
-            return render_error(message, id, options);
+            return render_error(message.clone(), FieldErrors::from([("lead_author_name", message)]), id, options);
         },
     };
 
@@ -188,14 +192,14 @@ pub async fn create_publication_post(
         published_datestamp: parse_date(&form.published_datestamp),
     };
 
-    match create_publication(new_publication, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, create_publication(new_publication, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Publication created.", "Publication créée."));
             redirect_to(format!("/{}/publication/{}", &lang, response.create_publication.id))
         },
         Err(e) => {
             let options = organization_options(&auth.bearer, &data).await;
-            render_error(e.to_string(), id, options)
+            render_error(e.user_message(&lang), field_errors(&e, &lang), id, options)
         },
     }
 }
@@ -218,7 +222,7 @@ pub async fn edit_publication_form(
     let r = match get_publication_by_id(publication_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
         Ok(r) => r,
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            security::add_flash(&session, "danger", &e.user_message(&lang));
             return redirect_to(format!("/{}/publications", &lang));
         },
     };
@@ -247,7 +251,8 @@ pub async fn edit_publication_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/publication/{}/edit", &lang, &publication_id));
     }
@@ -263,14 +268,15 @@ pub async fn edit_publication_post(
         published_datestamp: parse_date(&form.published_datestamp),
     };
 
-    match update_publication(publication_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match guarded(&csrf, update_publication(publication_data, auth.bearer, &data.api_url, Arc::clone(&data.client))).await {
         Ok(response) => {
             security::add_flash(&session, "success", by_lang(&lang, "Publication updated.", "Publication mise à jour."));
             redirect_to(format!("/{}/publication/{}", &lang, response.update_publication.id))
         },
         Err(e) => {
-            security::add_flash(&session, "danger", &e.to_string());
+            let field_errors = api_error_flash(&session, &lang, &e);
             let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            ctx.insert("field_errors", &field_errors);
             ctx.insert("edit", &true);
             ctx.insert("publication", &publication_from_form(&form, Some(&publication_id)));
             ctx.insert("publication_statuses", &publication_status_options());

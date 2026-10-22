@@ -3,13 +3,15 @@
 use serde::{Deserialize};
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct UserForm {
     user_name: String,
     email: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
 pub struct AdminUserForm {
     user_name: String,
     email: String,

@@ -46,8 +46,8 @@
                 {{ forms::csrf(token=csrf_token) }}
                 {{ forms::error_summary() }}
                 <div class="row">
-                    <div class="col-md-6">{{ forms::text_input(name="name_en", label=label_name_en, value=skill.nameEn) }}</div>
-                    <div class="col-md-6">{{ forms::text_input(name="name_fr", label=label_name_fr, value=skill.nameFr) }}</div>
+                    <div class="col-md-6">{{ forms::text_input(name="name_en", label=label_name_en, value=skill.nameEn, error=field_errors.name_en | default(value="")) }}</div>
+                    <div class="col-md-6">{{ forms::text_input(name="name_fr", label=label_name_fr, value=skill.nameFr, error=field_errors.name_fr | default(value="")) }}</div>
                 </div>
                 <div class="row">
                     <div class="col-md-6">{{ forms::textarea(name="description_en", label=label_desc_en, value=skill.descriptionEn) }}</div>

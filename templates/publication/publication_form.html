@@ -50,7 +50,7 @@
                 {{ forms::error_summary() }}
                 {% if not edit %}
                 {{ forms::select(name="organization_id", label=label_org, options=organization_options, blank_label=fluent(key="select-an-organization", lang=lang)) }}
-                {{ forms::text_input(name="lead_author_name", label=label_author, help=help_author) }}
+                {{ forms::text_input(name="lead_author_name", label=label_author, help=help_author, error=field_errors.lead_author_name | default(value="")) }}
                 {% endif %}
                 {{ forms::text_input(name="title", label=label_title, value=publication.title) }}
                 {{ forms::textarea(name="subject_text", label=label_subject, value=publication.subjectText) }}
