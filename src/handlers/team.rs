@@ -21,9 +21,6 @@ pub struct TeamForm {
     pub name_fr: String,
     pub description_en: String,
     pub description_fr: String,
-    // Optional on edit (blank = keep current); Team doesn't expose its
-    // current domain so the edit form can't pre-select it
-    #[serde(default)]
     pub primary_domain: String,
 }
 
@@ -76,6 +73,7 @@ fn team_from_form(form: &TeamForm, id: Option<&str>) -> serde_json::Value {
         "nameFrench": form.name_fr,
         "descriptionEnglish": form.description_en,
         "descriptionFrench": form.description_fr,
+        "primaryDomain": form.primary_domain,
         "organization": {"id": form.organization_id},
         "organizationLevel": {"id": form.org_tier_id},
     })
@@ -413,7 +411,7 @@ pub async fn edit_team_post(
         id: team_id.clone(),
         name_en: Some(form.name_en.trim().to_string()),
         name_fr: Some(form.name_fr.trim().to_string()),
-        // Team doesn't expose its current domain, so blank means unchanged
+        // Blank (a direct post without the field) leaves the domain unchanged
         primary_domain: if form.primary_domain.is_empty() {
             None
         } else {

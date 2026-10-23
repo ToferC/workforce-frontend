@@ -5,13 +5,13 @@
 {% block breadcrumb %}{{ page::trail(lang=lang, org=role_record.team.organization | default(value=false), tiers=role_record.team.organizationLevel.ancestors | default(value=[]) | concat(with=role_record.team.organizationLevel), team=role_record.team, role=role_record) }}{% endblock breadcrumb %}
 
 {% block title %}
-    <title>{{ fluent(key="edit-role-status", lang=lang) }}</title>
+    <title>{{ fluent(key="edit-role", lang=lang) }}</title>
 {% endblock title %}
 
 {% block content %}
 <div class="col-12 col-md-8 px-md-4 px-2 py-4">
 
-    <h1 class="mb-4"><i class="bi bi-briefcase" aria-hidden="true"></i> {{ fluent(key="edit-role-status", lang=lang) }}</h1>
+    <h1 class="mb-4"><i class="bi bi-briefcase" aria-hidden="true"></i> {{ fluent(key="edit-role", lang=lang) }}</h1>
     <p class="lead text-muted">
         {% if lang == "fr" %}{{ role_record.titleFrench }}{% else %}{{ role_record.titleEnglish }}{% endif %}
     </p>
@@ -25,10 +25,12 @@
     {% set label_active = fluent(key="role-active", lang=lang) %}
     {% set label_start = fluent(key="start-date", lang=lang) %}
     {% set label_end = fluent(key="end-date", lang=lang) %}
+    {% set label_effort = fluent(key="effort", lang=lang) %}
+    {% set help_effort = fluent(key="effort-keep-helper", lang=lang) %}
     {% set label_save = fluent(key="save-button", lang=lang) %}
     {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
     {% set cancel_url = "/" ~ lang ~ "/role/" ~ role_record.id %}
-    {% set is_active = role_record.active == "true" %}
+    {% set is_active = role_record.active == "Active" %}
 
     <div class="card shadow-lg">
         <div class="card-body">
@@ -44,6 +46,11 @@
                         {{ forms::text_input(name="title_fr", label=label_title_fr, value=role_record.titleFrench, error=field_errors.title_fr | default(value="")) }}
                     </div>
                 </div>
+
+                {% set cls = role_record %}
+                {% include "role/classification_fields.html" %}
+
+                {{ forms::text_input(name="effort", label=label_effort, value=role_record.effort, type="number", step="any", required=false, help=help_effort) }}
 
                 {{ forms::checkbox(name="active", label=label_active, checked=is_active) }}
 

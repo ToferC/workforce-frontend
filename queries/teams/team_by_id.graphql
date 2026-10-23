@@ -5,6 +5,7 @@ query TeamById($id:UUID!) {
     nameFrench
     descriptionEnglish
     descriptionFrench
+    primaryDomain
     retiredAt
     organizationLevel {
       id

@@ -303,7 +303,6 @@ retire-team-confirm = Êtes-vous sûr de vouloir retirer cette équipe? Elle ser
 description-english = Description (anglais)
 description-french = Description (français)
 org-tier = Niveau organisationnel
-keep-current-domain = Conserver le domaine actuel
 add-team = Ajouter une équipe
 
 ## Person Forms
@@ -333,13 +332,12 @@ active-effort = Effort actif
 ## Role Forms
 create-role = Créer un rôle
 add-role = Ajouter un rôle
-edit-role-status = Modifier le statut du rôle
 end-role = Retirer le poste
 end-role-confirm = Retirer ce poste? Il deviendra inactif avec une date de fin d'aujourd'hui et sera retiré des listes des postes actifs et vacants. Faites-le seulement lorsque l'organisation n'a plus besoin du poste — pour indiquer que la personne actuelle le quitte, utilisez plutôt Libérer, ce qui conserve le poste. L'historique des affectations est conservé dans les deux cas.
 confirm-end-role-button = Oui, retirer le poste
 role-ended = Retiré
 role-active = Le rôle est actif
-role-edit-limited = Les titres, l'indicateur actif et les dates peuvent être modifiés ici. Pour changer la classification ou la personne, terminez ce rôle et créez-en un nouveau, ou utilisez Affecter/Libérer — cela conserve l'historique.
+role-edit-limited = Les corrections de ce poste — titres, classification, effort, indicateur actif et dates — se font ici. Un emploi différent est un nouveau rôle : terminez celui-ci et créez-en un autre, ou utilisez Affecter/Libérer pour la personne, afin de conserver l'historique.
 title-english = Titre (anglais)
 title-french = Titre (français)
 rank = Grade
@@ -349,6 +347,7 @@ civilian-classification = Classification civile (laisser vide pour les rôles mi
 none-option = — Aucun —
 effort = Effort
 effort-helper = Charge de travail prévue pour ce rôle; temps plein correspond environ à 10.
+effort-keep-helper = Laissez vide pour conserver l'effort actuel; temps plein correspond environ à 10.
 start-date = Date de début
 end-date = Date de fin
 assign-person = Affecter une personne (facultatif)
