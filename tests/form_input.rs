@@ -5,7 +5,7 @@ use fluent_templates::FluentLoader;
 use serde_json::json;
 use tera::{Context, Tera};
 
-use frontend::handlers::{ContractEditForm, ContractForm, MyProfileForm, PersonForm, RoleForm};
+use frontend::handlers::{ContractEditForm, ContractForm, MyProfileForm, PersonForm, RoleForm, RoleStatusForm};
 use frontend::LOCALES;
 
 /// An empty GCDS field is left out of the submission entirely, so every form
@@ -19,8 +19,11 @@ fn form_structs_accept_omitted_fields() {
     let profile: MyProfileForm = serde_urlencoded::from_str("csrf_token=t&given_name=Sam").unwrap();
     assert_eq!(profile.phone, "");
     let _: PersonForm = serde_urlencoded::from_str("csrf_token=t").unwrap();
-    let role: RoleForm = serde_urlencoded::from_str("csrf_token=t&effort=2.5").unwrap();
-    assert_eq!(role.effort, 2.5);
+    // Flattened classification fields still parse from a urlencoded body.
+    let role: RoleForm = serde_urlencoded::from_str("csrf_token=t&effort=2.5&classification=military&rank=CAPTAIN").unwrap();
+    assert_eq!((role.effort.as_str(), role.classification.rank.as_str()), ("2.5", "CAPTAIN"));
+    let edit: RoleStatusForm = serde_urlencoded::from_str("csrf_token=t&active=true&occupational_level=3").unwrap();
+    assert_eq!((edit.active.as_deref(), edit.classification.occupational_level.as_str()), (Some("true"), "3"));
 }
 
 fn render(body: &str, ctx: Context) -> String {
@@ -80,4 +83,7 @@ fn filter_select_keeps_a_native_select_usable_without_js() {
 fn date_input_shows_the_date_part_of_an_api_timestamp() {
     let html = render(r#"{{ forms::date_input(name="start", label="Start", value="2026-01-31T00:00:00", required=true) }}"#, Context::new());
     assert!(html.contains(r#"value="2026-01-31""#) && html.contains(r#"required="true""#));
+    // The API reports an open end date as "Still Active": leave the field empty
+    let html = render(r#"{{ forms::date_input(name="end", label="End", value="Still Active") }}"#, Context::new());
+    assert!(!html.contains("value="));
 }

@@ -35,7 +35,6 @@
     {% set label_tier = fluent(key="org-tier", lang=lang) %}
     {% set label_save = fluent(key="save-button", lang=lang) %}
     {% set label_cancel = fluent(key="cancel-button", lang=lang) %}
-    {% set keep_current = fluent(key="keep-current-domain", lang=lang) %}
 
     {% if edit %}
     {% set form_action = "/" ~ lang ~ "/team/" ~ team.id ~ "/edit" %}
@@ -77,11 +76,7 @@
                     </div>
                 </div>
 
-                {% if edit %}
-                {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, required=false, blank_label=keep_current, label_kind="domain", lang=lang) }}
-                {% else %}
-                {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, label_kind="domain", lang=lang) }}
-                {% endif %}
+                {{ forms::select(name="primary_domain", label=label_domain, options=skill_domains, selected=team.primaryDomain | default(value=""), label_kind="domain", lang=lang) }}
 
                 {{ forms::submit_row(label=label_save, cancel_url=cancel_url, cancel_label=label_cancel) }}
             </form>

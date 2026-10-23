@@ -415,6 +415,7 @@ fn sample_team() -> serde_json::Value {
         "nameFrench": "Équipe test",
         "descriptionEnglish": "A team for testing",
         "descriptionFrench": "Une équipe de test",
+        "primaryDomain": "MEDICAL",
         "retiredAt": null,
         "headcount": 0,
         "totalEffort": 0,
@@ -489,6 +490,7 @@ fn team_form_renders_for_create_and_edit() {
         ctx.insert("skill_domains", &domain_options());
         ctx.insert("org_tier_options", &parent_options());
         let html = tera.render("team/team_form.html", &ctx).unwrap();
+        assert!(html.contains("value=\"MEDICAL\" selected"));
         if edit {
             assert!(html.contains("/team/66666666-6666-6666-6666-666666666666/edit"));
             // tier can't change after creation
@@ -579,7 +581,7 @@ fn sample_role_record() -> serde_json::Value {
         "id": "77777777-7777-7777-7777-777777777777",
         "titleEnglish": "Analyst",
         "titleFrench": "Analyste",
-        "active": "true",
+        "active": "Active",
         "militaryOccupation": "CYBER",
         "rank": "CAPTAIN",
         "occupationalGroup": null,
@@ -631,28 +633,21 @@ fn sample_match_score(given: &str, family: &str, score: f64, met: i64, total: i6
     })
 }
 
-fn role_enum_options() -> (serde_json::Value, serde_json::Value) {
-    (
-        json!([{"value": "CAPTAIN", "label": "Captain"}]),
-        json!([{"value": "CYBER", "label": "Cyber"}]),
-    )
-}
-
-fn occupational_group_options() -> serde_json::Value {
-    json!([{"value": "COMPUTER_SYSTEMS", "label": "Computer Systems"}])
+/// The option lists the role create and edit forms' classification fields need.
+fn insert_classification_options(ctx: &mut Context) {
+    ctx.insert("ranks", &json!([{"value": "CAPTAIN", "label": "Captain"}]));
+    ctx.insert("military_occupations", &json!([{"value": "CYBER", "label": "Cyber"}]));
+    ctx.insert("occupational_groups", &json!([{"value": "COMPUTER_SYSTEMS", "label": "Computer Systems"}]));
 }
 
 #[test]
 fn role_form_renders_full_page_and_partial() {
     let tera = tera();
-    let (ranks, occupations) = role_enum_options();
     for template in ["role/role_form.html", "org_chart/add_role_form.html"] {
         let mut ctx = base_context("en", "operator");
         ctx.insert("role_form", &sample_role_form());
         ctx.insert("team", &sample_team());
-        ctx.insert("ranks", &ranks);
-        ctx.insert("military_occupations", &occupations);
-        ctx.insert("occupational_groups", &occupational_group_options());
+        insert_classification_options(&mut ctx);
         let html = tera.render(template, &ctx).unwrap();
         assert!(html.contains("name=\"team_id\" value=\"66666666-6666-6666-6666-666666666666\""));
         assert!(html.contains("value=\"CAPTAIN\" selected"));
@@ -665,6 +660,7 @@ fn role_status_and_end_pages_render() {
     let tera = tera();
     let mut ctx = base_context("en", "operator");
     ctx.insert("role_record", &sample_role_record());
+    insert_classification_options(&mut ctx);
     let html = tera.render("role/role_status_form.html", &ctx).unwrap();
     // active checkbox pre-checked for an active role
     assert!(html.contains("name=\"active\""));
@@ -1704,13 +1700,10 @@ fn role_detail_destructive_actions_go_through_confirmation() {
 #[test]
 fn role_form_offers_classification_choice_and_person_typeahead() {
     let tera = tera();
-    let (ranks, occupations) = role_enum_options();
     let mut ctx = base_context("en", "operator");
     ctx.insert("role_form", &sample_role_form());
     ctx.insert("team", &sample_team());
-    ctx.insert("ranks", &ranks);
-    ctx.insert("military_occupations", &occupations);
-    ctx.insert("occupational_groups", &occupational_group_options());
+    insert_classification_options(&mut ctx);
     let html = tera.render("role/role_form.html", &ctx).unwrap();
     // Explicit classification chooser; military pre-selected from form values
     assert!(html.contains("name=\"classification\""));
@@ -1723,14 +1716,19 @@ fn role_form_offers_classification_choice_and_person_typeahead() {
 }
 
 #[test]
-fn role_status_form_allows_retitling() {
+fn role_edit_form_corrects_titles_classification_and_effort() {
     let tera = tera();
     let mut ctx = base_context("en", "operator");
     ctx.insert("role_record", &sample_role_record());
+    insert_classification_options(&mut ctx);
     let html = tera.render("role/role_status_form.html", &ctx).unwrap();
     assert!(html.contains("name=\"title_en\""));
     assert!(html.contains("name=\"title_fr\""));
     assert!(html.contains("value=\"Analyst\""));
+    // The current classification is pre-selected, military stream shown
+    assert!(html.contains("value=\"CAPTAIN\" selected"));
+    assert!(html.contains("id=\"cls-military\" value=\"military\" checked"));
+    assert!(html.contains("name=\"effort\""));
 }
 
 #[test]

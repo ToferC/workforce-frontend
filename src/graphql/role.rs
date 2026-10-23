@@ -73,8 +73,7 @@ pub async fn create_role(data: create_role::NewRole, bearer: String, api_url: &s
 )]
 pub struct UpdateRole;
 
-/// The API only allows updating active/startDatestamp/endDate by design
-/// (create a new role instead of rewriting history). Ending a role is
+/// Corrects a role in place; unset fields are unchanged. Ending a role is
 /// active = false + endDate = now.
 pub async fn update_role(data: update_role::RoleData, bearer: String, api_url: &str, client: Arc<Client>) -> Result<update_role::ResponseData, ApiError> {
     post_graphql::<UpdateRole>(&client, api_url, &bearer, update_role::Variables {

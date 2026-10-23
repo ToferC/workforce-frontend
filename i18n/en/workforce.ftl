@@ -303,7 +303,6 @@ retire-team-confirm = Are you sure you want to retire this team? It will be mark
 description-english = Description (English)
 description-french = Description (French)
 org-tier = Organization Tier
-keep-current-domain = Keep current domain
 add-team = Add team
 
 ## Person Forms
@@ -333,13 +332,12 @@ active-effort = Active effort
 ## Role Forms
 create-role = Create Role
 add-role = Add role
-edit-role-status = Edit Role Status
 end-role = Retire Position
 end-role-confirm = Retire this position? It becomes inactive with an end date of today and is removed from active and vacancy lists. Do this only when the organization no longer needs the position — to record that the current person is leaving, use Vacate instead, which keeps the position. Assignment history is preserved either way.
 confirm-end-role-button = Yes, retire position
 role-ended = Retired
 role-active = Role is active
-role-edit-limited = Titles, the active flag and dates can be changed here. To change the classification or the person, end this role and create a new one, or use Assign/Vacate — that preserves the history.
+role-edit-limited = Corrections to this position — titles, classification, effort, the active flag and dates — are made here. A different job is a new role: end this one and create another, or use Assign/Vacate for the person, so the history is kept.
 title-english = Title (English)
 title-french = Title (French)
 rank = Rank
@@ -349,6 +347,7 @@ civilian-classification = Civilian classification (leave blank for military role
 none-option = — None —
 effort = Effort
 effort-helper = Expected workload for this role; full time is around 10.
+effort-keep-helper = Leave blank to keep the current effort; full time is around 10.
 start-date = Start date
 end-date = End date
 assign-person = Assign person (optional)

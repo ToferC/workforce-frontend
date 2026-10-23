@@ -24,7 +24,7 @@
             <div class="entity-header__identity">
                 <h1 class="entity-header__title">
                     {{ labels::name(obj=role_record, lang=lang) }}
-                    {% if role_record.active == "false" %}{{ viz::retired_chip(lang=lang, label_key="role-ended") }}{% endif %}
+                    {% if role_record.active == "INACTIVE" %}{{ viz::retired_chip(lang=lang, label_key="role-ended") }}{% endif %}
                 </h1>
                 <p class="entity-header__subtitle">{{ viz::classification(mo=role_record.militaryOccupation, rank=role_record.rank, group=role_record.occupationalGroup, level=role_record.occupationalLevel) }}</p>
             </div>
@@ -55,7 +55,7 @@
                            hx-get="/{{ lang }}/role/{{ role_record.id }}/vacate"
                            hx-target="#confirm-modal-container" hx-swap="innerHTML"><i class="bi bi-person-dash" aria-hidden="true"></i> {{ fluent(key="vacate-role", lang=lang) }}</a>
                         {% endif %}
-                        {% if role_record.active == "true" %}
+                        {% if role_record.active == "Active" %}
                         <a class="action-menu__item action-menu__item--danger" href="/{{ lang }}/role/{{ role_record.id }}/end"><i class="bi bi-stop-circle" aria-hidden="true"></i> {{ fluent(key="end-role", lang=lang) }}</a>
                         {% endif %}
                     </div>

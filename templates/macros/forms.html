@@ -123,7 +123,7 @@
     legend="{{ label }}"
     format="full"
     {% if field_id %}id="{{ field_id }}"{% endif %}
-    {% if value %}value="{{ value | truncate(length=10, end="") }}"{% endif %}
+    {% if value is matching("^\d{4}-\d{2}-\d{2}") %}value="{{ value | truncate(length=10, end="") }}"{% endif %}
     {% if required %}required="true"{% endif %}
     {% if hint %}hint="{{ hint }}"{% endif %}
     {% if error %}error-message="{{ error }}"{% endif %}>

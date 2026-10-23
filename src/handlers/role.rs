@@ -1,8 +1,10 @@
 use actix_session::SessionExt;
-use actix_web::{HttpRequest, Responder, get, post, web};
+use actix_session::Session;
+use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
 use actix_identity::{Identity};
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use serde_json::json;
 
 use std::collections::BTreeMap;
@@ -12,7 +14,7 @@ use crate::graphql::{get_role_by_id, get_role_matches, all_roles, all_organizati
 use crate::security::{self, MinimumRole};
 use super::org_tier::humanize;
 use super::capability::CAPABILITY_LEVELS;
-use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_confirm, render_page, session_bearer, active_organizations_by_name, check_csrf, Csrf, guarded, api_error_flash};
+use super::utility::{redirect_to, csrf_failure_flash, is_htmx, render_confirm, render_page, session_bearer, active_organizations_by_name, check_csrf, Csrf, guarded};
 
 /// Rank enum values, kept in sync with the API schema.
 pub const RANKS: [&str; 17] = [
@@ -61,17 +63,9 @@ pub struct RoleForm {
     pub team_id: String,
     pub title_en: String,
     pub title_fr: String,
-    pub effort: f64,
-    // Military role holders set these; civilian holders leave them blank.
-    #[serde(default)]
-    pub military_occupation: String,
-    #[serde(default)]
-    pub rank: String,
-    // Civilian role holders set these; military holders leave them blank.
-    #[serde(default)]
-    pub occupational_group: String,
-    #[serde(default)]
-    pub occupational_level: String,
+    pub effort: String,
+    #[serde(flatten)]
+    pub classification: ClassificationForm,
     pub start_date: String,
     // Optional: full name of the person to assign; blank creates a vacant role
     #[serde(default)]
@@ -87,6 +81,10 @@ pub struct RoleStatusForm {
     pub active: Option<String>,
     pub title_en: String,
     pub title_fr: String,
+    // Blank leaves the effort unchanged
+    pub effort: String,
+    #[serde(flatten)]
+    pub classification: ClassificationForm,
     pub start_date: String,
     #[serde(default)]
     pub end_date: String,
@@ -135,15 +133,61 @@ fn parse_date(value: &str) -> Option<NaiveDateTime> {
         .and_then(|date| date.and_hms_opt(0, 0, 0))
 }
 
+/// A role's classification as posted by the create and edit forms: military
+/// (occupation, rank), civilian (group, level) or neither. Blank fields are
+/// unset. Flattened forms buffer every value as a string, so effort is parsed
+/// by `parse_effort`.
+#[derive(Deserialize, Default, Debug)]
+#[serde(default)]
+pub struct ClassificationForm {
+    pub military_occupation: String,
+    pub rank: String,
+    pub occupational_group: String,
+    pub occupational_level: String,
+}
+
+impl ClassificationForm {
+    /// The form's radios show one stream at a time, but a post without JS
+    /// can carry both.
+    fn check(&self, lang: &str) -> Result<(), String> {
+        let set = |values: [&str; 2]| values.iter().any(|v| !v.trim().is_empty());
+        if set([&self.rank, &self.military_occupation]) && set([&self.occupational_group, &self.occupational_level]) {
+            return Err(by_lang(
+                lang,
+                "A role must be either military or civilian, not both. Clear one classification.",
+                "Un rôle doit être soit militaire, soit civil, pas les deux. Effacez une classification.",
+            ).to_string());
+        }
+        Ok(())
+    }
+
+    fn level(&self) -> Option<i64> {
+        self.occupational_level.trim().parse().ok()
+    }
+}
+
+/// A blank-or-value form field as any generated GraphQL enum (they all accept
+/// unknown values, so only blank is `None`).
+fn enum_value<T: DeserializeOwned>(value: &str) -> Option<T> {
+    let value = value.trim();
+    (!value.is_empty()).then(|| serde_json::from_value(json!(value)).expect("GraphQL enums accept any string"))
+}
+
+fn parse_effort(value: &str, lang: &str) -> Result<f64, String> {
+    value.trim().parse().map_err(|_| {
+        by_lang(lang, "Effort must be a number.", "L'effort doit être un nombre.").to_string()
+    })
+}
+
 fn role_from_form(form: &RoleForm) -> serde_json::Value {
     json!({
         "titleEnglish": form.title_en,
         "titleFrench": form.title_fr,
         "effort": form.effort,
-        "militaryOccupation": form.military_occupation,
-        "rank": form.rank,
-        "occupationalGroup": form.occupational_group,
-        "occupationalLevel": form.occupational_level,
+        "militaryOccupation": form.classification.military_occupation,
+        "rank": form.classification.rank,
+        "occupationalGroup": form.classification.occupational_group,
+        "occupationalLevel": form.classification.occupational_level,
         "startDate": form.start_date,
         "personName": form.person_name,
         "teamId": form.team_id,
@@ -480,42 +524,24 @@ pub async fn create_role_post(
         form_error = Some(by_lang(&lang, "Invalid start date.", "Date de début invalide.").to_string());
     }
 
-    // Military and civilian classifications are mutually exclusive: a role is
-    // one or the other, never both. The client form disables the opposite
-    // group, but enforce it here too for non-JS / direct posts.
-    let has_military = !form.rank.trim().is_empty() || !form.military_occupation.trim().is_empty();
-    let has_civilian = !form.occupational_group.trim().is_empty() || !form.occupational_level.trim().is_empty();
-    if form_error.is_none() && has_military && has_civilian {
-        form_error = Some(by_lang(
-            &lang,
-            "A role must be either military or civilian, not both. Clear one classification.",
-            "Un rôle doit être soit militaire, soit civil, pas les deux. Effacez une classification.",
-        ).to_string());
+    let classification = &form.classification;
+    let effort = classification.check(&lang).and_then(|_| parse_effort(&form.effort, &lang));
+    if form_error.is_none() {
+        form_error = effort.as_ref().err().cloned();
     }
 
-    if form_error.is_none() {
-        // Military and civilian classifications are mutually exclusive and
-        // all optional on the API: send Some only for the fields the form
-        // actually filled in, leaving the rest null.
-        let blank_to_none = |value: &str| -> Option<serde_json::Value> {
-            let trimmed = value.trim();
-            if trimmed.is_empty() { None } else { Some(json!(trimmed)) }
-        };
-
+    if let (None, Ok(effort)) = (&form_error, effort) {
         let new_role = create_role::NewRole {
             person_id,
             team_id: form.team_id.clone(),
             title_en: form.title_en.trim().to_string(),
             title_fr: form.title_fr.trim().to_string(),
-            effort: form.effort,
+            effort,
             active: true,
-            military_occupation: blank_to_none(&form.military_occupation)
-                .map(|v| serde_json::from_value(v).expect("MilitaryOccupation deserialization is infallible")),
-            rank: blank_to_none(&form.rank)
-                .map(|v| serde_json::from_value(v).expect("Rank deserialization is infallible")),
-            occupational_group: blank_to_none(&form.occupational_group)
-                .map(|v| serde_json::from_value(v).expect("OccupationalGroup deserialization is infallible")),
-            occupational_level: form.occupational_level.trim().parse::<i64>().ok(),
+            military_occupation: enum_value(&classification.military_occupation),
+            rank: enum_value(&classification.rank),
+            occupational_group: enum_value(&classification.occupational_group),
+            occupational_level: classification.level(),
             start_datestamp: start.unwrap(),
             end_date: None,
             // Reporting line is managed separately (defaults to the team owner).
@@ -570,9 +596,56 @@ pub async fn create_role_post(
     render_page(&data, template, &ctx)
 }
 
-/// The API only allows changing a role's active flag and dates — the
-/// edit page is a status form, not a full edit (create a new role to
-/// change titles or assignment, preserving history).
+/// Render the role edit form from the saved role, overlaid with a rejected
+/// post's values so nothing typed is lost.
+async fn render_role_edit(
+    data: &AppData,
+    session: &Session,
+    mut ctx: tera::Context,
+    bearer: String,
+    lang: &str,
+    role_id: String,
+    posted: Option<&RoleStatusForm>,
+) -> HttpResponse {
+    let mut role = match get_role_by_id(role_id, bearer, &data.api_url, Arc::clone(&data.client)).await {
+        Ok(r) => serde_json::to_value(&r.role_by_id).unwrap_or(json!(null)),
+        Err(e) => {
+            security::add_flash(session, "danger", &e.user_message(lang));
+            return redirect_to(format!("/{}", lang));
+        },
+    };
+    // The API reads the occupation back as its display name ("CombatEngineers")
+    // and `effort` as the role's active-work total, not its planned effort:
+    // map the first back to its code, and leave effort blank (= unchanged).
+    let occupation = role["militaryOccupation"].as_str().unwrap_or("").to_string();
+    role["militaryOccupation"] = json!(MILITARY_OCCUPATIONS.iter().find(|c| c.replace('_', "").eq_ignore_ascii_case(&occupation)));
+    role["effort"] = json!("");
+    if let Some(form) = posted {
+        let c = &form.classification;
+        for (key, value) in [
+            ("titleEnglish", &form.title_en),
+            ("titleFrench", &form.title_fr),
+            ("effort", &form.effort),
+            ("militaryOccupation", &c.military_occupation),
+            ("rank", &c.rank),
+            ("occupationalGroup", &c.occupational_group),
+            ("occupationalLevel", &c.occupational_level),
+            ("startDate", &form.start_date),
+            ("endDate", &form.end_date),
+        ] {
+            role[key] = json!(value);
+        }
+        role["active"] = json!(if form.active.is_some() { "Active" } else { "INACTIVE" });
+    }
+    ctx.insert("role_record", &role);
+    ctx.insert("ranks", &enum_options(&RANKS));
+    ctx.insert("military_occupations", &enum_options(&MILITARY_OCCUPATIONS));
+    ctx.insert("occupational_groups", &enum_options(&OCCUPATIONAL_GROUPS));
+    render_page(data, "role/role_status_form.html", &ctx)
+}
+
+/// Corrections to a role: titles, classification, effort, active flag and
+/// dates. A different job is a new role, so history stays visible.
 #[get("/{lang}/role/{role_id}/edit")]
 pub async fn edit_role_form(
     data: web::Data<AppData>,
@@ -588,24 +661,14 @@ pub async fn edit_role_form(
         Err(response) => return response,
     };
 
-    let r = match get_role_by_id(role_id, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
-        Ok(r) => r,
-        Err(e) => {
-            security::add_flash(&session, "danger", &e.user_message(&lang));
-            return redirect_to(format!("/{}", &lang));
-        },
-    };
-
-    let mut ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
-    ctx.insert("role_record", &r.role_by_id);
-
-    render_page(&data, "role/role_status_form.html", &ctx)
+    let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+    render_role_edit(&data, &session, ctx, auth.bearer, &lang, role_id, None).await
 }
 
 #[post("/{lang}/role/{role_id}/edit")]
 pub async fn edit_role_post(
     data: web::Data<AppData>,
-    _id: Option<Identity>,
+    id: Option<Identity>,
     path_params: web::Path<(String, String)>,
     form: web::Form<RoleStatusForm>,
 
@@ -618,7 +681,8 @@ pub async fn edit_role_post(
         Err(response) => return response,
     };
 
-    if !security::verify_csrf_token(&session, &form.csrf_token) {
+    let csrf = check_csrf(&session, &req, &form.csrf_token);
+    if matches!(csrf, Csrf::CrossSite) {
         csrf_failure_flash(&session, &lang);
         return redirect_to(format!("/{}/role/{}/edit", &lang, &role_id));
     }
@@ -629,29 +693,47 @@ pub async fn edit_role_post(
         if trimmed.is_empty() { None } else { Some(trimmed.to_string()) }
     };
 
-    let role_data = update_role::RoleData {
-        id: role_id.clone(),
-        active: Some(form.active.is_some()),
-        title_en: opt_title(&form.title_en),
-        title_fr: opt_title(&form.title_fr),
-        start_datestamp: parse_date(&form.start_date),
-        end_date: parse_date(&form.end_date),
+    let c = &form.classification;
+    let effort = c.check(&lang).and_then(|_| {
+        (!form.effort.trim().is_empty()).then(|| parse_effort(&form.effort, &lang)).transpose()
+    });
+    let result = match effort {
+        Ok(effort) => {
+            let role_data = update_role::RoleData {
+                id: role_id.clone(),
+                active: Some(form.active.is_some()),
+                title_en: opt_title(&form.title_en),
+                title_fr: opt_title(&form.title_fr),
+                start_datestamp: parse_date(&form.start_date),
+                end_date: parse_date(&form.end_date),
+                effort,
+                // The form always shows the current classification, so it
+                // replaces it as a whole (all blank = unclassified).
+                classification: Some(update_role::RoleClassification {
+                    military_occupation: enum_value(&c.military_occupation),
+                    rank: enum_value(&c.rank),
+                    occupational_group: enum_value(&c.occupational_group),
+                    occupational_level: c.level(),
+                }),
+            };
+            guarded(&csrf, update_role(role_data, auth.bearer.clone(), &data.api_url, Arc::clone(&data.client)))
+                .await
+                .map_err(|e| e.user_message(&lang))
+        },
+        Err(message) => Err(message),
     };
 
-    match update_role(role_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
+    match result {
         Ok(_) => {
-            security::add_flash(
-                &session,
-                "success",
-                by_lang(&lang, "Role updated.", "Rôle mis à jour."),
-            );
+            security::add_flash(&session, "success", by_lang(&lang, "Role updated.", "Rôle mis à jour."));
+            redirect_to(format!("/{}/role/{}", &lang, &role_id))
         },
-        Err(e) => {
-            security::add_flash(&session, "danger", &e.user_message(&lang));
+        Err(message) => {
+            security::add_flash(&session, "danger", &message);
+            let ctx = generate_basic_context(id, &lang, req.uri().path(), &session);
+            render_role_edit(&data, &session, ctx, auth.bearer, &lang, role_id, Some(&form)).await
         },
-    };
-
-    redirect_to(format!("/{}/role/{}", &lang, &role_id))
+    }
 }
 
 #[get("/{lang}/role/{role_id}/end")]
@@ -711,6 +793,8 @@ pub async fn end_role_post(
         title_fr: None,
         start_datestamp: None,
         end_date: Some(chrono::Utc::now().naive_utc()),
+        effort: None,
+        classification: None,
     };
 
     match update_role(role_data, auth.bearer, &data.api_url, Arc::clone(&data.client)).await {
